@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>kondate-supporter</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>kondate-supporter</h1>
+  </header>
+  <main>
+    <p>サーバー状態: <span id="status">確認中...</span></p>
+  </main>
+  <script src="/js/api.js"></script>
+  <script>
+    checkHealth().then(ok => {
+      document.getElementById('status').textContent = ok ? '稼働中' : '応答なし';
+    });
+  </script>
+</body>
+</html>
