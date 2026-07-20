@@ -11,6 +11,7 @@ var (
 	ErrDuplicateName      = errors.New("同名のレコードが既に存在します")
 	ErrInUse              = errors.New("使用中のため削除できません")
 	ErrIngredientNotFound = errors.New("存在しない食材が指定されています")
+	ErrRecipeNotFound     = errors.New("存在しないレシピが指定されています")
 )
 
 // SQLiteの拡張結果コード(公式ドキュメントで定義された固定値)。

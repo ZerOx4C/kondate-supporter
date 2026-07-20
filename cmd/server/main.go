@@ -34,12 +34,14 @@ func main() {
 	ingredientRepo := repository.NewIngredientRepository(conn)
 	stockRepo := repository.NewStockRepository(conn)
 	recipeRepo := repository.NewRecipeRepository(conn)
+	planRepo := repository.NewPlanRepository(conn)
 
 	ingredientHandler := handler.NewIngredientHandler(ingredientRepo)
 	stockHandler := handler.NewStockHandler(stockRepo)
 	recipeHandler := handler.NewRecipeHandler(recipeRepo)
+	planHandler := handler.NewPlanHandler(planRepo)
 
-	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler)
+	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler, planHandler)
 
 	log.Printf("listening on %s (dev mode: %v)", cfg.Addr, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
