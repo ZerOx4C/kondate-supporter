@@ -3,16 +3,16 @@ package model
 // Ingredient は食材マスタ。数量・単位の換算は意図的にサポートしない。
 // この食材を参照する数量(在庫・レシピ材料)は常にこのUnitで記録される。
 type Ingredient struct {
-	ID   int64
-	Name string
-	Unit string
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Unit string `json:"unit"`
 }
 
 // Stock は食材ごとの現在の在庫数量。
 type Stock struct {
-	ID           int64
-	IngredientID int64
-	Quantity     float64
+	ID           int64   `json:"id"`
+	IngredientID int64   `json:"ingredientId"`
+	Quantity     float64 `json:"quantity"`
 }
 
 // Recipe はレシピ本体。

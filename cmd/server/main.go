@@ -9,6 +9,7 @@ import (
 	"kondate-supporter/internal/config"
 	"kondate-supporter/internal/db"
 	"kondate-supporter/internal/handler"
+	"kondate-supporter/internal/repository"
 	"kondate-supporter/web"
 )
 
@@ -30,7 +31,13 @@ func main() {
 		log.Fatalf("load static files: %v", err)
 	}
 
-	router := handler.NewRouter(staticFS)
+	ingredientRepo := repository.NewIngredientRepository(conn)
+	stockRepo := repository.NewStockRepository(conn)
+
+	ingredientHandler := handler.NewIngredientHandler(ingredientRepo)
+	stockHandler := handler.NewStockHandler(stockRepo)
+
+	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler)
 
 	log.Printf("listening on %s (dev mode: %v)", cfg.Addr, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
