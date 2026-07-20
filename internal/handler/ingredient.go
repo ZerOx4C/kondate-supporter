@@ -122,7 +122,7 @@ func (h *IngredientHandler) handleError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "食材が見つかりません")
 	case errors.Is(err, repository.ErrDuplicateName):
 		writeError(w, http.StatusConflict, "同名の食材が既に存在します")
-	case errors.Is(err, repository.ErrIngredientInUse):
+	case errors.Is(err, repository.ErrInUse):
 		writeError(w, http.StatusConflict, "レシピで使用中の食材は削除できません")
 	default:
 		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
