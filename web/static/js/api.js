@@ -80,3 +80,33 @@ function updateRecipe(id, name, description, servings, ingredients) {
 function deleteRecipe(id) {
   return apiRequest(`/api/recipes/${id}`, { method: 'DELETE' });
 }
+
+function listPlans(from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString();
+  return apiRequest(`/api/plans${query ? `?${query}` : ''}`);
+}
+
+function getPlan(id) {
+  return apiRequest(`/api/plans/${id}`);
+}
+
+function createPlan(date, recipeId, servings) {
+  return apiRequest('/api/plans', {
+    method: 'POST',
+    body: JSON.stringify({ date, recipeId, servings }),
+  });
+}
+
+function updatePlan(id, date, recipeId, servings) {
+  return apiRequest(`/api/plans/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ date, recipeId, servings }),
+  });
+}
+
+function deletePlan(id) {
+  return apiRequest(`/api/plans/${id}`, { method: 'DELETE' });
+}

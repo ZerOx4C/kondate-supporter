@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>献立 - kondate-supporter</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>kondate-supporter</h1>
+    <nav>
+      <ul>
+        <li><a href="/">トップ</a></li>
+        <li><a href="/ingredients.html">食材マスタ</a></li>
+        <li><a href="/stocks.html">在庫</a></li>
+        <li><a href="/recipes.html">レシピ</a></li>
+        <li><a href="/plans.html" aria-current="page">献立</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <h2>献立</h2>
+
+    <form id="range-form" class="inline-form">
+      <label>
+        開始日
+        <input type="date" id="range-from">
+      </label>
+      <label>
+        終了日
+        <input type="date" id="range-to">
+      </label>
+      <button type="submit">表示</button>
+    </form>
+
+    <table id="plan-table">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>レシピ</th>
+          <th>人数</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="plan-list"></tbody>
+    </table>
+
+    <form id="plan-form" class="inline-form">
+      <input type="hidden" id="plan-id">
+      <label>
+        日付
+        <input type="date" id="plan-date" required>
+      </label>
+      <label>
+        レシピ
+        <select id="plan-recipe" required></select>
+      </label>
+      <label>
+        人数
+        <input type="number" id="plan-servings" min="1" step="1" required>
+      </label>
+      <button type="submit" id="plan-submit">追加</button>
+      <button type="button" id="plan-cancel" hidden>キャンセル</button>
+    </form>
+    <p class="error" id="plan-error"></p>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/plans.js"></script>
+</body>
+</html>
