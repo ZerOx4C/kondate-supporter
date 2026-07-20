@@ -21,3 +21,36 @@ async function checkHealth() {
     return false;
   }
 }
+
+function listIngredients() {
+  return apiRequest('/api/ingredients');
+}
+
+function createIngredient(name, unit) {
+  return apiRequest('/api/ingredients', {
+    method: 'POST',
+    body: JSON.stringify({ name, unit }),
+  });
+}
+
+function updateIngredient(id, name, unit) {
+  return apiRequest(`/api/ingredients/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, unit }),
+  });
+}
+
+function deleteIngredient(id) {
+  return apiRequest(`/api/ingredients/${id}`, { method: 'DELETE' });
+}
+
+function listStocks() {
+  return apiRequest('/api/stocks');
+}
+
+function updateStockQuantity(ingredientId, quantity) {
+  return apiRequest(`/api/stocks/${ingredientId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ quantity }),
+  });
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>食材マスタ - kondate-supporter</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>kondate-supporter</h1>
+    <nav>
+      <ul>
+        <li><a href="/">トップ</a></li>
+        <li><a href="/ingredients.html" aria-current="page">食材マスタ</a></li>
+        <li><a href="/stocks.html">在庫</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <h2>食材マスタ</h2>
+
+    <table id="ingredient-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>単位</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ingredient-list"></tbody>
+    </table>
+
+    <form id="ingredient-form" class="inline-form">
+      <input type="hidden" id="ingredient-id">
+      <label>
+        名前
+        <input type="text" id="ingredient-name" required>
+      </label>
+      <label>
+        単位
+        <input type="text" id="ingredient-unit" required placeholder="g, 本, 個 など">
+      </label>
+      <button type="submit" id="ingredient-submit">追加</button>
+      <button type="button" id="ingredient-cancel" hidden>キャンセル</button>
+    </form>
+    <p class="error" id="ingredient-error"></p>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/ingredients.js"></script>
+</body>
+</html>
