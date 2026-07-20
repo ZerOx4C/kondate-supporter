@@ -54,3 +54,29 @@ function updateStockQuantity(ingredientId, quantity) {
     body: JSON.stringify({ quantity }),
   });
 }
+
+function listRecipes() {
+  return apiRequest('/api/recipes');
+}
+
+function getRecipe(id) {
+  return apiRequest(`/api/recipes/${id}`);
+}
+
+function createRecipe(name, description, servings, ingredients) {
+  return apiRequest('/api/recipes', {
+    method: 'POST',
+    body: JSON.stringify({ name, description, servings, ingredients }),
+  });
+}
+
+function updateRecipe(id, name, description, servings, ingredients) {
+  return apiRequest(`/api/recipes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, description, servings, ingredients }),
+  });
+}
+
+function deleteRecipe(id) {
+  return apiRequest(`/api/recipes/${id}`, { method: 'DELETE' });
+}

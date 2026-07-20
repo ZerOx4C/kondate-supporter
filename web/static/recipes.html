@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>レシピ - kondate-supporter</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>kondate-supporter</h1>
+    <nav>
+      <ul>
+        <li><a href="/">トップ</a></li>
+        <li><a href="/ingredients.html">食材マスタ</a></li>
+        <li><a href="/stocks.html">在庫</a></li>
+        <li><a href="/recipes.html" aria-current="page">レシピ</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <h2>レシピ</h2>
+
+    <table id="recipe-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>説明</th>
+          <th>人数</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="recipe-list"></tbody>
+    </table>
+
+    <form id="recipe-form">
+      <input type="hidden" id="recipe-id">
+      <div class="field-row">
+        <label>
+          名前
+          <input type="text" id="recipe-name" required>
+        </label>
+        <label>
+          人数
+          <input type="number" id="recipe-servings" min="1" step="1" required>
+        </label>
+      </div>
+      <div class="field-row">
+        <label>
+          説明
+          <textarea id="recipe-description" rows="2"></textarea>
+        </label>
+      </div>
+
+      <h3>材料</h3>
+      <div id="ingredient-rows"></div>
+      <button type="button" id="add-ingredient-row">材料を追加</button>
+
+      <div class="field-row" style="margin-top: 1rem;">
+        <button type="submit" id="recipe-submit">追加</button>
+        <button type="button" id="recipe-cancel" hidden>キャンセル</button>
+      </div>
+    </form>
+    <p class="error" id="recipe-error"></p>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/recipes.js"></script>
+</body>
+</html>
