@@ -7,7 +7,7 @@ import (
 
 // NewRouter はすべてのHTTPルートを1つのmuxにまとめる。staticFSは
 // フロントエンド(index.html, css, js)を "/" で配信する。
-func NewRouter(staticFS fs.FS, ingredientHandler *IngredientHandler, stockHandler *StockHandler, recipeHandler *RecipeHandler, planHandler *PlanHandler) http.Handler {
+func NewRouter(staticFS fs.FS, ingredientHandler *IngredientHandler, stockHandler *StockHandler, recipeHandler *RecipeHandler, planHandler *PlanHandler, shoppingListHandler *ShoppingListHandler) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", handleHealthz)
@@ -33,7 +33,7 @@ func NewRouter(staticFS fs.FS, ingredientHandler *IngredientHandler, stockHandle
 	mux.HandleFunc("PUT /api/plans/{id}", planHandler.Update)
 	mux.HandleFunc("DELETE /api/plans/{id}", planHandler.Delete)
 
-	// TODO: shoppinglist のAPIルートをここに登録する。
+	mux.HandleFunc("GET /api/shoppinglist", shoppingListHandler.List)
 
 	mux.Handle("GET /", http.FileServerFS(staticFS))
 

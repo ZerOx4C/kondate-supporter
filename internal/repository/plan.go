@@ -10,11 +10,12 @@ import (
 // PlanDetail はplanとrecipeをJOINした結果。repository層はHTTP/JSONを
 // 意識しないため、JSONタグは付けない。
 type PlanDetail struct {
-	ID         int64
-	Date       string
-	RecipeID   int64
-	RecipeName string
-	Servings   int
+	ID             int64
+	Date           string
+	RecipeID       int64
+	RecipeName     string
+	RecipeServings int
+	Servings       int
 }
 
 // PlanRepository は model.Plan のDBアクセスを提供する。
@@ -30,7 +31,7 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
-		SELECT p.id, p.date, p.recipe_id, r.name, p.servings
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings
 		FROM plans p
 		JOIN recipes r ON r.id = p.recipe_id
 	`)
@@ -58,7 +59,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 	plans := []PlanDetail{}
 	for rows.Next() {
 		var p PlanDetail
-		if err := rows.Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.Servings); err != nil {
+		if err := rows.Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings); err != nil {
 			return nil, err
 		}
 		plans = append(plans, p)
@@ -72,11 +73,11 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) {
 	var p PlanDetail
 	err := r.db.QueryRowContext(ctx, `
-		SELECT p.id, p.date, p.recipe_id, r.name, p.servings
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings
 		FROM plans p
 		JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.Servings)
+	`, id).Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}

@@ -53,19 +53,10 @@ func toPlanResponse(detail repository.PlanDetail) planResponse {
 }
 
 func (h *PlanHandler) List(w http.ResponseWriter, r *http.Request) {
-	from := r.URL.Query().Get("from")
-	to := r.URL.Query().Get("to")
-	if from != "" {
-		if _, err := time.Parse(time.DateOnly, from); err != nil {
-			writeError(w, http.StatusBadRequest, "fromはYYYY-MM-DD形式である必要があります")
-			return
-		}
-	}
-	if to != "" {
-		if _, err := time.Parse(time.DateOnly, to); err != nil {
-			writeError(w, http.StatusBadRequest, "toはYYYY-MM-DD形式である必要があります")
-			return
-		}
+	from, to, err := parseDateRangeQuery(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	plans, err := h.repo.List(r.Context(), from, to)

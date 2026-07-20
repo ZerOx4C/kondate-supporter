@@ -10,6 +10,7 @@ import (
 	"kondate-supporter/internal/db"
 	"kondate-supporter/internal/handler"
 	"kondate-supporter/internal/repository"
+	"kondate-supporter/internal/service"
 	"kondate-supporter/web"
 )
 
@@ -41,7 +42,10 @@ func main() {
 	recipeHandler := handler.NewRecipeHandler(recipeRepo)
 	planHandler := handler.NewPlanHandler(planRepo)
 
-	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler, planHandler)
+	shoppingListService := service.NewShoppingListService(planRepo, recipeRepo, stockRepo)
+	shoppingListHandler := handler.NewShoppingListHandler(shoppingListService)
+
+	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler, planHandler, shoppingListHandler)
 
 	log.Printf("listening on %s (dev mode: %v)", cfg.Addr, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
