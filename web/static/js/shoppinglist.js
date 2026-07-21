@@ -6,50 +6,65 @@ const emptyEl = document.getElementById('shoppinglist-empty');
 const errorEl = document.getElementById('shoppinglist-error');
 const copyButton = document.getElementById('copy-button');
 const copyStatusEl = document.getElementById('copy-status');
+const surplusListBody = document.getElementById('surplus-list');
+const surplusEmptyEl = document.getElementById('surplus-empty');
 
-let currentItems = [];
+let currentShortages = [];
 
 function toDateInputValue(date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
 
-function renderItems(items) {
-  currentItems = items;
+function renderRow(item, amountKey) {
+  const tr = document.createElement('tr');
+
+  const nameTd = document.createElement('td');
+  nameTd.textContent = item.name;
+  tr.appendChild(nameTd);
+
+  const unitTd = document.createElement('td');
+  unitTd.textContent = item.unit;
+  tr.appendChild(unitTd);
+
+  const requiredTd = document.createElement('td');
+  requiredTd.textContent = item.required;
+  tr.appendChild(requiredTd);
+
+  const stockTd = document.createElement('td');
+  stockTd.textContent = item.stock;
+  tr.appendChild(stockTd);
+
+  const amountTd = document.createElement('td');
+  amountTd.textContent = item[amountKey];
+  tr.appendChild(amountTd);
+
+  return tr;
+}
+
+function renderShortages(items) {
+  currentShortages = items;
   listBody.innerHTML = '';
   emptyEl.hidden = items.length > 0;
   for (const item of items) {
-    const tr = document.createElement('tr');
+    listBody.appendChild(renderRow(item, 'shortage'));
+  }
+}
 
-    const nameTd = document.createElement('td');
-    nameTd.textContent = item.name;
-    tr.appendChild(nameTd);
-
-    const unitTd = document.createElement('td');
-    unitTd.textContent = item.unit;
-    tr.appendChild(unitTd);
-
-    const requiredTd = document.createElement('td');
-    requiredTd.textContent = item.required;
-    tr.appendChild(requiredTd);
-
-    const stockTd = document.createElement('td');
-    stockTd.textContent = item.stock;
-    tr.appendChild(stockTd);
-
-    const shortageTd = document.createElement('td');
-    shortageTd.textContent = item.shortage;
-    tr.appendChild(shortageTd);
-
-    listBody.appendChild(tr);
+function renderSurpluses(items) {
+  surplusListBody.innerHTML = '';
+  surplusEmptyEl.hidden = items.length > 0;
+  for (const item of items) {
+    surplusListBody.appendChild(renderRow(item, 'surplus'));
   }
 }
 
 async function loadShoppingList() {
   errorEl.textContent = '';
   try {
-    const items = await getShoppingList(rangeFromField.value, rangeToField.value);
-    renderItems(items);
+    const { shortages, surpluses } = await getShoppingList(rangeFromField.value, rangeToField.value);
+    renderShortages(shortages);
+    renderSurpluses(surpluses);
   } catch (err) {
     errorEl.textContent = err.message;
   }
@@ -66,12 +81,12 @@ function formatItemsAsText(items) {
 
 copyButton.addEventListener('click', async () => {
   copyStatusEl.textContent = '';
-  if (currentItems.length === 0) {
+  if (currentShortages.length === 0) {
     copyStatusEl.textContent = 'コピーする項目がありません';
     return;
   }
   try {
-    await navigator.clipboard.writeText(formatItemsAsText(currentItems));
+    await navigator.clipboard.writeText(formatItemsAsText(currentShortages));
     copyStatusEl.textContent = 'コピーしました';
   } catch (err) {
     copyStatusEl.textContent = 'コピーに失敗しました: ' + err.message;

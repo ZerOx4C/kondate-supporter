@@ -53,6 +53,23 @@
 
     <button type="button" id="copy-button">買い物リストをコピー</button>
     <span id="copy-status"></span>
+
+    <h3>繰越になる食材</h3>
+    <p>指定した期間の献立に対し、在庫が必要量を上回り繰り越しになる食材を表示します。</p>
+
+    <table id="surplus-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>単位</th>
+          <th>必要量</th>
+          <th>在庫</th>
+          <th>余剰量</th>
+        </tr>
+      </thead>
+      <tbody id="surplus-list"></tbody>
+    </table>
+    <p id="surplus-empty" hidden>繰越になる食材はありません。</p>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/shoppinglist.js"></script>

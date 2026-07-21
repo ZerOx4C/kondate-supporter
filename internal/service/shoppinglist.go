@@ -18,8 +18,18 @@ type ShortageItem struct {
 	Shortage     float64
 }
 
+// SurplusItem は算出された余剰食材(在庫が必要量を上回り繰越になる食材)1件分。
+type SurplusItem struct {
+	IngredientID int64
+	Name         string
+	Unit         string
+	Required     float64
+	Stock        float64
+	Surplus      float64
+}
+
 // ShoppingListService は現在の在庫数量をもとに、登録された献立に対して
-// 不足している食材を算出する。
+// 不足している食材と繰越になる余剰食材を算出する。
 type ShoppingListService struct {
 	planRepo   *repository.PlanRepository
 	recipeRepo *repository.RecipeRepository
@@ -45,14 +55,15 @@ type requiredAmount struct {
 }
 
 // Calculate は指定された期間(from/toは省略可)の献立に必要な食材の合計量を
-// 集計し、在庫と比較して不足している食材だけを返す。
-func (s *ShoppingListService) Calculate(ctx context.Context, from, to string) ([]ShortageItem, error) {
+// 集計し、在庫と比較して不足している食材(shortages)と、
+// 必要量を上回り繰越になる食材(surpluses)をそれぞれ返す。
+func (s *ShoppingListService) Calculate(ctx context.Context, from, to string) (shortages []ShortageItem, surpluses []SurplusItem, err error) {
 	plans, err := s.planRepo.List(ctx, from, to)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(plans) == 0 {
-		return []ShortageItem{}, nil
+		return []ShortageItem{}, []SurplusItem{}, nil
 	}
 
 	recipeCache := make(map[int64]repository.RecipeDetail)
@@ -63,7 +74,7 @@ func (s *ShoppingListService) Calculate(ctx context.Context, from, to string) ([
 		if !ok {
 			recipeDetail, err = s.recipeRepo.Get(ctx, plan.RecipeID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			recipeCache[plan.RecipeID] = recipeDetail
 		}
@@ -86,33 +97,46 @@ func (s *ShoppingListService) Calculate(ctx context.Context, from, to string) ([
 
 	stocks, err := s.stockRepo.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	stockByIngredient := make(map[int64]float64, len(stocks))
 	for _, stock := range stocks {
 		stockByIngredient[stock.IngredientID] = stock.Quantity
 	}
 
-	items := make([]ShortageItem, 0, len(required))
+	shortages = make([]ShortageItem, 0, len(required))
+	surpluses = make([]SurplusItem, 0, len(required))
 	for ingredientID, amount := range required {
 		stock := stockByIngredient[ingredientID]
-		shortage := amount.quantity - stock
-		if shortage <= 0 {
-			continue
+		diff := amount.quantity - stock
+		switch {
+		case diff > 0:
+			shortages = append(shortages, ShortageItem{
+				IngredientID: ingredientID,
+				Name:         amount.name,
+				Unit:         amount.unit,
+				Required:     amount.quantity,
+				Stock:        stock,
+				Shortage:     diff,
+			})
+		case diff < 0:
+			surpluses = append(surpluses, SurplusItem{
+				IngredientID: ingredientID,
+				Name:         amount.name,
+				Unit:         amount.unit,
+				Required:     amount.quantity,
+				Stock:        stock,
+				Surplus:      -diff,
+			})
 		}
-		items = append(items, ShortageItem{
-			IngredientID: ingredientID,
-			Name:         amount.name,
-			Unit:         amount.unit,
-			Required:     amount.quantity,
-			Stock:        stock,
-			Shortage:     shortage,
-		})
 	}
 
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].IngredientID < items[j].IngredientID
+	sort.Slice(shortages, func(i, j int) bool {
+		return shortages[i].IngredientID < shortages[j].IngredientID
+	})
+	sort.Slice(surpluses, func(i, j int) bool {
+		return surpluses[i].IngredientID < surpluses[j].IngredientID
 	})
 
-	return items, nil
+	return shortages, surpluses, nil
 }
