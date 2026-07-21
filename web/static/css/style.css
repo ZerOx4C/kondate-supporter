@@ -74,12 +74,24 @@ button.danger {
   min-height: 1.2em;
 }
 
-.checkbox-label {
+.stock-search {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  max-width: 20rem;
   margin-bottom: 0.8rem;
-  width: fit-content;
+}
+
+.new-ingredient-panel {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+  max-width: 30rem;
+}
+
+.new-ingredient-panel p {
+  margin: 0 0 0.4rem;
 }
 
 #copy-status {

@@ -23,10 +23,21 @@
   <main>
     <h2>在庫</h2>
 
-    <label class="checkbox-label">
-      <input type="checkbox" id="show-zero-toggle">
-      数量0の食材も表示する
+    <label class="stock-search">
+      食材を検索
+      <input type="text" id="stock-search" placeholder="2文字以上入力して検索">
     </label>
+
+    <div id="new-ingredient-panel" class="new-ingredient-panel" hidden>
+      <p>「<span id="new-ingredient-query"></span>」を新規食材として登録</p>
+      <form id="new-ingredient-form" class="inline-form">
+        <label>
+          単位
+          <input type="text" id="new-ingredient-unit" placeholder="g, 本, 個 など" required>
+        </label>
+        <button type="submit">追加</button>
+      </form>
+    </div>
 
     <table id="stock-table">
       <thead>
@@ -41,19 +52,6 @@
       <tbody id="stock-list"></tbody>
     </table>
     <p class="error" id="stock-error"></p>
-
-    <h3>新しい食材を登録</h3>
-    <form id="new-ingredient-form" class="inline-form">
-      <label>
-        名前
-        <input type="text" id="new-ingredient-name" required>
-      </label>
-      <label>
-        単位
-        <input type="text" id="new-ingredient-unit" placeholder="g, 本, 個 など" required>
-      </label>
-      <button type="submit">登録</button>
-    </form>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/stocks.js"></script>

@@ -1,19 +1,35 @@
 const stockListBody = document.getElementById('stock-list');
 const stockErrorEl = document.getElementById('stock-error');
-const showZeroToggle = document.getElementById('show-zero-toggle');
+const stockSearchField = document.getElementById('stock-search');
+const newIngredientPanel = document.getElementById('new-ingredient-panel');
+const newIngredientQueryEl = document.getElementById('new-ingredient-query');
 const newIngredientForm = document.getElementById('new-ingredient-form');
-const newIngredientNameField = document.getElementById('new-ingredient-name');
 const newIngredientUnitField = document.getElementById('new-ingredient-unit');
 
 let currentStocks = [];
 
-function renderStocks(stocks) {
-  const visibleStocks = showZeroToggle.checked
-    ? stocks
-    : stocks.filter((stock) => stock.quantity !== 0);
+function getVisibleStocks() {
+  const query = stockSearchField.value.trim();
+  if (query.length < 2) {
+    return { query: '', filtering: false, stocks: currentStocks.filter((s) => s.quantity !== 0) };
+  }
+  const lowerQuery = query.toLowerCase();
+  const matched = currentStocks.filter((s) => s.name.toLowerCase().includes(lowerQuery));
+  const nonZero = matched.filter((s) => s.quantity !== 0);
+  const zero = matched.filter((s) => s.quantity === 0);
+  return { query, filtering: true, stocks: [...nonZero, ...zero] };
+}
+
+function render() {
+  const { query, filtering, stocks } = getVisibleStocks();
+
+  newIngredientPanel.hidden = !filtering;
+  if (filtering) {
+    newIngredientQueryEl.textContent = query;
+  }
 
   stockListBody.innerHTML = '';
-  for (const stock of visibleStocks) {
+  for (const stock of stocks) {
     const tr = document.createElement('tr');
 
     const nameTd = document.createElement('td');
@@ -53,23 +69,22 @@ async function loadStocks() {
   stockErrorEl.textContent = '';
   try {
     currentStocks = await listStocks();
-    renderStocks(currentStocks);
+    render();
   } catch (err) {
     stockErrorEl.textContent = err.message;
   }
 }
 
-showZeroToggle.addEventListener('change', () => renderStocks(currentStocks));
+stockSearchField.addEventListener('input', render);
 
 newIngredientForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   stockErrorEl.textContent = '';
-  const name = newIngredientNameField.value.trim();
+  const name = stockSearchField.value.trim();
   const unit = newIngredientUnitField.value.trim();
   try {
     await createIngredient(name, unit);
-    newIngredientForm.reset();
-    showZeroToggle.checked = true;
+    newIngredientUnitField.value = '';
     await loadStocks();
   } catch (err) {
     stockErrorEl.textContent = err.message;
