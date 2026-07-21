@@ -9,6 +9,17 @@
 <body>
   <header>
     <h1>kondate-supporter</h1>
+    <fieldset class="inline-form date-range">
+      <legend>検討期間</legend>
+      <label>
+        開始日
+        <input type="date" id="range-from">
+      </label>
+      <label>
+        終了日
+        <input type="date" id="range-to">
+      </label>
+    </fieldset>
     <nav>
       <ul>
         <li><a href="/">トップ</a></li>
@@ -66,6 +77,7 @@
     <p class="error" id="recipe-error"></p>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/daterange.js"></script>
   <script src="/js/recipes.js"></script>
 </body>
 </html>

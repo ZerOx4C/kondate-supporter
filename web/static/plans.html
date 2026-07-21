@@ -9,6 +9,17 @@
 <body>
   <header>
     <h1>kondate-supporter</h1>
+    <fieldset class="inline-form date-range">
+      <legend>検討期間</legend>
+      <label>
+        開始日
+        <input type="date" id="range-from">
+      </label>
+      <label>
+        終了日
+        <input type="date" id="range-to">
+      </label>
+    </fieldset>
     <nav>
       <ul>
         <li><a href="/">トップ</a></li>
@@ -22,18 +33,6 @@
   </header>
   <main>
     <h2>献立</h2>
-
-    <form id="range-form" class="inline-form">
-      <label>
-        開始日
-        <input type="date" id="range-from">
-      </label>
-      <label>
-        終了日
-        <input type="date" id="range-to">
-      </label>
-      <button type="submit">表示</button>
-    </form>
 
     <table id="plan-table">
       <thead>
@@ -116,6 +115,7 @@
     <p id="summary-empty" hidden>表示できる食材がありません。</p>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/daterange.js"></script>
   <script src="/js/plans.js"></script>
 </body>
 </html>

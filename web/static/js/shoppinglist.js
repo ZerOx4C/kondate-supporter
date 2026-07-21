@@ -1,6 +1,3 @@
-const rangeForm = document.getElementById('range-form');
-const rangeFromField = document.getElementById('range-from');
-const rangeToField = document.getElementById('range-to');
 const listBody = document.getElementById('shoppinglist-list');
 const emptyEl = document.getElementById('shoppinglist-empty');
 const errorEl = document.getElementById('shoppinglist-error');
@@ -8,11 +5,6 @@ const copyButton = document.getElementById('copy-button');
 const copyStatusEl = document.getElementById('copy-status');
 
 let currentShortages = [];
-
-function toDateInputValue(date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
 
 function renderRow(item) {
   const tr = document.createElement('tr');
@@ -47,10 +39,7 @@ async function loadShoppingList() {
   }
 }
 
-rangeForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  loadShoppingList();
-});
+document.addEventListener('daterangechange', loadShoppingList);
 
 function formatItemsAsText(items) {
   return items.map((item) => `${item.name} ${item.shortage}${item.unit}`).join('\n');
@@ -71,10 +60,6 @@ copyButton.addEventListener('click', async () => {
 });
 
 function init() {
-  const today = new Date();
-  const weekLater = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
-  rangeFromField.value = toDateInputValue(today);
-  rangeToField.value = toDateInputValue(weekLater);
   loadShoppingList();
 }
 

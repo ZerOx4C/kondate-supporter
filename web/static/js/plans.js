@@ -1,6 +1,3 @@
-const rangeForm = document.getElementById('range-form');
-const rangeFromField = document.getElementById('range-from');
-const rangeToField = document.getElementById('range-to');
 const planListBody = document.getElementById('plan-list');
 const planForm = document.getElementById('plan-form');
 const planIdField = document.getElementById('plan-id');
@@ -147,11 +144,6 @@ recipeIngredientFilterDialog.addEventListener('click', (e) => {
   if (e.target === recipeIngredientFilterDialog) recipeIngredientFilterDialog.close();
 });
 
-function toDateInputValue(date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
-
 function resetPlanForm() {
   planForm.reset();
   planIdField.value = '';
@@ -288,10 +280,7 @@ async function refresh() {
   await loadSummary();
 }
 
-rangeForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  refresh();
-});
+document.addEventListener('daterangechange', refresh);
 
 planCancelButton.addEventListener('click', resetPlanForm);
 
@@ -320,11 +309,7 @@ planForm.addEventListener('submit', async (e) => {
 });
 
 async function init() {
-  const today = new Date();
-  const weekLater = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
-  rangeFromField.value = toDateInputValue(today);
-  rangeToField.value = toDateInputValue(weekLater);
-  planDateField.value = toDateInputValue(today);
+  planDateField.value = toDateInputValue(new Date());
 
   planErrorEl.textContent = '';
   try {

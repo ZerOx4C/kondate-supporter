@@ -9,6 +9,17 @@
 <body>
   <header>
     <h1>kondate-supporter</h1>
+    <fieldset class="inline-form date-range">
+      <legend>検討期間</legend>
+      <label>
+        開始日
+        <input type="date" id="range-from">
+      </label>
+      <label>
+        終了日
+        <input type="date" id="range-to">
+      </label>
+    </fieldset>
     <nav>
       <ul>
         <li><a href="/" aria-current="page">トップ</a></li>
@@ -24,6 +35,7 @@
     <p>サーバー状態: <span id="status">確認中...</span></p>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/daterange.js"></script>
   <script>
     checkHealth().then(ok => {
       document.getElementById('status').textContent = ok ? '稼働中' : '応答なし';
