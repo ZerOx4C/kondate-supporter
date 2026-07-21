@@ -298,3 +298,23 @@ form .field-row label {
   gap: 0.3rem;
   flex-shrink: 0;
 }
+
+.plan-add-button {
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+.plan-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.8rem 1rem;
+  width: 30rem;
+  max-width: 95vw;
+}
+
+.plan-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.plan-dialog h3 {
+  margin-top: 0;
+}

@@ -5,9 +5,10 @@ const planDateField = document.getElementById('plan-date');
 const planMealTimeField = document.getElementById('plan-meal-time');
 const planRecipeField = document.getElementById('plan-recipe');
 const planServingsField = document.getElementById('plan-servings');
-const planSubmitButton = document.getElementById('plan-submit');
-const planCancelButton = document.getElementById('plan-cancel');
 const planErrorEl = document.getElementById('plan-error');
+const planDialog = document.getElementById('plan-dialog');
+const planDialogTitle = document.getElementById('plan-dialog-title');
+const planDialogCancelButton = document.getElementById('plan-dialog-cancel');
 const summaryListBody = document.getElementById('summary-list');
 const summaryEmptyEl = document.getElementById('summary-empty');
 const recipeSearchField = document.getElementById('recipe-search-field');
@@ -156,30 +157,32 @@ function resetPlanForm() {
   renderIngredientFilterList();
   renderSelectedIngredientChips();
   renderRecipePickerList();
-  planSubmitButton.textContent = '追加';
-  planCancelButton.hidden = true;
 }
 
-function startEditPlan(plan) {
-  planIdField.value = plan.id;
-  planDateField.value = plan.date;
-  planMealTimeField.value = plan.mealTime;
-  planServingsField.value = plan.servings;
+function closePlanDialog() {
+  planDialog.close();
+  resetPlanForm();
+}
 
-  selectedIngredientFilterIds.clear();
-  recipeIngredientSearchField.value = '';
-  recipeSearchField.value = '';
-  renderIngredientFilterList();
-  renderSelectedIngredientChips();
+function openPlanDialog(plan, defaultDate) {
+  resetPlanForm();
+  if (plan) {
+    planDialogTitle.textContent = '献立を編集';
+    planIdField.value = plan.id;
+    planDateField.value = plan.date;
+    planMealTimeField.value = plan.mealTime;
+    planServingsField.value = plan.servings;
 
-  const recipe = currentRecipes.find((r) => r.id === plan.recipeId);
-  selectedRecipeId = plan.recipeId;
-  planRecipeField.value = plan.recipeId;
-  recipePickerCurrentNameEl.textContent = recipe ? recipe.name : plan.recipeName;
-  renderRecipePickerList();
-
-  planSubmitButton.textContent = '更新';
-  planCancelButton.hidden = false;
+    const recipe = currentRecipes.find((r) => r.id === plan.recipeId);
+    selectedRecipeId = plan.recipeId;
+    planRecipeField.value = plan.recipeId;
+    recipePickerCurrentNameEl.textContent = recipe ? recipe.name : plan.recipeName;
+    renderRecipePickerList();
+  } else {
+    planDialogTitle.textContent = '献立を追加';
+    planDateField.value = defaultDate || toDateInputValue(new Date());
+  }
+  planDialog.showModal();
 }
 
 async function onDeletePlan(plan) {
@@ -227,7 +230,7 @@ function createPlanPanel(plan) {
   const editButton = document.createElement('button');
   editButton.type = 'button';
   editButton.textContent = '編集';
-  editButton.addEventListener('click', () => startEditPlan(plan));
+  editButton.addEventListener('click', () => openPlanDialog(plan));
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement('button');
@@ -262,6 +265,14 @@ function renderPlans(plans) {
       }
       planTd.appendChild(container);
     }
+
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'plan-add-button';
+    addButton.textContent = '追加';
+    addButton.addEventListener('click', () => openPlanDialog(null, date));
+    planTd.appendChild(addButton);
+
     tr.appendChild(planTd);
 
     planListBody.appendChild(tr);
@@ -317,7 +328,11 @@ async function refresh() {
 
 document.addEventListener('daterangechange', refresh);
 
-planCancelButton.addEventListener('click', resetPlanForm);
+planDialogCancelButton.addEventListener('click', closePlanDialog);
+
+planDialog.addEventListener('click', (e) => {
+  if (e.target === planDialog) closePlanDialog();
+});
 
 planForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -336,6 +351,7 @@ planForm.addEventListener('submit', async (e) => {
     } else {
       await createPlan(date, recipeId, servings, mealTime);
     }
+    planDialog.close();
     resetPlanForm();
     await refresh();
   } catch (err) {
@@ -344,8 +360,6 @@ planForm.addEventListener('submit', async (e) => {
 });
 
 async function init() {
-  planDateField.value = toDateInputValue(new Date());
-
   planErrorEl.textContent = '';
   try {
     currentRecipes = await listRecipes();
