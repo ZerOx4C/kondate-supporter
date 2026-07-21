@@ -74,6 +74,14 @@ button.danger {
   min-height: 1.2em;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+  width: fit-content;
+}
+
 .ingredient-row {
   display: flex;
   gap: 0.5rem;

@@ -1,9 +1,16 @@
 const stockListBody = document.getElementById('stock-list');
 const stockErrorEl = document.getElementById('stock-error');
+const showZeroToggle = document.getElementById('show-zero-toggle');
+
+let currentStocks = [];
 
 function renderStocks(stocks) {
+  const visibleStocks = showZeroToggle.checked
+    ? stocks
+    : stocks.filter((stock) => stock.quantity !== 0);
+
   stockListBody.innerHTML = '';
-  for (const stock of stocks) {
+  for (const stock of visibleStocks) {
     const tr = document.createElement('tr');
 
     const nameTd = document.createElement('td');
@@ -42,12 +49,14 @@ function renderStocks(stocks) {
 async function loadStocks() {
   stockErrorEl.textContent = '';
   try {
-    const stocks = await listStocks();
-    renderStocks(stocks);
+    currentStocks = await listStocks();
+    renderStocks(currentStocks);
   } catch (err) {
     stockErrorEl.textContent = err.message;
   }
 }
+
+showZeroToggle.addEventListener('change', () => renderStocks(currentStocks));
 
 async function onUpdate(stock, quantityInput) {
   const quantity = Number(quantityInput.value);
