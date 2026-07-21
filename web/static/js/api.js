@@ -111,6 +111,14 @@ function deletePlan(id) {
   return apiRequest(`/api/plans/${id}`, { method: 'DELETE' });
 }
 
+function getPlanSummary(from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString();
+  return apiRequest(`/api/plans/summary${query ? `?${query}` : ''}`);
+}
+
 function getShoppingList(from, to) {
   const params = new URLSearchParams();
   if (from) params.set('from', from);

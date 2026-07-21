@@ -6,8 +6,6 @@ const emptyEl = document.getElementById('shoppinglist-empty');
 const errorEl = document.getElementById('shoppinglist-error');
 const copyButton = document.getElementById('copy-button');
 const copyStatusEl = document.getElementById('copy-status');
-const surplusListBody = document.getElementById('surplus-list');
-const surplusEmptyEl = document.getElementById('surplus-empty');
 
 let currentShortages = [];
 
@@ -16,7 +14,7 @@ function toDateInputValue(date) {
   return local.toISOString().slice(0, 10);
 }
 
-function renderRow(item, amountKey) {
+function renderRow(item) {
   const tr = document.createElement('tr');
 
   const nameTd = document.createElement('td');
@@ -35,9 +33,9 @@ function renderRow(item, amountKey) {
   stockTd.textContent = item.stock;
   tr.appendChild(stockTd);
 
-  const amountTd = document.createElement('td');
-  amountTd.textContent = item[amountKey];
-  tr.appendChild(amountTd);
+  const shortageTd = document.createElement('td');
+  shortageTd.textContent = item.shortage;
+  tr.appendChild(shortageTd);
 
   return tr;
 }
@@ -47,24 +45,15 @@ function renderShortages(items) {
   listBody.innerHTML = '';
   emptyEl.hidden = items.length > 0;
   for (const item of items) {
-    listBody.appendChild(renderRow(item, 'shortage'));
-  }
-}
-
-function renderSurpluses(items) {
-  surplusListBody.innerHTML = '';
-  surplusEmptyEl.hidden = items.length > 0;
-  for (const item of items) {
-    surplusListBody.appendChild(renderRow(item, 'surplus'));
+    listBody.appendChild(renderRow(item));
   }
 }
 
 async function loadShoppingList() {
   errorEl.textContent = '';
   try {
-    const { shortages, surpluses } = await getShoppingList(rangeFromField.value, rangeToField.value);
+    const shortages = await getShoppingList(rangeFromField.value, rangeToField.value);
     renderShortages(shortages);
-    renderSurpluses(surpluses);
   } catch (err) {
     errorEl.textContent = err.message;
   }

@@ -40,9 +40,9 @@ func main() {
 	ingredientHandler := handler.NewIngredientHandler(ingredientRepo)
 	stockHandler := handler.NewStockHandler(stockRepo)
 	recipeHandler := handler.NewRecipeHandler(recipeRepo)
-	planHandler := handler.NewPlanHandler(planRepo)
 
 	shoppingListService := service.NewShoppingListService(planRepo, recipeRepo, stockRepo)
+	planHandler := handler.NewPlanHandler(planRepo, shoppingListService)
 	shoppingListHandler := handler.NewShoppingListHandler(shoppingListService)
 
 	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler, planHandler, shoppingListHandler)

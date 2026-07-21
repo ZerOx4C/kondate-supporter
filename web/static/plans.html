@@ -75,6 +75,21 @@
       <button type="button" id="plan-cancel" hidden>キャンセル</button>
     </form>
     <p class="error" id="plan-error"></p>
+
+    <h3>材料集計</h3>
+    <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
+
+    <table id="summary-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>必要量</th>
+          <th>残り</th>
+        </tr>
+      </thead>
+      <tbody id="summary-list"></tbody>
+    </table>
+    <p id="summary-empty" hidden>表示できる食材がありません。</p>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/plans.js"></script>

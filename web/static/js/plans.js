@@ -11,6 +11,8 @@ const planServingsField = document.getElementById('plan-servings');
 const planSubmitButton = document.getElementById('plan-submit');
 const planCancelButton = document.getElementById('plan-cancel');
 const planErrorEl = document.getElementById('plan-error');
+const summaryListBody = document.getElementById('summary-list');
+const summaryEmptyEl = document.getElementById('summary-empty');
 
 const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
 
@@ -41,7 +43,7 @@ async function onDeletePlan(plan) {
   planErrorEl.textContent = '';
   try {
     await deletePlan(plan.id);
-    await loadPlans();
+    await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
   }
@@ -97,9 +99,46 @@ async function loadPlans() {
   }
 }
 
+function renderSummary(items) {
+  summaryListBody.innerHTML = '';
+  summaryEmptyEl.hidden = items.length > 0;
+  for (const item of items) {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.textContent = item.name;
+    tr.appendChild(nameTd);
+
+    const requiredTd = document.createElement('td');
+    requiredTd.textContent = `${item.required}${item.unit}`;
+    tr.appendChild(requiredTd);
+
+    const remainingTd = document.createElement('td');
+    remainingTd.textContent = `${item.remaining}${item.unit}`;
+    tr.appendChild(remainingTd);
+
+    summaryListBody.appendChild(tr);
+  }
+}
+
+async function loadSummary() {
+  planErrorEl.textContent = '';
+  try {
+    const items = await getPlanSummary(rangeFromField.value, rangeToField.value);
+    renderSummary(items);
+  } catch (err) {
+    planErrorEl.textContent = err.message;
+  }
+}
+
+async function refresh() {
+  await loadPlans();
+  await loadSummary();
+}
+
 rangeForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  loadPlans();
+  refresh();
 });
 
 planCancelButton.addEventListener('click', resetPlanForm);
@@ -118,7 +157,7 @@ planForm.addEventListener('submit', async (e) => {
       await createPlan(date, recipeId, servings, mealTime);
     }
     resetPlanForm();
-    await loadPlans();
+    await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
   }
@@ -143,7 +182,7 @@ async function init() {
   } catch (err) {
     planErrorEl.textContent = err.message;
   }
-  await loadPlans();
+  await refresh();
 }
 
 init();

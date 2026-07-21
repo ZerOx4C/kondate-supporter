@@ -7,15 +7,17 @@ import (
 	"time"
 
 	"kondate-supporter/internal/repository"
+	"kondate-supporter/internal/service"
 )
 
 // PlanHandler は献立関連のHTTPエンドポイントを提供する。
 type PlanHandler struct {
-	repo *repository.PlanRepository
+	repo                *repository.PlanRepository
+	shoppingListService *service.ShoppingListService
 }
 
-func NewPlanHandler(repo *repository.PlanRepository) *PlanHandler {
-	return &PlanHandler{repo: repo}
+func NewPlanHandler(repo *repository.PlanRepository, shoppingListService *service.ShoppingListService) *PlanHandler {
+	return &PlanHandler{repo: repo, shoppingListService: shoppingListService}
 }
 
 // validMealTimes は献立の食事区分として許可する値。
@@ -55,6 +57,14 @@ type planResponse struct {
 	MealTime   string `json:"mealTime"`
 }
 
+type summaryItemResponse struct {
+	IngredientID int64   `json:"ingredientId"`
+	Name         string  `json:"name"`
+	Unit         string  `json:"unit"`
+	Required     float64 `json:"required"`
+	Remaining    float64 `json:"remaining"`
+}
+
 func toPlanResponse(detail repository.PlanDetail) planResponse {
 	return planResponse{
 		ID:         detail.ID,
@@ -82,6 +92,34 @@ func (h *PlanHandler) List(w http.ResponseWriter, r *http.Request) {
 	res := make([]planResponse, 0, len(plans))
 	for _, p := range plans {
 		res = append(res, toPlanResponse(p))
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+// Summary は指定された期間の献立に登場する食材と在庫がある食材の和集合について、
+// 必要量と在庫からの残りを返す。
+func (h *PlanHandler) Summary(w http.ResponseWriter, r *http.Request) {
+	from, to, err := parseDateRangeQuery(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	items, err := h.shoppingListService.Summarize(r.Context(), from, to)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
+		return
+	}
+
+	res := make([]summaryItemResponse, 0, len(items))
+	for _, item := range items {
+		res = append(res, summaryItemResponse{
+			IngredientID: item.IngredientID,
+			Name:         item.Name,
+			Unit:         item.Unit,
+			Required:     item.Required,
+			Remaining:    item.Remaining,
+		})
 	}
 	writeJSON(w, http.StatusOK, res)
 }

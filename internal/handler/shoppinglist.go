@@ -24,20 +24,6 @@ type shortageItemResponse struct {
 	Shortage     float64 `json:"shortage"`
 }
 
-type surplusItemResponse struct {
-	IngredientID int64   `json:"ingredientId"`
-	Name         string  `json:"name"`
-	Unit         string  `json:"unit"`
-	Required     float64 `json:"required"`
-	Stock        float64 `json:"stock"`
-	Surplus      float64 `json:"surplus"`
-}
-
-type shoppingListResponse struct {
-	Shortages []shortageItemResponse `json:"shortages"`
-	Surpluses []surplusItemResponse  `json:"surpluses"`
-}
-
 func (h *ShoppingListHandler) List(w http.ResponseWriter, r *http.Request) {
 	from, to, err := parseDateRangeQuery(r)
 	if err != nil {
@@ -45,34 +31,21 @@ func (h *ShoppingListHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortages, surpluses, err := h.svc.Calculate(r.Context(), from, to)
+	shortages, err := h.svc.Calculate(r.Context(), from, to)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
 		return
 	}
 
-	res := shoppingListResponse{
-		Shortages: make([]shortageItemResponse, 0, len(shortages)),
-		Surpluses: make([]surplusItemResponse, 0, len(surpluses)),
-	}
+	res := make([]shortageItemResponse, 0, len(shortages))
 	for _, item := range shortages {
-		res.Shortages = append(res.Shortages, shortageItemResponse{
+		res = append(res, shortageItemResponse{
 			IngredientID: item.IngredientID,
 			Name:         item.Name,
 			Unit:         item.Unit,
 			Required:     item.Required,
 			Stock:        item.Stock,
 			Shortage:     item.Shortage,
-		})
-	}
-	for _, item := range surpluses {
-		res.Surpluses = append(res.Surpluses, surplusItemResponse{
-			IngredientID: item.IngredientID,
-			Name:         item.Name,
-			Unit:         item.Unit,
-			Required:     item.Required,
-			Stock:        item.Stock,
-			Surplus:      item.Surplus,
 		})
 	}
 	writeJSON(w, http.StatusOK, res)
