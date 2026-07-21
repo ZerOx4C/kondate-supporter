@@ -267,3 +267,34 @@ form .field-row label {
 .recipe-dialog h3 {
   margin-top: 0;
 }
+
+#plan-table {
+  max-width: none;
+}
+
+#plan-table td:first-child {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.day-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.plan-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.3rem 0.5rem;
+}
+
+.plan-panel-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}

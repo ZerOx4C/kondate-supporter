@@ -193,42 +193,77 @@ async function onDeletePlan(plan) {
   }
 }
 
+function groupPlansByDate(plans) {
+  const map = new Map();
+  for (const plan of plans) {
+    if (!map.has(plan.date)) map.set(plan.date, []);
+    map.get(plan.date).push(plan);
+  }
+  return map;
+}
+
+function enumerateDateRange(fromStr, toStr) {
+  const dates = [];
+  if (!fromStr || !toStr) return dates;
+  const from = new Date(`${fromStr}T00:00:00`);
+  const to = new Date(`${toStr}T00:00:00`);
+  for (let d = from; d <= to; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+    dates.push(toDateInputValue(d));
+  }
+  return dates;
+}
+
+function createPlanPanel(plan) {
+  const panel = document.createElement('div');
+  panel.className = 'plan-panel';
+
+  const text = document.createElement('span');
+  text.textContent = `[${mealTimeLabels[plan.mealTime] || plan.mealTime}] ${plan.recipeName} (${plan.servings}人分)`;
+  panel.appendChild(text);
+
+  const actions = document.createElement('span');
+  actions.className = 'plan-panel-actions';
+
+  const editButton = document.createElement('button');
+  editButton.type = 'button';
+  editButton.textContent = '編集';
+  editButton.addEventListener('click', () => startEditPlan(plan));
+  actions.appendChild(editButton);
+
+  const deleteButton = document.createElement('button');
+  deleteButton.type = 'button';
+  deleteButton.textContent = '削除';
+  deleteButton.className = 'danger';
+  deleteButton.addEventListener('click', () => onDeletePlan(plan));
+  actions.appendChild(deleteButton);
+
+  panel.appendChild(actions);
+  return panel;
+}
+
 function renderPlans(plans) {
   planListBody.innerHTML = '';
-  for (const plan of plans) {
+  const plansByDate = groupPlansByDate(plans);
+  const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
+  for (const date of dates) {
     const tr = document.createElement('tr');
 
     const dateTd = document.createElement('td');
-    dateTd.textContent = plan.date;
+    dateTd.textContent = date;
     tr.appendChild(dateTd);
 
-    const mealTimeTd = document.createElement('td');
-    mealTimeTd.textContent = mealTimeLabels[plan.mealTime] || plan.mealTime;
-    tr.appendChild(mealTimeTd);
+    const planTd = document.createElement('td');
+    const dayPlans = plansByDate.get(date) || [];
+    if (dayPlans.length > 0) {
+      const container = document.createElement('div');
+      container.className = 'day-plans';
+      for (const plan of dayPlans) {
+        container.appendChild(createPlanPanel(plan));
+      }
+      planTd.appendChild(container);
+    }
+    tr.appendChild(planTd);
 
-    const recipeTd = document.createElement('td');
-    recipeTd.textContent = plan.recipeName;
-    tr.appendChild(recipeTd);
-
-    const servingsTd = document.createElement('td');
-    servingsTd.textContent = plan.servings;
-    tr.appendChild(servingsTd);
-
-    const actionTd = document.createElement('td');
-    const editButton = document.createElement('button');
-    editButton.type = 'button';
-    editButton.textContent = '編集';
-    editButton.addEventListener('click', () => startEditPlan(plan));
-    actionTd.appendChild(editButton);
-
-    const deleteButton = document.createElement('button');
-    deleteButton.type = 'button';
-    deleteButton.textContent = '削除';
-    deleteButton.className = 'danger';
-    deleteButton.addEventListener('click', () => onDeletePlan(plan));
-    actionTd.appendChild(deleteButton);
-
-    tr.appendChild(actionTd);
     planListBody.appendChild(tr);
   }
 }
