@@ -39,6 +39,7 @@
       <thead>
         <tr>
           <th>日付</th>
+          <th>区分</th>
           <th>レシピ</th>
           <th>人数</th>
           <th></th>
@@ -52,6 +53,15 @@
       <label>
         日付
         <input type="date" id="plan-date" required>
+      </label>
+      <label>
+        区分
+        <select id="plan-meal-time" required>
+          <option value="morning">朝</option>
+          <option value="noon">昼</option>
+          <option value="night">夜</option>
+          <option value="other">その他</option>
+        </select>
       </label>
       <label>
         レシピ

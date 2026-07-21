@@ -5,11 +5,14 @@ const planListBody = document.getElementById('plan-list');
 const planForm = document.getElementById('plan-form');
 const planIdField = document.getElementById('plan-id');
 const planDateField = document.getElementById('plan-date');
+const planMealTimeField = document.getElementById('plan-meal-time');
 const planRecipeField = document.getElementById('plan-recipe');
 const planServingsField = document.getElementById('plan-servings');
 const planSubmitButton = document.getElementById('plan-submit');
 const planCancelButton = document.getElementById('plan-cancel');
 const planErrorEl = document.getElementById('plan-error');
+
+const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
 
 function toDateInputValue(date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -26,6 +29,7 @@ function resetPlanForm() {
 function startEditPlan(plan) {
   planIdField.value = plan.id;
   planDateField.value = plan.date;
+  planMealTimeField.value = plan.mealTime;
   planRecipeField.value = plan.recipeId;
   planServingsField.value = plan.servings;
   planSubmitButton.textContent = '更新';
@@ -51,6 +55,10 @@ function renderPlans(plans) {
     const dateTd = document.createElement('td');
     dateTd.textContent = plan.date;
     tr.appendChild(dateTd);
+
+    const mealTimeTd = document.createElement('td');
+    mealTimeTd.textContent = mealTimeLabels[plan.mealTime] || plan.mealTime;
+    tr.appendChild(mealTimeTd);
 
     const recipeTd = document.createElement('td');
     recipeTd.textContent = plan.recipeName;
@@ -100,13 +108,14 @@ planForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   planErrorEl.textContent = '';
   const date = planDateField.value;
+  const mealTime = planMealTimeField.value;
   const recipeId = Number(planRecipeField.value);
   const servings = Number(planServingsField.value);
   try {
     if (planIdField.value) {
-      await updatePlan(planIdField.value, date, recipeId, servings);
+      await updatePlan(planIdField.value, date, recipeId, servings, mealTime);
     } else {
-      await createPlan(date, recipeId, servings);
+      await createPlan(date, recipeId, servings, mealTime);
     }
     resetPlanForm();
     await loadPlans();

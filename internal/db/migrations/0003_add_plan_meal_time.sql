@@ -1,0 +1,1 @@
+ALTER TABLE plans ADD COLUMN meal_time TEXT NOT NULL DEFAULT 'other';

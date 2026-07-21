@@ -16,6 +16,7 @@ type PlanDetail struct {
 	RecipeName     string
 	RecipeServings int
 	Servings       int
+	MealTime       string
 }
 
 // PlanRepository は model.Plan のDBアクセスを提供する。
@@ -31,7 +32,7 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time
 		FROM plans p
 		JOIN recipes r ON r.id = p.recipe_id
 	`)
@@ -48,7 +49,15 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 	if len(conditions) > 0 {
 		query.WriteString("WHERE " + strings.Join(conditions, " AND ") + " ")
 	}
-	query.WriteString("ORDER BY p.date, p.id")
+	// 同じ日付の中では朝→昼→夜→その他の順に並べ、献立画面で時系列に見えるようにする。
+	query.WriteString(`ORDER BY p.date,
+		CASE p.meal_time
+			WHEN 'morning' THEN 0
+			WHEN 'noon' THEN 1
+			WHEN 'night' THEN 2
+			ELSE 3
+		END,
+		p.id`)
 
 	rows, err := r.db.QueryContext(ctx, query.String(), args...)
 	if err != nil {
@@ -59,7 +68,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 	plans := []PlanDetail{}
 	for rows.Next() {
 		var p PlanDetail
-		if err := rows.Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings); err != nil {
+		if err := rows.Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings, &p.MealTime); err != nil {
 			return nil, err
 		}
 		plans = append(plans, p)
@@ -73,11 +82,11 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) {
 	var p PlanDetail
 	err := r.db.QueryRowContext(ctx, `
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time
 		FROM plans p
 		JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings)
+	`, id).Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings, &p.MealTime)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}
@@ -100,7 +109,7 @@ func validateRecipeExists(ctx context.Context, tx *sql.Tx, recipeID int64) error
 	return nil
 }
 
-func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64, servings int) (PlanDetail, error) {
+func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64, servings int, mealTime string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -112,8 +121,8 @@ func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"INSERT INTO plans (date, recipe_id, servings) VALUES (?, ?, ?)",
-		date, recipeID, servings,
+		"INSERT INTO plans (date, recipe_id, servings, meal_time) VALUES (?, ?, ?, ?)",
+		date, recipeID, servings, mealTime,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)
@@ -129,7 +138,7 @@ func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64
 	return r.Get(ctx, id)
 }
 
-func (r *PlanRepository) Update(ctx context.Context, id int64, date string, recipeID int64, servings int) (PlanDetail, error) {
+func (r *PlanRepository) Update(ctx context.Context, id int64, date string, recipeID int64, servings int, mealTime string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -141,8 +150,8 @@ func (r *PlanRepository) Update(ctx context.Context, id int64, date string, reci
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"UPDATE plans SET date = ?, recipe_id = ?, servings = ? WHERE id = ?",
-		date, recipeID, servings, id,
+		"UPDATE plans SET date = ?, recipe_id = ?, servings = ?, meal_time = ? WHERE id = ?",
+		date, recipeID, servings, mealTime, id,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)

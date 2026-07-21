@@ -34,9 +34,11 @@ type RecipeIngredient struct {
 
 // Plan は特定の日付に特定のRecipeをServings人分作ることを表す。
 // 1日に複数品作る場合は、同じDateを持つ複数のPlan行になる。
+// MealTimeは"morning"/"noon"/"night"/"other"のいずれか。
 type Plan struct {
 	ID       int64  `json:"id"`
 	Date     string `json:"date"`
 	RecipeID int64  `json:"recipeId"`
 	Servings int    `json:"servings"`
+	MealTime string `json:"mealTime"`
 }
