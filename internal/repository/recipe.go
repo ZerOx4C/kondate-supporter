@@ -62,6 +62,52 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	return recipes, nil
 }
 
+// ListWithIngredients は全レシピを、各レシピの材料情報付きで返す。
+// recipesを1回、recipe_ingredientsを1回の計2クエリで取得し、N+1を避ける。
+func (r *RecipeRepository) ListWithIngredients(ctx context.Context) ([]RecipeDetail, error) {
+	recipes, err := r.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ingredientsByRecipe, err := queryAllRecipeIngredients(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
+	details := make([]RecipeDetail, 0, len(recipes))
+	for _, rec := range recipes {
+		details = append(details, RecipeDetail{Recipe: rec, Ingredients: ingredientsByRecipe[rec.ID]})
+	}
+	return details, nil
+}
+
+// queryAllRecipeIngredients は全recipe_ingredientsをJOIN取得し、recipe_idごとにグルーピングする。
+func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]RecipeIngredientDetail, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT ri.recipe_id, i.id, i.name, i.unit, ri.quantity
+		FROM recipe_ingredients ri
+		JOIN ingredients i ON i.id = ri.ingredient_id
+		ORDER BY ri.recipe_id, ri.id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[int64][]RecipeIngredientDetail)
+	for rows.Next() {
+		var recipeID int64
+		var d RecipeIngredientDetail
+		if err := rows.Scan(&recipeID, &d.IngredientID, &d.Name, &d.Unit, &d.Quantity); err != nil {
+			return nil, err
+		}
+		result[recipeID] = append(result[recipeID], d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, error) {
 	var rec model.Recipe
 	err := r.db.QueryRowContext(ctx,

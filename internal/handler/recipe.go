@@ -94,12 +94,16 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 }
 
 func (h *RecipeHandler) List(w http.ResponseWriter, r *http.Request) {
-	recipes, err := h.repo.List(r.Context())
+	details, err := h.repo.ListWithIngredients(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
 		return
 	}
-	writeJSON(w, http.StatusOK, recipes)
+	responses := make([]recipeResponse, 0, len(details))
+	for _, d := range details {
+		responses = append(responses, toRecipeResponse(d))
+	}
+	writeJSON(w, http.StatusOK, responses)
 }
 
 func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {

@@ -63,10 +63,23 @@
           <option value="other">その他</option>
         </select>
       </label>
-      <label>
-        レシピ
-        <select id="plan-recipe" required></select>
-      </label>
+      <fieldset class="recipe-picker" id="recipe-picker">
+        <legend>レシピ</legend>
+        <input type="hidden" id="plan-recipe">
+
+        <div class="field-row">
+          <label>
+            レシピ名で検索
+            <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off">
+          </label>
+          <button type="button" id="recipe-ingredient-filter-open">含める食材で絞り込む</button>
+        </div>
+
+        <div id="recipe-selected-ingredients" class="selected-ingredient-chips"></div>
+
+        <ul id="recipe-picker-list" class="recipe-picker-list"></ul>
+        <p class="recipe-picker-current">選択中: <strong id="recipe-picker-current-name">(未選択)</strong></p>
+      </fieldset>
       <label>
         人数
         <input type="number" id="plan-servings" min="1" step="1" required>
@@ -75,6 +88,17 @@
       <button type="button" id="plan-cancel" hidden>キャンセル</button>
     </form>
     <p class="error" id="plan-error"></p>
+
+    <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
+      <label>
+        食材を検索
+        <input type="text" id="recipe-ingredient-search-field" placeholder="食材名で検索" autocomplete="off">
+      </label>
+      <ul id="recipe-ingredient-filter-list" class="ingredient-filter-list"></ul>
+      <div class="dialog-actions">
+        <button type="button" id="recipe-ingredient-filter-close">決定</button>
+      </div>
+    </dialog>
 
     <h3>材料集計</h3>
     <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
