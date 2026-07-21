@@ -291,6 +291,24 @@ form .field-row label {
   gap: 0.6rem;
   border: 1px solid light-dark(#ccc, #555);
   padding: 0.3rem 0.5rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.plan-panel.dragging {
+  opacity: 0.4;
+}
+
+.plan-panel-ghost {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.plan-cell.drag-over {
+  background: light-dark(#def, #335);
 }
 
 .plan-panel-actions {

@@ -27,6 +27,8 @@ let currentRecipes = [];
 let filterableIngredients = [];
 let selectedIngredientFilterIds = new Set();
 let selectedRecipeId = null;
+let plansById = new Map();
+let dragState = null;
 
 function buildFilterableIngredients(recipes) {
   const map = new Map();
@@ -198,11 +200,79 @@ async function onDeletePlan(plan) {
 
 function groupPlansByDate(plans) {
   const map = new Map();
+  plansById = new Map();
   for (const plan of plans) {
+    plansById.set(plan.id, plan);
     if (!map.has(plan.date)) map.set(plan.date, []);
     map.get(plan.date).push(plan);
   }
   return map;
+}
+
+async function onDropPlan(planId, newDate) {
+  const plan = plansById.get(Number(planId));
+  if (!plan || plan.date === newDate) return;
+  planErrorEl.textContent = '';
+  try {
+    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime);
+    await refresh();
+  } catch (err) {
+    planErrorEl.textContent = err.message;
+  }
+}
+
+function onPlanPanelPointerDown(e, plan, panel) {
+  if (e.target.closest('.plan-panel-actions')) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+
+  const rect = panel.getBoundingClientRect();
+  const ghost = panel.cloneNode(true);
+  ghost.classList.add('plan-panel-ghost');
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.top = `${rect.top}px`;
+  document.body.appendChild(ghost);
+
+  dragState = {
+    plan,
+    panel,
+    ghost,
+    offsetX: e.clientX - rect.left,
+    offsetY: e.clientY - rect.top,
+    dropCell: null,
+  };
+  panel.classList.add('dragging');
+  panel.setPointerCapture(e.pointerId);
+}
+
+function onPlanPanelPointerMove(e) {
+  if (!dragState) return;
+  const { ghost, offsetX, offsetY } = dragState;
+  ghost.style.left = `${e.clientX - offsetX}px`;
+  ghost.style.top = `${e.clientY - offsetY}px`;
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = target ? target.closest('.plan-cell') : null;
+  if (dragState.dropCell !== cell) {
+    if (dragState.dropCell) dragState.dropCell.classList.remove('drag-over');
+    if (cell) cell.classList.add('drag-over');
+    dragState.dropCell = cell;
+  }
+}
+
+function onPlanPanelPointerUp(e) {
+  if (!dragState) return;
+  const { plan, panel, ghost, dropCell } = dragState;
+  panel.releasePointerCapture(e.pointerId);
+  panel.classList.remove('dragging');
+  ghost.remove();
+  if (dropCell) dropCell.classList.remove('drag-over');
+  dragState = null;
+
+  if (dropCell && dropCell.dataset.date) {
+    onDropPlan(plan.id, dropCell.dataset.date);
+  }
 }
 
 function enumerateDateRange(fromStr, toStr) {
@@ -219,6 +289,10 @@ function enumerateDateRange(fromStr, toStr) {
 function createPlanPanel(plan) {
   const panel = document.createElement('div');
   panel.className = 'plan-panel';
+  panel.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel));
+  panel.addEventListener('pointermove', onPlanPanelPointerMove);
+  panel.addEventListener('pointerup', onPlanPanelPointerUp);
+  panel.addEventListener('pointercancel', onPlanPanelPointerUp);
 
   const text = document.createElement('span');
   text.textContent = `[${mealTimeLabels[plan.mealTime] || plan.mealTime}] ${plan.recipeName} (${plan.servings}人分)`;
@@ -256,6 +330,8 @@ function renderPlans(plans) {
     tr.appendChild(dateTd);
 
     const planTd = document.createElement('td');
+    planTd.className = 'plan-cell';
+    planTd.dataset.date = date;
     const dayPlans = plansByDate.get(date) || [];
     if (dayPlans.length > 0) {
       const container = document.createElement('div');
