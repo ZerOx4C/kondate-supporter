@@ -21,20 +21,8 @@ function renderRow(item) {
   nameTd.textContent = item.name;
   tr.appendChild(nameTd);
 
-  const unitTd = document.createElement('td');
-  unitTd.textContent = item.unit;
-  tr.appendChild(unitTd);
-
-  const requiredTd = document.createElement('td');
-  requiredTd.textContent = item.required;
-  tr.appendChild(requiredTd);
-
-  const stockTd = document.createElement('td');
-  stockTd.textContent = item.stock;
-  tr.appendChild(stockTd);
-
   const shortageTd = document.createElement('td');
-  shortageTd.textContent = item.shortage;
+  shortageTd.textContent = `${item.shortage}${item.unit}`;
   tr.appendChild(shortageTd);
 
   return tr;
