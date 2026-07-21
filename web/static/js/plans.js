@@ -22,6 +22,12 @@ const recipePickerListEl = document.getElementById('recipe-picker-list');
 const recipePickerCurrentNameEl = document.getElementById('recipe-picker-current-name');
 
 const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
+const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+
+function formatDateLabel(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return `${d.getMonth() + 1}/${d.getDate()}(${weekdayLabels[d.getDay()]})`;
+}
 
 let currentRecipes = [];
 let filterableIngredients = [];
@@ -185,6 +191,7 @@ function openPlanDialog(plan, defaultDate) {
     planDateField.value = defaultDate || toDateInputValue(new Date());
   }
   planDialog.showModal();
+  recipeSearchField.focus();
 }
 
 async function onDeletePlan(plan) {
@@ -326,7 +333,7 @@ function renderPlans(plans) {
     const tr = document.createElement('tr');
 
     const dateTd = document.createElement('td');
-    dateTd.textContent = date;
+    dateTd.textContent = formatDateLabel(date);
     tr.appendChild(dateTd);
 
     const planTd = document.createElement('td');
