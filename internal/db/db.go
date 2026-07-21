@@ -19,15 +19,21 @@ func Open(path string) (*sql.DB, error) {
 		}
 	}
 
-	conn, err := sql.Open("sqlite", path)
+	// modernc.org/sqliteはコネクションプールが新規接続を作るたびにDSNの
+	// _pragmaパラメータを適用する。conn.Exec()による事後設定だと、プールが
+	// 既存接続とは別の新規接続を作った場合に設定が反映されないことがある
+	// ため、DSNに埋め込んで確実に全接続へ適用する。
+	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", path)
+
+	conn, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 
-	if _, err := conn.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("enable foreign keys: %w", err)
-	}
+	// SQLiteへの書き込みは常に単一接続に制限し、複数コネクションからの
+	// 同時書き込みによるSQLITE_BUSY(database is locked)を防ぐ。
+	// 個人利用・単一プロセス常時稼働という前提のため、これで十分安全。
+	conn.SetMaxOpenConns(1)
 
 	return conn, nil
 }
