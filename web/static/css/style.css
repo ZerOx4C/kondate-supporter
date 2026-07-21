@@ -115,6 +115,14 @@ button.danger {
   width: 6rem;
 }
 
+.quantity-input {
+  width: 6rem;
+}
+
+.quantity-unit {
+  margin-left: 0.3rem;
+}
+
 form textarea {
   font: inherit;
   width: 100%;

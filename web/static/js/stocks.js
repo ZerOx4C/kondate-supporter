@@ -20,6 +20,18 @@ function getVisibleStocks() {
   return { query, filtering: true, stocks: [...nonZero, ...zero] };
 }
 
+// SQLiteのdatetime('now')はUTCの "YYYY-MM-DD HH:MM:SS" 形式で返るため、
+// UTCとして明示的にパースしたうえで相対時間の文字列に変換する
+function formatUpdatedAt(value) {
+  const updatedAt = new Date(value.replace(' ', 'T') + 'Z');
+  const diffHours = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60);
+  if (diffHours < 1) return 'さっき';
+  if (diffHours < 24) return `${Math.floor(diffHours)}時間前`;
+  const diffDays = diffHours / 24;
+  if (diffDays < 14) return `${Math.floor(diffDays)}日前`;
+  return 'かなり前';
+}
+
 function render() {
   const { query, filtering, stocks } = getVisibleStocks();
 
@@ -36,21 +48,22 @@ function render() {
     nameTd.textContent = stock.name;
     tr.appendChild(nameTd);
 
-    const unitTd = document.createElement('td');
-    unitTd.textContent = stock.unit;
-    tr.appendChild(unitTd);
-
     const quantityTd = document.createElement('td');
     const quantityInput = document.createElement('input');
     quantityInput.type = 'number';
     quantityInput.step = 'any';
     quantityInput.min = '0';
+    quantityInput.className = 'quantity-input';
     quantityInput.value = stock.quantity;
     quantityTd.appendChild(quantityInput);
+    const quantityUnitSpan = document.createElement('span');
+    quantityUnitSpan.className = 'quantity-unit';
+    quantityUnitSpan.textContent = stock.unit;
+    quantityTd.appendChild(quantityUnitSpan);
     tr.appendChild(quantityTd);
 
     const updatedAtTd = document.createElement('td');
-    updatedAtTd.textContent = stock.updatedAt;
+    updatedAtTd.textContent = formatUpdatedAt(stock.updatedAt);
     tr.appendChild(updatedAtTd);
 
     const actionTd = document.createElement('td');
