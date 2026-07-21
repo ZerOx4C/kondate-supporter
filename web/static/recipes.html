@@ -34,6 +34,14 @@
   <main>
     <h2>レシピ</h2>
 
+    <div class="field-row">
+      <label>
+        レシピ名で検索
+        <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off">
+      </label>
+      <button type="button" id="recipe-create-button" hidden></button>
+    </div>
+
     <table id="recipe-table">
       <thead>
         <tr>
@@ -45,36 +53,40 @@
       </thead>
       <tbody id="recipe-list"></tbody>
     </table>
+    <p class="error" id="recipe-list-error"></p>
 
-    <form id="recipe-form">
-      <input type="hidden" id="recipe-id">
-      <div class="field-row">
-        <label>
-          名前
-          <input type="text" id="recipe-name" required>
-        </label>
-        <label>
-          人数
-          <input type="number" id="recipe-servings" min="1" step="1" required>
-        </label>
-      </div>
-      <div class="field-row">
-        <label>
-          説明
-          <textarea id="recipe-description" rows="2"></textarea>
-        </label>
-      </div>
+    <dialog id="recipe-dialog" class="recipe-dialog">
+      <h3 id="recipe-dialog-title">レシピを作成</h3>
+      <form id="recipe-form">
+        <input type="hidden" id="recipe-id">
+        <div class="field-row">
+          <label>
+            名前
+            <input type="text" id="recipe-name" required>
+          </label>
+          <label>
+            人数
+            <input type="number" id="recipe-servings" min="1" step="1" required>
+          </label>
+        </div>
+        <div class="field-row">
+          <label>
+            説明
+            <textarea id="recipe-description" rows="2"></textarea>
+          </label>
+        </div>
 
-      <h3>材料</h3>
-      <div id="ingredient-rows"></div>
-      <button type="button" id="add-ingredient-row">材料を追加</button>
+        <h4>材料</h4>
+        <div id="ingredient-rows"></div>
+        <button type="button" id="add-ingredient-row">材料を追加</button>
 
-      <div class="field-row" style="margin-top: 1rem;">
-        <button type="submit" id="recipe-submit">追加</button>
-        <button type="button" id="recipe-cancel" hidden>キャンセル</button>
-      </div>
-    </form>
-    <p class="error" id="recipe-error"></p>
+        <p class="error" id="recipe-error"></p>
+        <div class="dialog-actions">
+          <button type="button" id="recipe-dialog-cancel">キャンセル</button>
+          <button type="submit" id="recipe-submit">保存</button>
+        </div>
+      </form>
+    </dialog>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/daterange.js"></script>

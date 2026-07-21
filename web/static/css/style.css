@@ -252,3 +252,18 @@ form .field-row label {
   font-size: 0.85rem;
   margin: 0;
 }
+
+.recipe-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.8rem 1rem;
+  width: 34rem;
+  max-width: 95vw;
+}
+
+.recipe-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.recipe-dialog h3 {
+  margin-top: 0;
+}
