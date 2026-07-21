@@ -4,6 +4,10 @@ const rangeToField = document.getElementById('range-to');
 const listBody = document.getElementById('shoppinglist-list');
 const emptyEl = document.getElementById('shoppinglist-empty');
 const errorEl = document.getElementById('shoppinglist-error');
+const copyButton = document.getElementById('copy-button');
+const copyStatusEl = document.getElementById('copy-status');
+
+let currentItems = [];
 
 function toDateInputValue(date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -11,6 +15,7 @@ function toDateInputValue(date) {
 }
 
 function renderItems(items) {
+  currentItems = items;
   listBody.innerHTML = '';
   emptyEl.hidden = items.length > 0;
   for (const item of items) {
@@ -53,6 +58,24 @@ async function loadShoppingList() {
 rangeForm.addEventListener('submit', (e) => {
   e.preventDefault();
   loadShoppingList();
+});
+
+function formatItemsAsText(items) {
+  return items.map((item) => `${item.name} ${item.shortage}${item.unit}`).join('\n');
+}
+
+copyButton.addEventListener('click', async () => {
+  copyStatusEl.textContent = '';
+  if (currentItems.length === 0) {
+    copyStatusEl.textContent = 'コピーする項目がありません';
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(formatItemsAsText(currentItems));
+    copyStatusEl.textContent = 'コピーしました';
+  } catch (err) {
+    copyStatusEl.textContent = 'コピーに失敗しました: ' + err.message;
+  }
 });
 
 function init() {

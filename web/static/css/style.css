@@ -82,6 +82,11 @@ button.danger {
   width: fit-content;
 }
 
+#copy-status {
+  margin-left: 0.6rem;
+  font-size: 0.9rem;
+}
+
 .ingredient-row {
   display: flex;
   gap: 0.5rem;
