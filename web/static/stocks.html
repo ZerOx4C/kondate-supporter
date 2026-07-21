@@ -41,6 +41,19 @@
       <tbody id="stock-list"></tbody>
     </table>
     <p class="error" id="stock-error"></p>
+
+    <h3>新しい食材を登録</h3>
+    <form id="new-ingredient-form" class="inline-form">
+      <label>
+        名前
+        <input type="text" id="new-ingredient-name" required>
+      </label>
+      <label>
+        単位
+        <input type="text" id="new-ingredient-unit" placeholder="g, 本, 個 など" required>
+      </label>
+      <button type="submit">登録</button>
+    </form>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/stocks.js"></script>

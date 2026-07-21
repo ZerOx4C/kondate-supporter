@@ -12,19 +12,61 @@ const recipeErrorEl = document.getElementById('recipe-error');
 
 let ingredientMaster = [];
 
-function addIngredientRow(ingredientId, quantity) {
-  const row = document.createElement('div');
-  row.className = 'ingredient-row';
+const NEW_INGREDIENT_OPTION_VALUE = '__new__';
 
-  const select = document.createElement('select');
-  select.className = 'ingredient-select';
+function fillIngredientOptions(select, selectedId) {
+  select.innerHTML = '';
   for (const ingredient of ingredientMaster) {
     const option = document.createElement('option');
     option.value = ingredient.id;
     option.textContent = `${ingredient.name} (${ingredient.unit})`;
     select.appendChild(option);
   }
-  if (ingredientId !== undefined) select.value = ingredientId;
+  const newOption = document.createElement('option');
+  newOption.value = NEW_INGREDIENT_OPTION_VALUE;
+  newOption.textContent = '+ 新しい食材を追加...';
+  select.appendChild(newOption);
+  if (selectedId !== undefined) select.value = selectedId;
+  select.dataset.prevValue = select.value;
+}
+
+async function onIngredientSelectChange(select) {
+  if (select.value !== NEW_INGREDIENT_OPTION_VALUE) {
+    select.dataset.prevValue = select.value;
+    return;
+  }
+  const name = (window.prompt('新しい食材の名前を入力してください') || '').trim();
+  if (!name) {
+    select.value = select.dataset.prevValue;
+    return;
+  }
+  const unit = (window.prompt('単位を入力してください(例: g, 本, 個)') || '').trim();
+  if (!unit) {
+    select.value = select.dataset.prevValue;
+    return;
+  }
+  recipeErrorEl.textContent = '';
+  try {
+    const ingredient = await createIngredient(name, unit);
+    ingredientMaster.push(ingredient);
+    for (const s of ingredientRowsEl.querySelectorAll('.ingredient-select')) {
+      const selectedId = s === select ? ingredient.id : Number(s.dataset.prevValue);
+      fillIngredientOptions(s, selectedId);
+    }
+  } catch (err) {
+    recipeErrorEl.textContent = err.message;
+    select.value = select.dataset.prevValue;
+  }
+}
+
+function addIngredientRow(ingredientId, quantity) {
+  const row = document.createElement('div');
+  row.className = 'ingredient-row';
+
+  const select = document.createElement('select');
+  select.className = 'ingredient-select';
+  fillIngredientOptions(select, ingredientId);
+  select.addEventListener('change', () => onIngredientSelectChange(select));
 
   const quantityInput = document.createElement('input');
   quantityInput.type = 'number';

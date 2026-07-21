@@ -1,6 +1,9 @@
 const stockListBody = document.getElementById('stock-list');
 const stockErrorEl = document.getElementById('stock-error');
 const showZeroToggle = document.getElementById('show-zero-toggle');
+const newIngredientForm = document.getElementById('new-ingredient-form');
+const newIngredientNameField = document.getElementById('new-ingredient-name');
+const newIngredientUnitField = document.getElementById('new-ingredient-unit');
 
 let currentStocks = [];
 
@@ -57,6 +60,21 @@ async function loadStocks() {
 }
 
 showZeroToggle.addEventListener('change', () => renderStocks(currentStocks));
+
+newIngredientForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  stockErrorEl.textContent = '';
+  const name = newIngredientNameField.value.trim();
+  const unit = newIngredientUnitField.value.trim();
+  try {
+    await createIngredient(name, unit);
+    newIngredientForm.reset();
+    showZeroToggle.checked = true;
+    await loadStocks();
+  } catch (err) {
+    stockErrorEl.textContent = err.message;
+  }
+});
 
 async function onUpdate(stock, quantityInput) {
   const quantity = Number(quantityInput.value);
