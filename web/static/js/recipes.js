@@ -300,14 +300,6 @@ function renderRecipeList() {
     nameTd.textContent = recipe.name;
     tr.appendChild(nameTd);
 
-    const descTd = document.createElement('td');
-    descTd.textContent = recipe.description;
-    tr.appendChild(descTd);
-
-    const servingsTd = document.createElement('td');
-    servingsTd.textContent = recipe.servings;
-    tr.appendChild(servingsTd);
-
     const actionTd = document.createElement('td');
     const useButton = document.createElement('button');
     useButton.type = 'button';

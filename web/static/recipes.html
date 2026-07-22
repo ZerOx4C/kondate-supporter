@@ -11,14 +11,9 @@
     <h1>kondate-supporter</h1>
     <fieldset class="inline-form date-range">
       <legend>検討期間</legend>
-      <label>
-        開始日
-        <input type="date" id="range-from">
-      </label>
-      <label>
-        終了日
-        <input type="date" id="range-to">
-      </label>
+      <input type="date" id="range-from" aria-label="開始日">
+      <span>～</span>
+      <input type="date" id="range-to" aria-label="終了日">
     </fieldset>
     <nav>
       <ul>
@@ -49,8 +44,6 @@
       <thead>
         <tr>
           <th>名前</th>
-          <th>説明</th>
-          <th>人数</th>
           <th></th>
         </tr>
       </thead>
@@ -94,23 +87,14 @@
     <dialog id="use-recipe-dialog" class="recipe-dialog">
       <h3 id="use-recipe-dialog-title">献立に追加</h3>
       <form id="use-recipe-form" class="inline-form">
-        <label>
-          日付
-          <select id="use-recipe-date" required></select>
-        </label>
-        <label>
-          区分
-          <select id="use-recipe-meal-time" required>
-            <option value="morning">朝</option>
-            <option value="noon">昼</option>
-            <option value="night">夜</option>
-            <option value="other">その他</option>
-          </select>
-        </label>
-        <label>
-          人数
-          <input type="number" id="use-recipe-servings" min="1" step="1" required>
-        </label>
+        <select id="use-recipe-date" required aria-label="日付"></select>
+        <select id="use-recipe-meal-time" required aria-label="区分">
+          <option value="morning">朝</option>
+          <option value="noon">昼</option>
+          <option value="night">夜</option>
+          <option value="other">その他</option>
+        </select>
+        <input type="number" id="use-recipe-servings" min="1" step="1" required aria-label="人数">人分
         <p class="error" id="use-recipe-error"></p>
         <div class="dialog-actions">
           <button type="button" id="use-recipe-cancel">キャンセル</button>
