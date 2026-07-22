@@ -53,7 +53,21 @@
     <p class="error" id="recipe-list-error"></p>
 
     <dialog id="recipe-dialog" class="recipe-dialog">
-      <h3 id="recipe-dialog-title">レシピを作成</h3>
+      <h3 id="recipe-dialog-title"></h3>
+      <p class="error" id="recipe-error"></p>
+
+      <div id="recipe-view-fields">
+        <p id="recipe-view-url" class="recipe-view-url"></p>
+        <h4>手順</h4>
+        <ol id="recipe-view-steps"></ol>
+        <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
+        <div class="dialog-actions">
+          <button type="button" id="recipe-view-edit">編集</button>
+          <button type="button" id="recipe-view-delete" class="danger">削除</button>
+          <button type="button" id="recipe-view-close">閉じる</button>
+        </div>
+      </div>
+
       <form id="recipe-form">
         <input type="hidden" id="recipe-id">
         <div class="field-row">
@@ -81,7 +95,6 @@
         <div id="step-rows"></div>
         <button type="button" id="add-step-row">手順を追加</button>
 
-        <p class="error" id="recipe-error"></p>
         <div class="dialog-actions">
           <button type="button" id="recipe-dialog-cancel">キャンセル</button>
           <button type="submit" id="recipe-submit">保存</button>
@@ -106,17 +119,6 @@
           <button type="submit" id="use-recipe-submit">追加</button>
         </div>
       </form>
-    </dialog>
-
-    <dialog id="recipe-view-dialog" class="recipe-dialog">
-      <h3 id="recipe-view-title"></h3>
-      <p id="recipe-view-url" class="recipe-view-url"></p>
-      <h4>手順</h4>
-      <ol id="recipe-view-steps"></ol>
-      <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
-      <div class="dialog-actions">
-        <button type="button" id="recipe-view-close">閉じる</button>
-      </div>
     </dialog>
 
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">

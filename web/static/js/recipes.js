@@ -20,8 +20,18 @@ const useRecipeCancelButton = document.getElementById('use-recipe-cancel');
 
 const recipeDialog = document.getElementById('recipe-dialog');
 const recipeDialogTitle = document.getElementById('recipe-dialog-title');
-const recipeDialogCancelButton = document.getElementById('recipe-dialog-cancel');
+const recipeErrorEl = document.getElementById('recipe-error');
+
+const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
+const recipeViewUrlEl = document.getElementById('recipe-view-url');
+const recipeViewStepsEl = document.getElementById('recipe-view-steps');
+const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty');
+const recipeViewEditButton = document.getElementById('recipe-view-edit');
+const recipeViewDeleteButton = document.getElementById('recipe-view-delete');
+const recipeViewCloseButton = document.getElementById('recipe-view-close');
+
 const recipeForm = document.getElementById('recipe-form');
+const recipeDialogCancelButton = document.getElementById('recipe-dialog-cancel');
 const recipeIdField = document.getElementById('recipe-id');
 const recipeNameField = document.getElementById('recipe-name');
 const recipeServingsField = document.getElementById('recipe-servings');
@@ -31,14 +41,8 @@ const addIngredientRowButton = document.getElementById('add-ingredient-row');
 const stepRowsEl = document.getElementById('step-rows');
 const addStepRowButton = document.getElementById('add-step-row');
 const recipeSubmitButton = document.getElementById('recipe-submit');
-const recipeErrorEl = document.getElementById('recipe-error');
 
-const recipeViewDialog = document.getElementById('recipe-view-dialog');
-const recipeViewTitle = document.getElementById('recipe-view-title');
-const recipeViewUrlEl = document.getElementById('recipe-view-url');
-const recipeViewStepsEl = document.getElementById('recipe-view-steps');
-const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty');
-const recipeViewCloseButton = document.getElementById('recipe-view-close');
+let recipeDialogTarget = null;
 
 let ingredientMaster = [];
 let currentRecipes = [];
@@ -173,47 +177,85 @@ function collectStepRows() {
     .filter((text) => text !== '');
 }
 
-function resetRecipeForm() {
+function applyRecipeDialogMode(mode) {
+  recipeViewFieldsEl.hidden = mode !== 'view';
+  recipeForm.hidden = mode !== 'edit';
+}
+
+function renderRecipeView(recipe) {
+  recipeDialogTitle.textContent = recipe.name;
+  recipeViewUrlEl.innerHTML = '';
+  recipeViewUrlEl.hidden = !recipe.url;
+  if (recipe.url) {
+    const link = document.createElement('a');
+    link.href = recipe.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = recipe.url;
+    recipeViewUrlEl.appendChild(link);
+  }
+
+  recipeViewStepsEl.innerHTML = '';
+  recipeViewStepsEmptyEl.hidden = recipe.steps.length > 0;
+  for (const step of recipe.steps) {
+    const li = document.createElement('li');
+    li.textContent = step;
+    recipeViewStepsEl.appendChild(li);
+  }
+}
+
+function showRecipeView(recipe) {
+  recipeDialogTarget = recipe;
+  recipeErrorEl.textContent = '';
+  renderRecipeView(recipe);
+  applyRecipeDialogMode('view');
+}
+
+function resetRecipeFormFields() {
   recipeForm.reset();
   recipeIdField.value = '';
   ingredientRowsEl.innerHTML = '';
   stepRowsEl.innerHTML = '';
+}
+
+function showRecipeEdit(recipe) {
   recipeErrorEl.textContent = '';
+  resetRecipeFormFields();
+  if (recipe) {
+    recipeDialogTitle.textContent = 'レシピを編集';
+    recipeIdField.value = recipe.id;
+    recipeNameField.value = recipe.name;
+    recipeServingsField.value = recipe.servings;
+    recipeUrlField.value = recipe.url;
+    for (const ing of recipe.ingredients) {
+      addIngredientRow(ing.ingredientId, ing.quantity);
+    }
+    for (const step of recipe.steps) {
+      addStepRow(step);
+    }
+  } else {
+    recipeDialogTitle.textContent = 'レシピを作成';
+    recipeNameField.value = recipeSearchField.value.trim();
+  }
+  applyRecipeDialogMode('edit');
+  recipeNameField.focus();
+}
+
+function openRecipeDialog(recipe) {
+  if (recipe) {
+    showRecipeView(recipe);
+  } else {
+    recipeDialogTarget = null;
+    showRecipeEdit(null);
+  }
+  recipeDialog.showModal();
 }
 
 function closeRecipeDialog() {
   recipeDialog.close();
-  resetRecipeForm();
-}
-
-async function openRecipeDialog(recipe) {
-  resetRecipeForm();
-  if (recipe) {
-    recipeDialogTitle.textContent = 'レシピを編集';
-    recipeSubmitButton.textContent = '保存';
-    recipeDialog.showModal();
-    try {
-      const detail = await getRecipe(recipe.id);
-      recipeIdField.value = detail.id;
-      recipeNameField.value = detail.name;
-      recipeServingsField.value = detail.servings;
-      recipeUrlField.value = detail.url;
-      for (const ing of detail.ingredients) {
-        addIngredientRow(ing.ingredientId, ing.quantity);
-      }
-      for (const step of detail.steps) {
-        addStepRow(step);
-      }
-    } catch (err) {
-      recipeErrorEl.textContent = err.message;
-    }
-  } else {
-    recipeDialogTitle.textContent = 'レシピを作成';
-    recipeSubmitButton.textContent = '保存';
-    recipeNameField.value = recipeSearchField.value.trim();
-    recipeDialog.showModal();
-  }
-  recipeNameField.focus();
+  resetRecipeFormFields();
+  recipeErrorEl.textContent = '';
+  recipeDialogTarget = null;
 }
 
 function renderUseRecipeDateOptions() {
@@ -242,42 +284,15 @@ function closeUseRecipeDialog() {
   useRecipeTarget = null;
 }
 
-function openRecipeViewDialog(recipe) {
-  recipeViewTitle.textContent = recipe.name;
-  recipeViewUrlEl.innerHTML = '';
-  recipeViewUrlEl.hidden = !recipe.url;
-  if (recipe.url) {
-    const link = document.createElement('a');
-    link.href = recipe.url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.textContent = recipe.url;
-    recipeViewUrlEl.appendChild(link);
-  }
-
-  recipeViewStepsEl.innerHTML = '';
-  recipeViewStepsEmptyEl.hidden = recipe.steps.length > 0;
-  for (const step of recipe.steps) {
-    const li = document.createElement('li');
-    li.textContent = step;
-    recipeViewStepsEl.appendChild(li);
-  }
-
-  recipeViewDialog.showModal();
-}
-
-function closeRecipeViewDialog() {
-  recipeViewDialog.close();
-}
-
 async function onDeleteRecipe(recipe) {
   if (!confirm(`「${recipe.name}」を削除しますか?`)) return;
-  recipeListErrorEl.textContent = '';
+  recipeErrorEl.textContent = '';
   try {
     await deleteRecipe(recipe.id);
+    closeRecipeDialog();
     await loadRecipes();
   } catch (err) {
-    recipeListErrorEl.textContent = err.message;
+    recipeErrorEl.textContent = err.message;
   }
 }
 
@@ -386,7 +401,7 @@ function renderRecipeList() {
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
     viewButton.textContent = '表示';
-    viewButton.addEventListener('click', () => openRecipeViewDialog(recipe));
+    viewButton.addEventListener('click', () => openRecipeDialog(recipe));
     actionTd.appendChild(viewButton);
 
     const useButton = document.createElement('button');
@@ -394,19 +409,6 @@ function renderRecipeList() {
     useButton.textContent = '使用';
     useButton.addEventListener('click', () => openUseRecipeDialog(recipe));
     actionTd.appendChild(useButton);
-
-    const editButton = document.createElement('button');
-    editButton.type = 'button';
-    editButton.textContent = '編集';
-    editButton.addEventListener('click', () => openRecipeDialog(recipe));
-    actionTd.appendChild(editButton);
-
-    const deleteButton = document.createElement('button');
-    deleteButton.type = 'button';
-    deleteButton.textContent = '削除';
-    deleteButton.className = 'danger';
-    deleteButton.addEventListener('click', () => onDeleteRecipe(recipe));
-    actionTd.appendChild(deleteButton);
 
     tr.appendChild(actionTd);
     recipeListBody.appendChild(tr);
@@ -461,11 +463,9 @@ recipeIngredientFilterDialog.addEventListener('click', (e) => {
   if (isDialogBackdropClick(recipeIngredientFilterDialog, e)) recipeIngredientFilterDialog.close();
 });
 
-recipeViewCloseButton.addEventListener('click', closeRecipeViewDialog);
-
-recipeViewDialog.addEventListener('click', (e) => {
-  if (isDialogBackdropClick(recipeViewDialog, e)) closeRecipeViewDialog();
-});
+recipeViewEditButton.addEventListener('click', () => showRecipeEdit(recipeDialogTarget));
+recipeViewDeleteButton.addEventListener('click', () => onDeleteRecipe(recipeDialogTarget));
+recipeViewCloseButton.addEventListener('click', closeRecipeDialog);
 
 useRecipeCancelButton.addEventListener('click', closeUseRecipeDialog);
 
@@ -489,7 +489,13 @@ useRecipeForm.addEventListener('submit', async (e) => {
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
 addStepRowButton.addEventListener('click', () => addStepRow());
-recipeDialogCancelButton.addEventListener('click', closeRecipeDialog);
+recipeDialogCancelButton.addEventListener('click', () => {
+  if (recipeDialogTarget) {
+    showRecipeView(recipeDialogTarget);
+  } else {
+    closeRecipeDialog();
+  }
+});
 
 recipeDialog.addEventListener('click', (e) => {
   if (isDialogBackdropClick(recipeDialog, e)) closeRecipeDialog();
@@ -509,8 +515,7 @@ recipeForm.addEventListener('submit', async (e) => {
     } else {
       await createRecipe(name, url, servings, ingredients, steps);
     }
-    recipeDialog.close();
-    resetRecipeForm();
+    closeRecipeDialog();
     await loadRecipes();
   } catch (err) {
     recipeErrorEl.textContent = err.message;
