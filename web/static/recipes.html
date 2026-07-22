@@ -39,8 +39,11 @@
         レシピ名で検索
         <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off">
       </label>
+      <button type="button" id="recipe-ingredient-filter-open">含める食材で絞り込む</button>
       <button type="button" id="recipe-create-button" hidden></button>
     </div>
+
+    <div id="recipe-selected-ingredients" class="selected-ingredient-chips"></div>
 
     <table id="recipe-table">
       <thead>
@@ -86,6 +89,17 @@
           <button type="submit" id="recipe-submit">保存</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
+      <label>
+        食材を検索
+        <input type="text" id="recipe-ingredient-search-field" placeholder="食材名で検索" autocomplete="off">
+      </label>
+      <ul id="recipe-ingredient-filter-list" class="ingredient-filter-list"></ul>
+      <div class="dialog-actions">
+        <button type="button" id="recipe-ingredient-filter-close">決定</button>
+      </div>
     </dialog>
   </main>
   <script src="/js/api.js"></script>

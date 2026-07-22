@@ -2,6 +2,12 @@ const recipeListBody = document.getElementById('recipe-list');
 const recipeListErrorEl = document.getElementById('recipe-list-error');
 const recipeSearchField = document.getElementById('recipe-search-field');
 const recipeCreateButton = document.getElementById('recipe-create-button');
+const recipeIngredientFilterOpenButton = document.getElementById('recipe-ingredient-filter-open');
+const recipeIngredientFilterDialog = document.getElementById('recipe-ingredient-filter-dialog');
+const recipeIngredientFilterCloseButton = document.getElementById('recipe-ingredient-filter-close');
+const recipeIngredientSearchField = document.getElementById('recipe-ingredient-search-field');
+const recipeIngredientFilterListEl = document.getElementById('recipe-ingredient-filter-list');
+const recipeSelectedIngredientsEl = document.getElementById('recipe-selected-ingredients');
 
 const recipeDialog = document.getElementById('recipe-dialog');
 const recipeDialogTitle = document.getElementById('recipe-dialog-title');
@@ -18,6 +24,8 @@ const recipeErrorEl = document.getElementById('recipe-error');
 
 let ingredientMaster = [];
 let currentRecipes = [];
+let filterableIngredients = [];
+let selectedIngredientFilterIds = new Set();
 
 const NEW_INGREDIENT_OPTION_VALUE = '__new__';
 
@@ -152,10 +160,80 @@ async function onDeleteRecipe(recipe) {
   }
 }
 
+function buildFilterableIngredients(recipes) {
+  const map = new Map();
+  for (const recipe of recipes) {
+    for (const ing of recipe.ingredients) {
+      if (!map.has(ing.ingredientId)) {
+        map.set(ing.ingredientId, { id: ing.ingredientId, name: ing.name });
+      }
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+}
+
+function renderIngredientFilterList() {
+  const query = recipeIngredientSearchField.value.trim().toLowerCase();
+  const items = query
+    ? filterableIngredients.filter((i) => i.name.toLowerCase().includes(query))
+    : filterableIngredients;
+
+  recipeIngredientFilterListEl.innerHTML = '';
+  for (const ingredient of items) {
+    const li = document.createElement('li');
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = selectedIngredientFilterIds.has(ingredient.id);
+    checkbox.addEventListener('change', () => onToggleIngredientFilter(ingredient.id, checkbox.checked));
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(ingredient.name));
+    li.appendChild(label);
+    recipeIngredientFilterListEl.appendChild(li);
+  }
+}
+
+function onToggleIngredientFilter(ingredientId, checked) {
+  if (checked) selectedIngredientFilterIds.add(ingredientId);
+  else selectedIngredientFilterIds.delete(ingredientId);
+  renderSelectedIngredientChips();
+  renderRecipeList();
+}
+
+function renderSelectedIngredientChips() {
+  recipeSelectedIngredientsEl.innerHTML = '';
+  for (const id of selectedIngredientFilterIds) {
+    const ingredient = filterableIngredients.find((i) => i.id === id);
+    if (!ingredient) continue;
+    const chip = document.createElement('span');
+    chip.className = 'ingredient-chip';
+    chip.textContent = ingredient.name;
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.textContent = '×';
+    removeButton.addEventListener('click', () => {
+      selectedIngredientFilterIds.delete(id);
+      renderIngredientFilterList();
+      renderSelectedIngredientChips();
+      renderRecipeList();
+    });
+    chip.appendChild(removeButton);
+    recipeSelectedIngredientsEl.appendChild(chip);
+  }
+}
+
 function getFilteredRecipes() {
   const query = recipeSearchField.value.trim().toLowerCase();
-  if (!query) return currentRecipes;
-  return currentRecipes.filter((recipe) => recipe.name.toLowerCase().includes(query));
+  return currentRecipes.filter((recipe) => {
+    if (query && !recipe.name.toLowerCase().includes(query)) return false;
+    if (selectedIngredientFilterIds.size > 0) {
+      const recipeIngredientIds = new Set(recipe.ingredients.map((i) => i.ingredientId));
+      for (const id of selectedIngredientFilterIds) {
+        if (!recipeIngredientIds.has(id)) return false;
+      }
+    }
+    return true;
+  });
 }
 
 function renderRecipeList() {
@@ -214,6 +292,8 @@ async function loadRecipes() {
   recipeListErrorEl.textContent = '';
   try {
     currentRecipes = await listRecipes();
+    filterableIngredients = buildFilterableIngredients(currentRecipes);
+    renderIngredientFilterList();
     renderRecipeList();
     updateCreateButton();
   } catch (err) {
@@ -223,6 +303,23 @@ async function loadRecipes() {
 
 recipeSearchField.addEventListener('input', onRecipeSearchInput);
 recipeCreateButton.addEventListener('click', () => openRecipeDialog());
+
+recipeIngredientSearchField.addEventListener('input', renderIngredientFilterList);
+
+recipeIngredientFilterOpenButton.addEventListener('click', () => {
+  recipeIngredientSearchField.value = '';
+  renderIngredientFilterList();
+  recipeIngredientFilterDialog.showModal();
+  recipeIngredientSearchField.focus();
+});
+
+recipeIngredientFilterCloseButton.addEventListener('click', () => {
+  recipeIngredientFilterDialog.close();
+});
+
+recipeIngredientFilterDialog.addEventListener('click', (e) => {
+  if (e.target === recipeIngredientFilterDialog) recipeIngredientFilterDialog.close();
+});
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
 recipeDialogCancelButton.addEventListener('click', closeRecipeDialog);
