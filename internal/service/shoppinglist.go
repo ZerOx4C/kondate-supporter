@@ -66,13 +66,17 @@ func (s *ShoppingListService) aggregate(ctx context.Context, from, to string) (m
 	required := make(map[int64]*requiredAmount)
 
 	for _, plan := range plans {
-		recipeDetail, ok := recipeCache[plan.RecipeID]
+		if plan.RecipeID == nil {
+			// レシピに依存しないメモ行は食材集計の対象外。
+			continue
+		}
+		recipeDetail, ok := recipeCache[*plan.RecipeID]
 		if !ok {
-			recipeDetail, err = s.recipeRepo.Get(ctx, plan.RecipeID)
+			recipeDetail, err = s.recipeRepo.Get(ctx, *plan.RecipeID)
 			if err != nil {
 				return nil, nil, err
 			}
-			recipeCache[plan.RecipeID] = recipeDetail
+			recipeCache[*plan.RecipeID] = recipeDetail
 		}
 
 		if recipeDetail.Recipe.Servings <= 0 {

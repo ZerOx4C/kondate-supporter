@@ -93,17 +93,17 @@ function getPlan(id) {
   return apiRequest(`/api/plans/${id}`);
 }
 
-function createPlan(date, recipeId, servings, mealTime) {
+function createPlan(date, recipeId, servings, mealTime, note) {
   return apiRequest('/api/plans', {
     method: 'POST',
-    body: JSON.stringify({ date, recipeId, servings, mealTime }),
+    body: JSON.stringify({ date, recipeId, servings, mealTime, note }),
   });
 }
 
-function updatePlan(id, date, recipeId, servings, mealTime) {
+function updatePlan(id, date, recipeId, servings, mealTime, note) {
   return apiRequest(`/api/plans/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ date, recipeId, servings, mealTime }),
+    body: JSON.stringify({ date, recipeId, servings, mealTime, note }),
   });
 }
 

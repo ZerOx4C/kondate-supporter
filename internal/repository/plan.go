@@ -7,16 +7,18 @@ import (
 	"strings"
 )
 
-// PlanDetail はplanとrecipeをJOINした結果。repository層はHTTP/JSONを
-// 意識しないため、JSONタグは付けない。
+// PlanDetail はplanとrecipeをLEFT JOINした結果。repository層はHTTP/JSONを
+// 意識しないため、JSONタグは付けない。RecipeIDがnilの行はレシピに依存しない
+// メモ行(外食予定や作り置きなど)を表す。
 type PlanDetail struct {
 	ID             int64
 	Date           string
-	RecipeID       int64
+	RecipeID       *int64
 	RecipeName     string
 	RecipeServings int
 	Servings       int
 	MealTime       string
+	Note           string
 }
 
 // PlanRepository は model.Plan のDBアクセスを提供する。
@@ -32,9 +34,9 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time, p.note
 		FROM plans p
-		JOIN recipes r ON r.id = p.recipe_id
+		LEFT JOIN recipes r ON r.id = p.recipe_id
 	`)
 	var conditions []string
 	var args []any
@@ -67,10 +69,16 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 
 	plans := []PlanDetail{}
 	for rows.Next() {
-		var p PlanDetail
-		if err := rows.Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings, &p.MealTime); err != nil {
+		var (
+			p              PlanDetail
+			recipeID       sql.NullInt64
+			recipeName     sql.NullString
+			recipeServings sql.NullInt64
+		)
+		if err := rows.Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &p.Servings, &p.MealTime, &p.Note); err != nil {
 			return nil, err
 		}
+		applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings)
 		plans = append(plans, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -80,20 +88,38 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 }
 
 func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) {
-	var p PlanDetail
+	var (
+		p              PlanDetail
+		recipeID       sql.NullInt64
+		recipeName     sql.NullString
+		recipeServings sql.NullInt64
+	)
 	err := r.db.QueryRowContext(ctx, `
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time, p.note
 		FROM plans p
-		JOIN recipes r ON r.id = p.recipe_id
+		LEFT JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &p.Date, &p.RecipeID, &p.RecipeName, &p.RecipeServings, &p.Servings, &p.MealTime)
+	`, id).Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &p.Servings, &p.MealTime, &p.Note)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}
 	if err != nil {
 		return PlanDetail{}, err
 	}
+	applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings)
 	return p, nil
+}
+
+// applyRecipeJoinResult はLEFT JOINで取得したレシピ情報をPlanDetailに反映する。
+// recipeIDがNULLの行(メモ行)ではRecipeIDをnilのままにする。
+func applyRecipeJoinResult(p *PlanDetail, recipeID sql.NullInt64, recipeName sql.NullString, recipeServings sql.NullInt64) {
+	if !recipeID.Valid {
+		return
+	}
+	id := recipeID.Int64
+	p.RecipeID = &id
+	p.RecipeName = recipeName.String
+	p.RecipeServings = int(recipeServings.Int64)
 }
 
 // validateRecipeExists は指定されたレシピIDが存在するか検証する。
@@ -109,20 +135,22 @@ func validateRecipeExists(ctx context.Context, tx *sql.Tx, recipeID int64) error
 	return nil
 }
 
-func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64, servings int, mealTime string) (PlanDetail, error) {
+func (r *PlanRepository) Create(ctx context.Context, date string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
 	}
 	defer tx.Rollback()
 
-	if err := validateRecipeExists(ctx, tx, recipeID); err != nil {
-		return PlanDetail{}, err
+	if recipeID != nil {
+		if err := validateRecipeExists(ctx, tx, *recipeID); err != nil {
+			return PlanDetail{}, err
+		}
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"INSERT INTO plans (date, recipe_id, servings, meal_time) VALUES (?, ?, ?, ?)",
-		date, recipeID, servings, mealTime,
+		"INSERT INTO plans (date, recipe_id, servings, meal_time, note) VALUES (?, ?, ?, ?, ?)",
+		date, recipeID, servings, mealTime, note,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)
@@ -138,20 +166,22 @@ func (r *PlanRepository) Create(ctx context.Context, date string, recipeID int64
 	return r.Get(ctx, id)
 }
 
-func (r *PlanRepository) Update(ctx context.Context, id int64, date string, recipeID int64, servings int, mealTime string) (PlanDetail, error) {
+func (r *PlanRepository) Update(ctx context.Context, id int64, date string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
 	}
 	defer tx.Rollback()
 
-	if err := validateRecipeExists(ctx, tx, recipeID); err != nil {
-		return PlanDetail{}, err
+	if recipeID != nil {
+		if err := validateRecipeExists(ctx, tx, *recipeID); err != nil {
+			return PlanDetail{}, err
+		}
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"UPDATE plans SET date = ?, recipe_id = ?, servings = ?, meal_time = ? WHERE id = ?",
-		date, recipeID, servings, mealTime, id,
+		"UPDATE plans SET date = ?, recipe_id = ?, servings = ?, meal_time = ?, note = ? WHERE id = ?",
+		date, recipeID, servings, mealTime, note, id,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)

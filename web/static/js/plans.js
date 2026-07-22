@@ -9,6 +9,9 @@ const planErrorEl = document.getElementById('plan-error');
 const planDialog = document.getElementById('plan-dialog');
 const planDialogTitle = document.getElementById('plan-dialog-title');
 const planDialogCancelButton = document.getElementById('plan-dialog-cancel');
+const planRecipeFieldsEl = document.getElementById('plan-recipe-fields');
+const planNoteFieldsEl = document.getElementById('plan-note-fields');
+const planNoteField = document.getElementById('plan-note');
 const summaryListBody = document.getElementById('summary-list');
 const summaryEmptyEl = document.getElementById('summary-empty');
 const recipeSearchField = document.getElementById('recipe-search-field');
@@ -35,6 +38,7 @@ let selectedIngredientFilterIds = new Set();
 let selectedRecipeId = null;
 let plansById = new Map();
 let dragState = null;
+let planDialogMode = 'recipe';
 
 function buildFilterableIngredients(recipes) {
   const map = new Map();
@@ -172,26 +176,47 @@ function closePlanDialog() {
   resetPlanForm();
 }
 
-function openPlanDialog(plan, defaultDate) {
+function applyPlanDialogMode(mode) {
+  planDialogMode = mode;
+  planRecipeFieldsEl.hidden = mode !== 'recipe';
+  planNoteFieldsEl.hidden = mode !== 'note';
+  // hidden な祖先を持っていてもネイティブのrequiredチェックはブロックされる
+  // ブラウザがあるため、非表示のフィールドはrequiredを明示的に外す。
+  planServingsField.required = mode === 'recipe';
+  planNoteField.required = mode === 'note';
+}
+
+function openPlanDialog(plan, defaultDate, mode) {
   resetPlanForm();
+  const effectiveMode = plan ? (plan.recipeId ? 'recipe' : 'note') : (mode || 'recipe');
+  applyPlanDialogMode(effectiveMode);
+
   if (plan) {
     planDialogTitle.textContent = '献立を編集';
     planIdField.value = plan.id;
     planDateField.value = plan.date;
     planMealTimeField.value = plan.mealTime;
-    planServingsField.value = plan.servings;
 
-    const recipe = currentRecipes.find((r) => r.id === plan.recipeId);
-    selectedRecipeId = plan.recipeId;
-    planRecipeField.value = plan.recipeId;
-    recipePickerCurrentNameEl.textContent = recipe ? recipe.name : plan.recipeName;
-    renderRecipePickerList();
+    if (effectiveMode === 'recipe') {
+      planServingsField.value = plan.servings;
+      const recipe = currentRecipes.find((r) => r.id === plan.recipeId);
+      selectedRecipeId = plan.recipeId;
+      planRecipeField.value = plan.recipeId;
+      recipePickerCurrentNameEl.textContent = recipe ? recipe.name : plan.recipeName;
+      renderRecipePickerList();
+    } else {
+      planNoteField.value = plan.note;
+    }
   } else {
     planDialogTitle.textContent = '献立を追加';
     planDateField.value = defaultDate || toDateInputValue(new Date());
   }
   planDialog.showModal();
-  recipeSearchField.focus();
+  if (effectiveMode === 'recipe') {
+    recipeSearchField.focus();
+  } else {
+    planNoteField.focus();
+  }
 }
 
 async function onDeletePlan(plan) {
@@ -221,7 +246,7 @@ async function onDropPlan(planId, newDate) {
   if (!plan || plan.date === newDate) return;
   planErrorEl.textContent = '';
   try {
-    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime);
+    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note);
     await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
@@ -302,7 +327,10 @@ function createPlanPanel(plan) {
   panel.addEventListener('pointercancel', onPlanPanelPointerUp);
 
   const text = document.createElement('span');
-  text.textContent = `[${mealTimeLabels[plan.mealTime] || plan.mealTime}] ${plan.recipeName} (${plan.servings}人分)`;
+  const mealTimeLabel = mealTimeLabels[plan.mealTime] || plan.mealTime;
+  text.textContent = plan.recipeId
+    ? `[${mealTimeLabel}] ${plan.recipeName} (${plan.servings}人分)`
+    : `[${mealTimeLabel}] ${plan.note}`;
   panel.appendChild(text);
 
   const actions = document.createElement('span');
@@ -349,12 +377,19 @@ function renderPlans(plans) {
       planTd.appendChild(container);
     }
 
-    const addButton = document.createElement('button');
-    addButton.type = 'button';
-    addButton.className = 'plan-add-button';
-    addButton.textContent = '追加';
-    addButton.addEventListener('click', () => openPlanDialog(null, date));
-    planTd.appendChild(addButton);
+    const addRecipeButton = document.createElement('button');
+    addRecipeButton.type = 'button';
+    addRecipeButton.className = 'plan-add-button';
+    addRecipeButton.textContent = 'レシピ追加';
+    addRecipeButton.addEventListener('click', () => openPlanDialog(null, date, 'recipe'));
+    planTd.appendChild(addRecipeButton);
+
+    const addNoteButton = document.createElement('button');
+    addNoteButton.type = 'button';
+    addNoteButton.className = 'plan-add-button';
+    addNoteButton.textContent = 'メモ追加';
+    addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
+    planTd.appendChild(addNoteButton);
 
     tr.appendChild(planTd);
 
@@ -420,19 +455,32 @@ planDialog.addEventListener('click', (e) => {
 planForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   planErrorEl.textContent = '';
-  if (!planRecipeField.value) {
-    planErrorEl.textContent = 'レシピを選択してください';
-    return;
-  }
   const date = planDateField.value;
   const mealTime = planMealTimeField.value;
-  const recipeId = Number(planRecipeField.value);
-  const servings = Number(planServingsField.value);
   try {
-    if (planIdField.value) {
-      await updatePlan(planIdField.value, date, recipeId, servings, mealTime);
+    if (planDialogMode === 'recipe') {
+      if (!planRecipeField.value) {
+        planErrorEl.textContent = 'レシピを選択してください';
+        return;
+      }
+      const recipeId = Number(planRecipeField.value);
+      const servings = Number(planServingsField.value);
+      if (planIdField.value) {
+        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '');
+      } else {
+        await createPlan(date, recipeId, servings, mealTime, '');
+      }
     } else {
-      await createPlan(date, recipeId, servings, mealTime);
+      const note = planNoteField.value.trim();
+      if (!note) {
+        planErrorEl.textContent = 'メモを入力してください';
+        return;
+      }
+      if (planIdField.value) {
+        await updatePlan(planIdField.value, date, null, 0, mealTime, note);
+      } else {
+        await createPlan(date, null, 0, mealTime, note);
+      }
     }
     planDialog.close();
     resetPlanForm();
