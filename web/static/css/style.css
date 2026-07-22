@@ -302,7 +302,26 @@ form .field-row label {
   margin-top: 0;
 }
 
+.plan-dialog #plan-form {
+  align-items: start;
+}
+
 .plan-recipe-display {
   font-size: 0.85rem;
   margin: 0 0 0.6rem;
+}
+
+.plan-ingredient-requirements-label {
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0.2rem;
+}
+
+.plan-ingredient-requirements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }

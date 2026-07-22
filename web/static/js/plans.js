@@ -15,6 +15,7 @@ const planNoteField = document.getElementById('plan-note');
 const summaryListBody = document.getElementById('summary-list');
 const summaryEmptyEl = document.getElementById('summary-empty');
 const planRecipeNameEl = document.getElementById('plan-recipe-name');
+const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
 
 const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
@@ -27,12 +28,37 @@ function formatDateLabel(dateStr) {
 let plansById = new Map();
 let dragState = null;
 let planDialogMode = 'recipe';
+let planRecipeDetail = null;
+
+function renderPlanIngredientRequirements() {
+  planIngredientRequirementsListEl.innerHTML = '';
+  if (!planRecipeDetail) return;
+  const servings = Number(planServingsField.value) || 0;
+  const factor = servings / planRecipeDetail.servings;
+  for (const ing of planRecipeDetail.ingredients) {
+    const li = document.createElement('li');
+    li.textContent = `${ing.name}: ${ing.quantity * factor}${ing.unit}`;
+    planIngredientRequirementsListEl.appendChild(li);
+  }
+}
+
+async function loadPlanIngredientRequirements(recipeId) {
+  planErrorEl.textContent = '';
+  try {
+    planRecipeDetail = await getRecipe(recipeId);
+  } catch (err) {
+    planErrorEl.textContent = err.message;
+  }
+  renderPlanIngredientRequirements();
+}
 
 function resetPlanForm() {
   planForm.reset();
   planIdField.value = '';
   planRecipeField.value = '';
   planRecipeNameEl.textContent = '';
+  planRecipeDetail = null;
+  renderPlanIngredientRequirements();
 }
 
 function closePlanDialog() {
@@ -77,6 +103,7 @@ function openPlanDialog(plan, defaultDate, mode) {
       planServingsField.value = plan.servings;
       planRecipeField.value = plan.recipeId;
       planRecipeNameEl.textContent = plan.recipeName;
+      loadPlanIngredientRequirements(plan.recipeId);
     } else {
       planNoteField.value = plan.note;
     }
@@ -313,6 +340,8 @@ async function refresh() {
 document.addEventListener('daterangechange', refresh);
 
 planDialogCancelButton.addEventListener('click', closePlanDialog);
+
+planServingsField.addEventListener('input', renderPlanIngredientRequirements);
 
 planDialog.addEventListener('click', (e) => {
   if (isDialogBackdropClick(planDialog, e)) closePlanDialog();
