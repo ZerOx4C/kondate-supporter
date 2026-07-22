@@ -63,17 +63,17 @@ function getRecipe(id) {
   return apiRequest(`/api/recipes/${id}`);
 }
 
-function createRecipe(name, description, servings, ingredients) {
+function createRecipe(name, url, servings, ingredients, steps) {
   return apiRequest('/api/recipes', {
     method: 'POST',
-    body: JSON.stringify({ name, description, servings, ingredients }),
+    body: JSON.stringify({ name, url, servings, ingredients, steps }),
   });
 }
 
-function updateRecipe(id, name, description, servings, ingredients) {
+function updateRecipe(id, name, url, servings, ingredients, steps) {
   return apiRequest(`/api/recipes/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ name, description, servings, ingredients }),
+    body: JSON.stringify({ name, url, servings, ingredients, steps }),
   });
 }
 

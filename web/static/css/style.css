@@ -128,6 +128,23 @@ button.danger {
   width: 6rem;
 }
 
+.step-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.4rem;
+}
+
+.step-text {
+  flex: 1;
+  font: inherit;
+}
+
+.recipe-url-link {
+  margin-left: 0.3rem;
+  text-decoration: none;
+}
+
 .quantity-input {
   width: 6rem;
 }

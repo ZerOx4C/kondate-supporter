@@ -18,10 +18,10 @@ type Stock struct {
 // Recipe はレシピ本体。Servingsはこのレシピの分量が何人分かを表し、
 // Planに登録する人数との比率で材料の倍率を計算する際に使う。
 type Recipe struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Servings    int    `json:"servings"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Servings int    `json:"servings"`
 }
 
 // RecipeIngredient はレシピが必要とする食材の数量。

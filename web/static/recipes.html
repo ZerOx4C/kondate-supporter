@@ -67,14 +67,18 @@
         </div>
         <div class="field-row">
           <label>
-            説明
-            <textarea id="recipe-description" rows="2"></textarea>
+            参考URL
+            <input type="url" id="recipe-url" placeholder="https://...">
           </label>
         </div>
 
         <h4>材料</h4>
         <div id="ingredient-rows"></div>
         <button type="button" id="add-ingredient-row">材料を追加</button>
+
+        <h4>手順</h4>
+        <div id="step-rows"></div>
+        <button type="button" id="add-step-row">手順を追加</button>
 
         <p class="error" id="recipe-error"></p>
         <div class="dialog-actions">

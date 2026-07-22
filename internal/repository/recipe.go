@@ -25,10 +25,11 @@ type RecipeIngredientDetail struct {
 	Quantity     float64
 }
 
-// RecipeDetail はレシピ本体と材料リストをまとめた結果。
+// RecipeDetail はレシピ本体・材料リスト・手順リストをまとめた結果。
 type RecipeDetail struct {
 	Recipe      model.Recipe
 	Ingredients []RecipeIngredientDetail
+	Steps       []string
 }
 
 // RecipeRepository は model.Recipe と model.RecipeIngredient の
@@ -42,7 +43,7 @@ func NewRecipeRepository(db *sql.DB) *RecipeRepository {
 }
 
 func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id, name, description, servings FROM recipes ORDER BY id")
+	rows, err := r.db.QueryContext(ctx, "SELECT id, name, servings, url FROM recipes ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	recipes := []model.Recipe{}
 	for rows.Next() {
 		var rec model.Recipe
-		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Description, &rec.Servings); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL); err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, rec)
@@ -62,8 +63,9 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	return recipes, nil
 }
 
-// ListWithIngredients は全レシピを、各レシピの材料情報付きで返す。
-// recipesを1回、recipe_ingredientsを1回の計2クエリで取得し、N+1を避ける。
+// ListWithIngredients は全レシピを、各レシピの材料・手順情報付きで返す。
+// recipes・recipe_ingredients・recipe_stepsをそれぞれ1回ずつの計3クエリで
+// 取得し、N+1を避ける。
 func (r *RecipeRepository) ListWithIngredients(ctx context.Context) ([]RecipeDetail, error) {
 	recipes, err := r.List(ctx)
 	if err != nil {
@@ -73,11 +75,46 @@ func (r *RecipeRepository) ListWithIngredients(ctx context.Context) ([]RecipeDet
 	if err != nil {
 		return nil, err
 	}
+	stepsByRecipe, err := queryAllRecipeSteps(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
 	details := make([]RecipeDetail, 0, len(recipes))
 	for _, rec := range recipes {
-		details = append(details, RecipeDetail{Recipe: rec, Ingredients: ingredientsByRecipe[rec.ID]})
+		details = append(details, RecipeDetail{
+			Recipe:      rec,
+			Ingredients: ingredientsByRecipe[rec.ID],
+			Steps:       stepsByRecipe[rec.ID],
+		})
 	}
 	return details, nil
+}
+
+// queryAllRecipeSteps は全recipe_stepsを取得し、recipe_idごとにグルーピングする。
+func queryAllRecipeSteps(ctx context.Context, db *sql.DB) (map[int64][]string, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT recipe_id, text
+		FROM recipe_steps
+		ORDER BY recipe_id, step_no
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[int64][]string)
+	for rows.Next() {
+		var recipeID int64
+		var text string
+		if err := rows.Scan(&recipeID, &text); err != nil {
+			return nil, err
+		}
+		result[recipeID] = append(result[recipeID], text)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // queryAllRecipeIngredients は全recipe_ingredientsをJOIN取得し、recipe_idごとにグルーピングする。
@@ -111,8 +148,8 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, error) {
 	var rec model.Recipe
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, name, description, servings FROM recipes WHERE id = ?", id,
-	).Scan(&rec.ID, &rec.Name, &rec.Description, &rec.Servings)
+		"SELECT id, name, servings, url FROM recipes WHERE id = ?", id,
+	).Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RecipeDetail{}, ErrNotFound
 	}
@@ -124,7 +161,11 @@ func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, err
 	if err != nil {
 		return RecipeDetail{}, err
 	}
-	return RecipeDetail{Recipe: rec, Ingredients: ingredients}, nil
+	steps, err := queryRecipeSteps(ctx, r.db, id)
+	if err != nil {
+		return RecipeDetail{}, err
+	}
+	return RecipeDetail{Recipe: rec, Ingredients: ingredients, Steps: steps}, nil
 }
 
 // queryRecipeIngredients は*sql.DB/*sql.Txどちらでも呼べるよう
@@ -156,6 +197,36 @@ func queryRecipeIngredients(ctx context.Context, q interface {
 		return nil, err
 	}
 	return details, nil
+}
+
+// queryRecipeSteps は*sql.DB/*sql.Txどちらでも呼べるよう
+// 必要最小限のインターフェースを受け取る。
+func queryRecipeSteps(ctx context.Context, q interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, recipeID int64) ([]string, error) {
+	rows, err := q.QueryContext(ctx, `
+		SELECT text
+		FROM recipe_steps
+		WHERE recipe_id = ?
+		ORDER BY step_no
+	`, recipeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	steps := []string{}
+	for rows.Next() {
+		var text string
+		if err := rows.Scan(&text); err != nil {
+			return nil, err
+		}
+		steps = append(steps, text)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return steps, nil
 }
 
 // recipeIngredientInputIDs は RecipeIngredientInput のスライスから食材IDのみを取り出す。
@@ -196,8 +267,8 @@ func validateIngredientsExist(ctx context.Context, tx *sql.Tx, ingredientIDs []i
 	return nil
 }
 
-// Create はレシピ本体と材料リストを同一トランザクションで作成する。
-func (r *RecipeRepository) Create(ctx context.Context, name, description string, servings int, items []RecipeIngredientInput) (RecipeDetail, error) {
+// Create はレシピ本体・材料リスト・手順リストを同一トランザクションで作成する。
+func (r *RecipeRepository) Create(ctx context.Context, name, url string, servings int, items []RecipeIngredientInput, steps []string) (RecipeDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return RecipeDetail{}, err
@@ -209,8 +280,8 @@ func (r *RecipeRepository) Create(ctx context.Context, name, description string,
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"INSERT INTO recipes (name, description, servings) VALUES (?, ?, ?)",
-		name, description, servings,
+		"INSERT INTO recipes (name, servings, url) VALUES (?, ?, ?)",
+		name, servings, url,
 	)
 	if err != nil {
 		return RecipeDetail{}, classifySQLiteError(err)
@@ -229,15 +300,24 @@ func (r *RecipeRepository) Create(ctx context.Context, name, description string,
 		}
 	}
 
+	for i, text := range steps {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO recipe_steps (recipe_id, step_no, text) VALUES (?, ?, ?)",
+			id, i+1, text,
+		); err != nil {
+			return RecipeDetail{}, classifySQLiteError(err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return RecipeDetail{}, err
 	}
 	return r.Get(ctx, id)
 }
 
-// Update はレシピ本体を更新し、材料リストを全削除→再INSERTする
-// (delete-then-insert。個人利用規模では差分更新より単純さを優先)。
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, description string, servings int, items []RecipeIngredientInput) (RecipeDetail, error) {
+// Update はレシピ本体を更新し、材料リスト・手順リストをそれぞれ全削除→
+// 再INSERTする(delete-then-insert。個人利用規模では差分更新より単純さを優先)。
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url string, servings int, items []RecipeIngredientInput, steps []string) (RecipeDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return RecipeDetail{}, err
@@ -245,8 +325,8 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, descripti
 	defer tx.Rollback()
 
 	res, err := tx.ExecContext(ctx,
-		"UPDATE recipes SET name = ?, description = ?, servings = ? WHERE id = ?",
-		name, description, servings, id,
+		"UPDATE recipes SET name = ?, servings = ?, url = ? WHERE id = ?",
+		name, servings, url, id,
 	)
 	if err != nil {
 		return RecipeDetail{}, classifySQLiteError(err)
@@ -275,14 +355,26 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, descripti
 		}
 	}
 
+	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_steps WHERE recipe_id = ?", id); err != nil {
+		return RecipeDetail{}, classifySQLiteError(err)
+	}
+	for i, text := range steps {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO recipe_steps (recipe_id, step_no, text) VALUES (?, ?, ?)",
+			id, i+1, text,
+		); err != nil {
+			return RecipeDetail{}, classifySQLiteError(err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return RecipeDetail{}, err
 	}
 	return r.Get(ctx, id)
 }
 
-// Delete はレシピと紐づく材料行を削除する。plansから参照中のレシピは
-// 外部キー制約違反となり、ErrInUseに変換される。
+// Delete はレシピと紐づく材料行・手順行を削除する。plansから参照中の
+// レシピは外部キー制約違反となり、ErrInUseに変換される。
 func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -291,6 +383,9 @@ func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_ingredients WHERE recipe_id = ?", id); err != nil {
+		return classifySQLiteError(err)
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_steps WHERE recipe_id = ?", id); err != nil {
 		return classifySQLiteError(err)
 	}
 

@@ -25,9 +25,11 @@ const recipeForm = document.getElementById('recipe-form');
 const recipeIdField = document.getElementById('recipe-id');
 const recipeNameField = document.getElementById('recipe-name');
 const recipeServingsField = document.getElementById('recipe-servings');
-const recipeDescriptionField = document.getElementById('recipe-description');
+const recipeUrlField = document.getElementById('recipe-url');
 const ingredientRowsEl = document.getElementById('ingredient-rows');
 const addIngredientRowButton = document.getElementById('add-ingredient-row');
+const stepRowsEl = document.getElementById('step-rows');
+const addStepRowButton = document.getElementById('add-step-row');
 const recipeSubmitButton = document.getElementById('recipe-submit');
 const recipeErrorEl = document.getElementById('recipe-error');
 
@@ -138,10 +140,37 @@ function collectIngredientRows() {
   }));
 }
 
+function addStepRow(text) {
+  const row = document.createElement('div');
+  row.className = 'step-row';
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'step-text';
+  textarea.rows = 2;
+  if (text !== undefined) textarea.value = text;
+
+  const removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.textContent = '削除';
+  removeButton.addEventListener('click', () => row.remove());
+
+  row.appendChild(textarea);
+  row.appendChild(removeButton);
+  stepRowsEl.appendChild(row);
+}
+
+function collectStepRows() {
+  const rows = stepRowsEl.querySelectorAll('.step-row');
+  return Array.from(rows)
+    .map((row) => row.querySelector('.step-text').value.trim())
+    .filter((text) => text !== '');
+}
+
 function resetRecipeForm() {
   recipeForm.reset();
   recipeIdField.value = '';
   ingredientRowsEl.innerHTML = '';
+  stepRowsEl.innerHTML = '';
   recipeErrorEl.textContent = '';
 }
 
@@ -161,9 +190,12 @@ async function openRecipeDialog(recipe) {
       recipeIdField.value = detail.id;
       recipeNameField.value = detail.name;
       recipeServingsField.value = detail.servings;
-      recipeDescriptionField.value = detail.description;
+      recipeUrlField.value = detail.url;
       for (const ing of detail.ingredients) {
         addIngredientRow(ing.ingredientId, ing.quantity);
+      }
+      for (const step of detail.steps) {
+        addStepRow(step);
       }
     } catch (err) {
       recipeErrorEl.textContent = err.message;
@@ -298,6 +330,16 @@ function renderRecipeList() {
 
     const nameTd = document.createElement('td');
     nameTd.textContent = recipe.name;
+    if (recipe.url) {
+      const link = document.createElement('a');
+      link.href = recipe.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = '🔗';
+      link.className = 'recipe-url-link';
+      link.title = recipe.url;
+      nameTd.appendChild(link);
+    }
     tr.appendChild(nameTd);
 
     const actionTd = document.createElement('td');
@@ -394,6 +436,7 @@ useRecipeForm.addEventListener('submit', async (e) => {
 });
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
+addStepRowButton.addEventListener('click', () => addStepRow());
 recipeDialogCancelButton.addEventListener('click', closeRecipeDialog);
 
 recipeDialog.addEventListener('click', (e) => {
@@ -404,14 +447,15 @@ recipeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   recipeErrorEl.textContent = '';
   const name = recipeNameField.value.trim();
-  const description = recipeDescriptionField.value.trim();
+  const url = recipeUrlField.value.trim();
   const servings = Number(recipeServingsField.value);
   const ingredients = collectIngredientRows();
+  const steps = collectStepRows();
   try {
     if (recipeIdField.value) {
-      await updateRecipe(recipeIdField.value, name, description, servings, ingredients);
+      await updateRecipe(recipeIdField.value, name, url, servings, ingredients, steps);
     } else {
-      await createRecipe(name, description, servings, ingredients);
+      await createRecipe(name, url, servings, ingredients, steps);
     }
     recipeDialog.close();
     resetRecipeForm();
