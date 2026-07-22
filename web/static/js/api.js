@@ -100,10 +100,10 @@ function createPlan(date, recipeId, servings, mealTime, note) {
   });
 }
 
-function updatePlan(id, date, recipeId, servings, mealTime, note) {
+function updatePlan(id, date, recipeId, servings, mealTime, note, ingredientOverrides) {
   return apiRequest(`/api/plans/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ date, recipeId, servings, mealTime, note }),
+    body: JSON.stringify({ date, recipeId, servings, mealTime, note, ingredientOverrides }),
   });
 }
 

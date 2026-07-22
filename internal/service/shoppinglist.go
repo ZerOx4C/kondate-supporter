@@ -85,13 +85,22 @@ func (s *ShoppingListService) aggregate(ctx context.Context, from, to string) (m
 		}
 		factor := float64(plan.Servings) / float64(recipeDetail.Recipe.Servings)
 
+		overrideByIngredient := make(map[int64]float64, len(plan.IngredientOverrides))
+		for _, o := range plan.IngredientOverrides {
+			overrideByIngredient[o.IngredientID] = o.Quantity
+		}
+
 		for _, ing := range recipeDetail.Ingredients {
 			amount, ok := required[ing.IngredientID]
 			if !ok {
 				amount = &requiredAmount{name: ing.Name, unit: ing.Unit}
 				required[ing.IngredientID] = amount
 			}
-			amount.quantity += ing.Quantity * factor
+			qty := ing.Quantity * factor
+			if o, ok := overrideByIngredient[ing.IngredientID]; ok {
+				qty = o
+			}
+			amount.quantity += qty
 		}
 	}
 

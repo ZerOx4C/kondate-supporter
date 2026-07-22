@@ -29,46 +29,82 @@ var validMealTimes = map[string]bool{
 	"other":   true,
 }
 
+type planIngredientOverrideRequest struct {
+	IngredientID int64   `json:"ingredientId"`
+	Quantity     float64 `json:"quantity"`
+}
+
 type planRequest struct {
-	Date     string `json:"date"`
-	RecipeID *int64 `json:"recipeId"`
-	Servings int    `json:"servings"`
-	MealTime string `json:"mealTime"`
-	Note     string `json:"note"`
+	Date                string                          `json:"date"`
+	RecipeID            *int64                          `json:"recipeId"`
+	Servings            int                             `json:"servings"`
+	MealTime            string                          `json:"mealTime"`
+	Note                string                          `json:"note"`
+	IngredientOverrides []planIngredientOverrideRequest `json:"ingredientOverrides"`
 }
 
 // validate はレシピに紐づく献立(RecipeIDが非nil)と、レシピに依存しない
 // メモ(RecipeIDがnilかつnoteが非空)のいずれかとしてリクエストを検証する。
-func (req planRequest) validate() (date string, recipeID *int64, servings int, mealTime, note string, err error) {
+func (req planRequest) validate() (date string, recipeID *int64, servings int, mealTime, note string, overrides []repository.PlanIngredientOverride, err error) {
 	if _, err := time.Parse(time.DateOnly, req.Date); err != nil {
-		return "", nil, 0, "", "", errors.New("dateはYYYY-MM-DD形式である必要があります")
+		return "", nil, 0, "", "", nil, errors.New("dateはYYYY-MM-DD形式である必要があります")
 	}
 	if !validMealTimes[req.MealTime] {
-		return "", nil, 0, "", "", errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
+		return "", nil, 0, "", "", nil, errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
 	}
 
 	if req.RecipeID != nil {
 		if req.Servings <= 0 {
-			return "", nil, 0, "", "", errors.New("servingsは1以上である必要があります")
+			return "", nil, 0, "", "", nil, errors.New("servingsは1以上である必要があります")
 		}
-		return req.Date, req.RecipeID, req.Servings, req.MealTime, "", nil
+		overrides, err := validatePlanIngredientOverrides(req.IngredientOverrides)
+		if err != nil {
+			return "", nil, 0, "", "", nil, err
+		}
+		return req.Date, req.RecipeID, req.Servings, req.MealTime, "", overrides, nil
 	}
 
 	note = strings.TrimSpace(req.Note)
 	if note == "" {
-		return "", nil, 0, "", "", errors.New("recipeIdまたはnoteのいずれかを指定してください")
+		return "", nil, 0, "", "", nil, errors.New("recipeIdまたはnoteのいずれかを指定してください")
 	}
-	return req.Date, nil, 0, req.MealTime, note, nil
+	return req.Date, nil, 0, req.MealTime, note, nil, nil
+}
+
+// validatePlanIngredientOverrides はingredientIdの重複と負のquantityを弾く。
+func validatePlanIngredientOverrides(items []planIngredientOverrideRequest) ([]repository.PlanIngredientOverride, error) {
+	seen := make(map[int64]struct{}, len(items))
+	overrides := make([]repository.PlanIngredientOverride, 0, len(items))
+	for _, item := range items {
+		if item.Quantity < 0 {
+			return nil, errors.New("ingredientOverridesのquantityは0以上である必要があります")
+		}
+		if _, dup := seen[item.IngredientID]; dup {
+			return nil, errors.New("ingredientOverridesに同じingredientIdが重複しています")
+		}
+		seen[item.IngredientID] = struct{}{}
+		overrides = append(overrides, repository.PlanIngredientOverride{
+			IngredientID: item.IngredientID,
+			Quantity:     item.Quantity,
+		})
+	}
+	return overrides, nil
+}
+
+type planIngredientOverrideResponse struct {
+	IngredientID int64   `json:"ingredientId"`
+	Quantity     float64 `json:"quantity"`
 }
 
 type planResponse struct {
-	ID         int64  `json:"id"`
-	Date       string `json:"date"`
-	RecipeID   *int64 `json:"recipeId"`
-	RecipeName string `json:"recipeName"`
-	Servings   int    `json:"servings"`
-	MealTime   string `json:"mealTime"`
-	Note       string `json:"note"`
+	ID                  int64                            `json:"id"`
+	Date                string                           `json:"date"`
+	RecipeID            *int64                           `json:"recipeId"`
+	RecipeName          string                           `json:"recipeName"`
+	Servings            int                              `json:"servings"`
+	MealTime            string                           `json:"mealTime"`
+	Note                string                           `json:"note"`
+	IngredientOverrides []planIngredientOverrideResponse `json:"ingredientOverrides"`
 }
 
 type summaryItemResponse struct {
@@ -80,14 +116,22 @@ type summaryItemResponse struct {
 }
 
 func toPlanResponse(detail repository.PlanDetail) planResponse {
+	overrides := make([]planIngredientOverrideResponse, 0, len(detail.IngredientOverrides))
+	for _, o := range detail.IngredientOverrides {
+		overrides = append(overrides, planIngredientOverrideResponse{
+			IngredientID: o.IngredientID,
+			Quantity:     o.Quantity,
+		})
+	}
 	return planResponse{
-		ID:         detail.ID,
-		Date:       detail.Date,
-		RecipeID:   detail.RecipeID,
-		RecipeName: detail.RecipeName,
-		Servings:   detail.Servings,
-		MealTime:   detail.MealTime,
-		Note:       detail.Note,
+		ID:                  detail.ID,
+		Date:                detail.Date,
+		RecipeID:            detail.RecipeID,
+		RecipeName:          detail.RecipeName,
+		Servings:            detail.Servings,
+		MealTime:            detail.MealTime,
+		Note:                detail.Note,
+		IngredientOverrides: overrides,
 	}
 }
 
@@ -145,7 +189,7 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	date, recipeID, servings, mealTime, note, err := req.validate()
+	date, recipeID, servings, mealTime, note, _, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -184,13 +228,13 @@ func (h *PlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	date, recipeID, servings, mealTime, note, err := req.validate()
+	date, recipeID, servings, mealTime, note, overrides, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	detail, err := h.repo.Update(r.Context(), id, date, recipeID, servings, mealTime, note)
+	detail, err := h.repo.Update(r.Context(), id, date, recipeID, servings, mealTime, note, overrides)
 	if err != nil {
 		h.handleError(w, err)
 		return

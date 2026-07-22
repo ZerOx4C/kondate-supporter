@@ -316,12 +316,18 @@ form .field-row label {
   margin: 0.6rem 0 0.2rem;
 }
 
-.plan-ingredient-requirements-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+#plan-ingredient-requirements table {
+  width: auto;
+  max-width: none;
+  margin-bottom: 0;
   font-size: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+}
+
+#plan-ingredient-requirements th,
+#plan-ingredient-requirements td {
+  padding: 0.2rem 0.4rem;
+}
+
+.plan-ingredient-requirement-input {
+  width: 4.5rem;
 }

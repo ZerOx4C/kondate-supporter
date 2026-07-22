@@ -158,17 +158,26 @@ func queryRecipeIngredients(ctx context.Context, q interface {
 	return details, nil
 }
 
+// recipeIngredientInputIDs は RecipeIngredientInput のスライスから食材IDのみを取り出す。
+func recipeIngredientInputIDs(items []RecipeIngredientInput) []int64 {
+	ids := make([]int64, len(items))
+	for i, item := range items {
+		ids[i] = item.IngredientID
+	}
+	return ids
+}
+
 // validateIngredientsExist は指定された食材IDがすべて存在するか検証する。
 // 存在しないIDが1つでもあればErrIngredientNotFoundを返す。SQLiteの外部キー
 // 制約(削除時の「使用中」判定と同じエラーコード)には頼らず、事前に
 // 明示的なクエリで検出する。
-func validateIngredientsExist(ctx context.Context, tx *sql.Tx, items []RecipeIngredientInput) error {
-	if len(items) == 0 {
+func validateIngredientsExist(ctx context.Context, tx *sql.Tx, ingredientIDs []int64) error {
+	if len(ingredientIDs) == 0 {
 		return nil
 	}
-	idSet := make(map[int64]struct{}, len(items))
-	for _, item := range items {
-		idSet[item.IngredientID] = struct{}{}
+	idSet := make(map[int64]struct{}, len(ingredientIDs))
+	for _, id := range ingredientIDs {
+		idSet[id] = struct{}{}
 	}
 	placeholders := make([]string, 0, len(idSet))
 	args := make([]any, 0, len(idSet))
@@ -195,7 +204,7 @@ func (r *RecipeRepository) Create(ctx context.Context, name, description string,
 	}
 	defer tx.Rollback()
 
-	if err := validateIngredientsExist(ctx, tx, items); err != nil {
+	if err := validateIngredientsExist(ctx, tx, recipeIngredientInputIDs(items)); err != nil {
 		return RecipeDetail{}, err
 	}
 
@@ -250,7 +259,7 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, descripti
 		return RecipeDetail{}, ErrNotFound
 	}
 
-	if err := validateIngredientsExist(ctx, tx, items); err != nil {
+	if err := validateIngredientsExist(ctx, tx, recipeIngredientInputIDs(items)); err != nil {
 		return RecipeDetail{}, err
 	}
 

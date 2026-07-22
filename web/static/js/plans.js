@@ -29,16 +29,58 @@ let plansById = new Map();
 let dragState = null;
 let planDialogMode = 'recipe';
 let planRecipeDetail = null;
+let planIngredientOverrides = new Map();
+
+function computeIngredientRequirement(ing) {
+  const servings = Number(planServingsField.value) || 0;
+  return ing.quantity * (servings / planRecipeDetail.servings);
+}
 
 function renderPlanIngredientRequirements() {
   planIngredientRequirementsListEl.innerHTML = '';
   if (!planRecipeDetail) return;
-  const servings = Number(planServingsField.value) || 0;
-  const factor = servings / planRecipeDetail.servings;
   for (const ing of planRecipeDetail.ingredients) {
-    const li = document.createElement('li');
-    li.textContent = `${ing.name}: ${ing.quantity * factor}${ing.unit}`;
-    planIngredientRequirementsListEl.appendChild(li);
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.textContent = ing.name;
+    tr.appendChild(nameTd);
+
+    const valueTd = document.createElement('td');
+    const overridden = planIngredientOverrides.has(ing.ingredientId);
+    if (overridden) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = 'any';
+      input.min = '0';
+      input.className = 'plan-ingredient-requirement-input';
+      input.value = planIngredientOverrides.get(ing.ingredientId);
+      input.addEventListener('input', () => {
+        planIngredientOverrides.set(ing.ingredientId, Number(input.value) || 0);
+      });
+      valueTd.appendChild(input);
+      valueTd.appendChild(document.createTextNode(ing.unit));
+    } else {
+      valueTd.textContent = `${computeIngredientRequirement(ing)}${ing.unit}`;
+    }
+    tr.appendChild(valueTd);
+
+    const adjustTd = document.createElement('td');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = overridden;
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        planIngredientOverrides.set(ing.ingredientId, computeIngredientRequirement(ing));
+      } else {
+        planIngredientOverrides.delete(ing.ingredientId);
+      }
+      renderPlanIngredientRequirements();
+    });
+    adjustTd.appendChild(checkbox);
+    tr.appendChild(adjustTd);
+
+    planIngredientRequirementsListEl.appendChild(tr);
   }
 }
 
@@ -58,6 +100,7 @@ function resetPlanForm() {
   planRecipeField.value = '';
   planRecipeNameEl.textContent = '';
   planRecipeDetail = null;
+  planIngredientOverrides = new Map();
   renderPlanIngredientRequirements();
 }
 
@@ -103,6 +146,7 @@ function openPlanDialog(plan, defaultDate, mode) {
       planServingsField.value = plan.servings;
       planRecipeField.value = plan.recipeId;
       planRecipeNameEl.textContent = plan.recipeName;
+      planIngredientOverrides = new Map((plan.ingredientOverrides || []).map((o) => [o.ingredientId, o.quantity]));
       loadPlanIngredientRequirements(plan.recipeId);
     } else {
       planNoteField.value = plan.note;
@@ -146,7 +190,7 @@ async function onDropPlan(planId, newDate) {
   if (!plan || plan.date === newDate) return;
   planErrorEl.textContent = '';
   try {
-    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note);
+    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note, plan.ingredientOverrides);
     await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
@@ -360,8 +404,9 @@ planForm.addEventListener('submit', async (e) => {
       }
       const recipeId = Number(planRecipeField.value);
       const servings = Number(planServingsField.value);
+      const ingredientOverrides = Array.from(planIngredientOverrides.entries()).map(([ingredientId, quantity]) => ({ ingredientId, quantity }));
       if (planIdField.value) {
-        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '');
+        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides);
       } else {
         await createPlan(date, recipeId, servings, mealTime, '');
       }
