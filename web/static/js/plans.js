@@ -50,10 +50,22 @@ function applyPlanDialogMode(mode) {
   planNoteField.required = mode === 'note';
 }
 
+function renderPlanDateOptions() {
+  const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
+  planDateField.innerHTML = '';
+  for (const dateStr of dates) {
+    const option = document.createElement('option');
+    option.value = dateStr;
+    option.textContent = formatDateLabel(dateStr);
+    planDateField.appendChild(option);
+  }
+}
+
 function openPlanDialog(plan, defaultDate, mode) {
   resetPlanForm();
   const effectiveMode = plan ? (plan.recipeId ? 'recipe' : 'note') : (mode || 'recipe');
   applyPlanDialogMode(effectiveMode);
+  renderPlanDateOptions();
 
   if (plan) {
     planDialogTitle.textContent = '献立を編集';
