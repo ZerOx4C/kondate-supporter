@@ -35,6 +35,9 @@
     <h2>買い物リスト</h2>
     <p>指定した期間の献立に対し、在庫が不足している食材を表示します。</p>
 
+    <button type="button" id="copy-button">買い物リストをコピー</button>
+    <span id="copy-status"></span>
+
     <table id="shoppinglist-table">
       <thead>
         <tr>
@@ -46,9 +49,6 @@
     </table>
     <p id="shoppinglist-empty" hidden>不足している食材はありません。</p>
     <p class="error" id="shoppinglist-error"></p>
-
-    <button type="button" id="copy-button">買い物リストをコピー</button>
-    <span id="copy-status"></span>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/daterange.js"></script>
