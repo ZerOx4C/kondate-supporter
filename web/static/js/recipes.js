@@ -9,6 +9,15 @@ const recipeIngredientSearchField = document.getElementById('recipe-ingredient-s
 const recipeIngredientFilterListEl = document.getElementById('recipe-ingredient-filter-list');
 const recipeSelectedIngredientsEl = document.getElementById('recipe-selected-ingredients');
 
+const useRecipeDialog = document.getElementById('use-recipe-dialog');
+const useRecipeDialogTitle = document.getElementById('use-recipe-dialog-title');
+const useRecipeForm = document.getElementById('use-recipe-form');
+const useRecipeDateField = document.getElementById('use-recipe-date');
+const useRecipeMealTimeField = document.getElementById('use-recipe-meal-time');
+const useRecipeServingsField = document.getElementById('use-recipe-servings');
+const useRecipeErrorEl = document.getElementById('use-recipe-error');
+const useRecipeCancelButton = document.getElementById('use-recipe-cancel');
+
 const recipeDialog = document.getElementById('recipe-dialog');
 const recipeDialogTitle = document.getElementById('recipe-dialog-title');
 const recipeDialogCancelButton = document.getElementById('recipe-dialog-cancel');
@@ -26,6 +35,25 @@ let ingredientMaster = [];
 let currentRecipes = [];
 let filterableIngredients = [];
 let selectedIngredientFilterIds = new Set();
+let useRecipeTarget = null;
+
+const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+
+function formatDateLabel(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return `${d.getMonth() + 1}/${d.getDate()}(${weekdayLabels[d.getDay()]})`;
+}
+
+function enumerateDateRange(fromStr, toStr) {
+  const dates = [];
+  if (!fromStr || !toStr) return dates;
+  const from = new Date(`${fromStr}T00:00:00`);
+  const to = new Date(`${toStr}T00:00:00`);
+  for (let d = from; d <= to; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+    dates.push(toDateInputValue(d));
+  }
+  return dates;
+}
 
 const NEW_INGREDIENT_OPTION_VALUE = '__new__';
 
@@ -149,6 +177,32 @@ async function openRecipeDialog(recipe) {
   recipeNameField.focus();
 }
 
+function renderUseRecipeDateOptions() {
+  const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
+  useRecipeDateField.innerHTML = '';
+  for (const dateStr of dates) {
+    const option = document.createElement('option');
+    option.value = dateStr;
+    option.textContent = formatDateLabel(dateStr);
+    useRecipeDateField.appendChild(option);
+  }
+}
+
+function openUseRecipeDialog(recipe) {
+  useRecipeTarget = recipe;
+  useRecipeErrorEl.textContent = '';
+  useRecipeDialogTitle.textContent = `「${recipe.name}」を献立に追加`;
+  renderUseRecipeDateOptions();
+  useRecipeServingsField.value = recipe.servings;
+  useRecipeDialog.showModal();
+}
+
+function closeUseRecipeDialog() {
+  useRecipeDialog.close();
+  useRecipeForm.reset();
+  useRecipeTarget = null;
+}
+
 async function onDeleteRecipe(recipe) {
   if (!confirm(`「${recipe.name}」を削除しますか?`)) return;
   recipeListErrorEl.textContent = '';
@@ -255,6 +309,12 @@ function renderRecipeList() {
     tr.appendChild(servingsTd);
 
     const actionTd = document.createElement('td');
+    const useButton = document.createElement('button');
+    useButton.type = 'button';
+    useButton.textContent = '使用';
+    useButton.addEventListener('click', () => openUseRecipeDialog(recipe));
+    actionTd.appendChild(useButton);
+
     const editButton = document.createElement('button');
     editButton.type = 'button';
     editButton.textContent = '編集';
@@ -319,6 +379,26 @@ recipeIngredientFilterCloseButton.addEventListener('click', () => {
 
 recipeIngredientFilterDialog.addEventListener('click', (e) => {
   if (e.target === recipeIngredientFilterDialog) recipeIngredientFilterDialog.close();
+});
+
+useRecipeCancelButton.addEventListener('click', closeUseRecipeDialog);
+
+useRecipeDialog.addEventListener('click', (e) => {
+  if (e.target === useRecipeDialog) closeUseRecipeDialog();
+});
+
+useRecipeForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  useRecipeErrorEl.textContent = '';
+  const date = useRecipeDateField.value;
+  const mealTime = useRecipeMealTimeField.value;
+  const servings = Number(useRecipeServingsField.value);
+  try {
+    await createPlan(date, useRecipeTarget.id, servings, mealTime);
+    closeUseRecipeDialog();
+  } catch (err) {
+    useRecipeErrorEl.textContent = err.message;
+  }
 });
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());

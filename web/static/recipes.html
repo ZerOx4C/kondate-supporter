@@ -91,6 +91,34 @@
       </form>
     </dialog>
 
+    <dialog id="use-recipe-dialog" class="recipe-dialog">
+      <h3 id="use-recipe-dialog-title">献立に追加</h3>
+      <form id="use-recipe-form" class="inline-form">
+        <label>
+          日付
+          <select id="use-recipe-date" required></select>
+        </label>
+        <label>
+          区分
+          <select id="use-recipe-meal-time" required>
+            <option value="morning">朝</option>
+            <option value="noon">昼</option>
+            <option value="night">夜</option>
+            <option value="other">その他</option>
+          </select>
+        </label>
+        <label>
+          人数
+          <input type="number" id="use-recipe-servings" min="1" step="1" required>
+        </label>
+        <p class="error" id="use-recipe-error"></p>
+        <div class="dialog-actions">
+          <button type="button" id="use-recipe-cancel">キャンセル</button>
+          <button type="submit" id="use-recipe-submit">追加</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
       <label>
         食材を検索
