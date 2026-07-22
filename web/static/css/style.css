@@ -155,13 +155,6 @@ form .field-row label {
   gap: 0.2rem;
 }
 
-.recipe-picker {
-  flex-basis: 100%;
-  border: 1px solid light-dark(#ccc, #555);
-  padding: 0.6rem 0.8rem;
-  margin-bottom: 0.6rem;
-}
-
 .ingredient-filter-dialog {
   border: 1px solid light-dark(#ccc, #555);
   padding: 0.8rem 1rem;
@@ -223,34 +216,6 @@ form .field-row label {
 .ingredient-chip button {
   padding: 0 0.3rem;
   font-size: 0.8rem;
-}
-
-.recipe-picker-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.4rem 0;
-  max-height: 10rem;
-  overflow-y: auto;
-  border: 1px solid light-dark(#ccc, #555);
-}
-
-.recipe-picker-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: none;
-  padding: 0.3rem 0.5rem;
-}
-
-.recipe-picker-item.selected {
-  background: light-dark(#def, #335);
-  font-weight: bold;
-}
-
-.recipe-picker-current {
-  font-size: 0.85rem;
-  margin: 0;
 }
 
 .recipe-dialog {
@@ -335,4 +300,9 @@ form .field-row label {
 
 .plan-dialog h3 {
   margin-top: 0;
+}
+
+.plan-recipe-display {
+  font-size: 0.85rem;
+  margin: 0 0 0.6rem;
 }

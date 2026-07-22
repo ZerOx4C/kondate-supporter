@@ -378,13 +378,13 @@ recipeIngredientFilterCloseButton.addEventListener('click', () => {
 });
 
 recipeIngredientFilterDialog.addEventListener('click', (e) => {
-  if (e.target === recipeIngredientFilterDialog) recipeIngredientFilterDialog.close();
+  if (isDialogBackdropClick(recipeIngredientFilterDialog, e)) recipeIngredientFilterDialog.close();
 });
 
 useRecipeCancelButton.addEventListener('click', closeUseRecipeDialog);
 
 useRecipeDialog.addEventListener('click', (e) => {
-  if (e.target === useRecipeDialog) closeUseRecipeDialog();
+  if (isDialogBackdropClick(useRecipeDialog, e)) closeUseRecipeDialog();
 });
 
 useRecipeForm.addEventListener('submit', async (e) => {
@@ -405,7 +405,7 @@ addIngredientRowButton.addEventListener('click', () => addIngredientRow());
 recipeDialogCancelButton.addEventListener('click', closeRecipeDialog);
 
 recipeDialog.addEventListener('click', (e) => {
-  if (e.target === recipeDialog) closeRecipeDialog();
+  if (isDialogBackdropClick(recipeDialog, e)) closeRecipeDialog();
 });
 
 recipeForm.addEventListener('submit', async (e) => {
