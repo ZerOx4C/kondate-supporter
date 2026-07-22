@@ -24,6 +24,7 @@ const recipeErrorEl = document.getElementById('recipe-error');
 
 const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
 const recipeViewUrlEl = document.getElementById('recipe-view-url');
+const recipeViewIngredientsEl = document.getElementById('recipe-view-ingredients');
 const recipeViewStepsEl = document.getElementById('recipe-view-steps');
 const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty');
 const recipeViewEditButton = document.getElementById('recipe-view-edit');
@@ -183,7 +184,7 @@ function applyRecipeDialogMode(mode) {
 }
 
 function renderRecipeView(recipe) {
-  recipeDialogTitle.textContent = recipe.name;
+  recipeDialogTitle.textContent = `${recipe.name}(${recipe.servings}人分)`;
   recipeViewUrlEl.innerHTML = '';
   recipeViewUrlEl.hidden = !recipe.url;
   if (recipe.url) {
@@ -193,6 +194,13 @@ function renderRecipeView(recipe) {
     link.rel = 'noopener noreferrer';
     link.textContent = recipe.url;
     recipeViewUrlEl.appendChild(link);
+  }
+
+  recipeViewIngredientsEl.innerHTML = '';
+  for (const ing of recipe.ingredients) {
+    const li = document.createElement('li');
+    li.textContent = `${ing.name} ${ing.quantity}${ing.unit}`;
+    recipeViewIngredientsEl.appendChild(li);
   }
 
   recipeViewStepsEl.innerHTML = '';
@@ -510,13 +518,11 @@ recipeForm.addEventListener('submit', async (e) => {
   const ingredients = collectIngredientRows();
   const steps = collectStepRows();
   try {
-    if (recipeIdField.value) {
-      await updateRecipe(recipeIdField.value, name, url, servings, ingredients, steps);
-    } else {
-      await createRecipe(name, url, servings, ingredients, steps);
-    }
-    closeRecipeDialog();
+    const saved = recipeIdField.value
+      ? await updateRecipe(recipeIdField.value, name, url, servings, ingredients, steps)
+      : await createRecipe(name, url, servings, ingredients, steps);
     await loadRecipes();
+    showRecipeView(saved);
   } catch (err) {
     recipeErrorEl.textContent = err.message;
   }
