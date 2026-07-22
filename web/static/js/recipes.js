@@ -33,6 +33,13 @@ const addStepRowButton = document.getElementById('add-step-row');
 const recipeSubmitButton = document.getElementById('recipe-submit');
 const recipeErrorEl = document.getElementById('recipe-error');
 
+const recipeViewDialog = document.getElementById('recipe-view-dialog');
+const recipeViewTitle = document.getElementById('recipe-view-title');
+const recipeViewUrlEl = document.getElementById('recipe-view-url');
+const recipeViewStepsEl = document.getElementById('recipe-view-steps');
+const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty');
+const recipeViewCloseButton = document.getElementById('recipe-view-close');
+
 let ingredientMaster = [];
 let currentRecipes = [];
 let filterableIngredients = [];
@@ -235,6 +242,34 @@ function closeUseRecipeDialog() {
   useRecipeTarget = null;
 }
 
+function openRecipeViewDialog(recipe) {
+  recipeViewTitle.textContent = recipe.name;
+  recipeViewUrlEl.innerHTML = '';
+  recipeViewUrlEl.hidden = !recipe.url;
+  if (recipe.url) {
+    const link = document.createElement('a');
+    link.href = recipe.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = recipe.url;
+    recipeViewUrlEl.appendChild(link);
+  }
+
+  recipeViewStepsEl.innerHTML = '';
+  recipeViewStepsEmptyEl.hidden = recipe.steps.length > 0;
+  for (const step of recipe.steps) {
+    const li = document.createElement('li');
+    li.textContent = step;
+    recipeViewStepsEl.appendChild(li);
+  }
+
+  recipeViewDialog.showModal();
+}
+
+function closeRecipeViewDialog() {
+  recipeViewDialog.close();
+}
+
 async function onDeleteRecipe(recipe) {
   if (!confirm(`「${recipe.name}」を削除しますか?`)) return;
   recipeListErrorEl.textContent = '';
@@ -342,7 +377,18 @@ function renderRecipeList() {
     }
     tr.appendChild(nameTd);
 
+    const materialsTd = document.createElement('td');
+    materialsTd.className = 'recipe-materials';
+    materialsTd.textContent = recipe.ingredients.map((ing) => `${ing.name} ${ing.quantity}${ing.unit}`).join('\n');
+    tr.appendChild(materialsTd);
+
     const actionTd = document.createElement('td');
+    const viewButton = document.createElement('button');
+    viewButton.type = 'button';
+    viewButton.textContent = '表示';
+    viewButton.addEventListener('click', () => openRecipeViewDialog(recipe));
+    actionTd.appendChild(viewButton);
+
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.textContent = '使用';
@@ -413,6 +459,12 @@ recipeIngredientFilterCloseButton.addEventListener('click', () => {
 
 recipeIngredientFilterDialog.addEventListener('click', (e) => {
   if (isDialogBackdropClick(recipeIngredientFilterDialog, e)) recipeIngredientFilterDialog.close();
+});
+
+recipeViewCloseButton.addEventListener('click', closeRecipeViewDialog);
+
+recipeViewDialog.addEventListener('click', (e) => {
+  if (isDialogBackdropClick(recipeViewDialog, e)) closeRecipeViewDialog();
 });
 
 useRecipeCancelButton.addEventListener('click', closeUseRecipeDialog);

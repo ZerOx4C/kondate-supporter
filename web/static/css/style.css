@@ -251,6 +251,14 @@ form .field-row label {
   margin-top: 0;
 }
 
+.recipe-view-url {
+  margin: 0 0 0.6rem;
+}
+
+.recipe-materials {
+  white-space: pre-line;
+}
+
 #plan-table {
   max-width: none;
 }

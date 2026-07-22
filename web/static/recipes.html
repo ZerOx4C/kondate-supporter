@@ -44,6 +44,7 @@
       <thead>
         <tr>
           <th>名前</th>
+          <th>材料</th>
           <th></th>
         </tr>
       </thead>
@@ -105,6 +106,17 @@
           <button type="submit" id="use-recipe-submit">追加</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="recipe-view-dialog" class="recipe-dialog">
+      <h3 id="recipe-view-title"></h3>
+      <p id="recipe-view-url" class="recipe-view-url"></p>
+      <h4>手順</h4>
+      <ol id="recipe-view-steps"></ol>
+      <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
+      <div class="dialog-actions">
+        <button type="button" id="recipe-view-close">閉じる</button>
+      </div>
     </dialog>
 
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
