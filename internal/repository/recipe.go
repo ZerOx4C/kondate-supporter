@@ -43,7 +43,7 @@ func NewRecipeRepository(db *sql.DB) *RecipeRepository {
 }
 
 func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id, name, servings, url FROM recipes ORDER BY id")
+	rows, err := r.db.QueryContext(ctx, "SELECT id, name, servings, url, image_ext FROM recipes ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	recipes := []model.Recipe{}
 	for rows.Next() {
 		var rec model.Recipe
-		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL, &rec.ImageExt); err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, rec)
@@ -148,8 +148,8 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, error) {
 	var rec model.Recipe
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, name, servings, url FROM recipes WHERE id = ?", id,
-	).Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL)
+		"SELECT id, name, servings, url, image_ext FROM recipes WHERE id = ?", id,
+	).Scan(&rec.ID, &rec.Name, &rec.Servings, &rec.URL, &rec.ImageExt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RecipeDetail{}, ErrNotFound
 	}
@@ -371,6 +371,22 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url strin
 		return RecipeDetail{}, err
 	}
 	return r.Get(ctx, id)
+}
+
+// UpdateImageExt はレシピの画像拡張子を更新する(空文字列は画像未登録を表す)。
+func (r *RecipeRepository) UpdateImageExt(ctx context.Context, id int64, ext string) error {
+	res, err := r.db.ExecContext(ctx, "UPDATE recipes SET image_ext = ? WHERE id = ?", ext, id)
+	if err != nil {
+		return classifySQLiteError(err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // Delete はレシピと紐づく材料行・手順行を削除する。plansから参照中の

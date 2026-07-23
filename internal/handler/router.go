@@ -26,6 +26,9 @@ func NewRouter(staticFS fs.FS, ingredientHandler *IngredientHandler, stockHandle
 	mux.HandleFunc("GET /api/recipes/{id}", recipeHandler.Get)
 	mux.HandleFunc("PUT /api/recipes/{id}", recipeHandler.Update)
 	mux.HandleFunc("DELETE /api/recipes/{id}", recipeHandler.Delete)
+	mux.HandleFunc("GET /api/recipes/{id}/image", recipeHandler.GetImage)
+	mux.HandleFunc("POST /api/recipes/{id}/image", recipeHandler.UploadImage)
+	mux.HandleFunc("DELETE /api/recipes/{id}/image", recipeHandler.DeleteImage)
 
 	mux.HandleFunc("GET /api/plans", planHandler.List)
 	mux.HandleFunc("POST /api/plans", planHandler.Create)

@@ -1,10 +1,12 @@
 // kondate-supporter APIを呼び出すための最小限のfetchラッパー。
 
 async function apiRequest(path, options = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  // FormData送信時はブラウザが自動付与する multipart/form-data; boundary=...
+  // を上書きしないよう、Content-Typeを強制しない。
+  const headers = options.body instanceof FormData
+    ? options.headers
+    : { 'Content-Type': 'application/json', ...options.headers };
+  const res = await fetch(path, { ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `request failed: ${res.status}`);
@@ -79,6 +81,16 @@ function updateRecipe(id, name, url, servings, ingredients, steps) {
 
 function deleteRecipe(id) {
   return apiRequest(`/api/recipes/${id}`, { method: 'DELETE' });
+}
+
+function uploadRecipeImage(id, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiRequest(`/api/recipes/${id}/image`, { method: 'POST', body: formData });
+}
+
+function deleteRecipeImage(id) {
+  return apiRequest(`/api/recipes/${id}/image`, { method: 'DELETE' });
 }
 
 function listPlans(from, to) {

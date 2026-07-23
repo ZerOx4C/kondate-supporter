@@ -1,0 +1,1 @@
+ALTER TABLE recipes ADD COLUMN image_ext TEXT NOT NULL DEFAULT '';

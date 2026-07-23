@@ -22,6 +22,7 @@ type Recipe struct {
 	Name     string `json:"name"`
 	URL      string `json:"url"`
 	Servings int    `json:"servings"`
+	ImageExt string `json:"imageExt"`
 }
 
 // RecipeIngredient はレシピが必要とする食材の数量。

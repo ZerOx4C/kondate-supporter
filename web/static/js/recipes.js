@@ -23,6 +23,7 @@ const recipeDialogTitle = document.getElementById('recipe-dialog-title');
 const recipeErrorEl = document.getElementById('recipe-error');
 
 const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
+const recipeViewImageEl = document.getElementById('recipe-view-image');
 const recipeViewUrlEl = document.getElementById('recipe-view-url');
 const recipeViewIngredientsEl = document.getElementById('recipe-view-ingredients');
 const recipeViewStepsEl = document.getElementById('recipe-view-steps');
@@ -37,6 +38,9 @@ const recipeIdField = document.getElementById('recipe-id');
 const recipeNameField = document.getElementById('recipe-name');
 const recipeServingsField = document.getElementById('recipe-servings');
 const recipeUrlField = document.getElementById('recipe-url');
+const recipeImageInput = document.getElementById('recipe-image-input');
+const recipeImagePreview = document.getElementById('recipe-image-preview');
+const recipeImageRemoveButton = document.getElementById('recipe-image-remove');
 const ingredientRowsEl = document.getElementById('ingredient-rows');
 const addIngredientRowButton = document.getElementById('add-ingredient-row');
 const stepRowsEl = document.getElementById('step-rows');
@@ -44,6 +48,8 @@ const addStepRowButton = document.getElementById('add-step-row');
 const recipeSubmitButton = document.getElementById('recipe-submit');
 
 let recipeDialogTarget = null;
+let recipeImageFile = null;
+let recipeImageRemoveRequested = false;
 
 let ingredientMaster = [];
 let currentRecipes = [];
@@ -233,6 +239,11 @@ function applyRecipeDialogMode(mode) {
 
 function renderRecipeView(recipe) {
   recipeDialogTitle.textContent = `${recipe.name}(${recipe.servings}人分)`;
+  recipeViewImageEl.hidden = !recipe.hasImage;
+  if (recipe.hasImage) {
+    recipeViewImageEl.src = `/api/recipes/${recipe.id}/image?t=${Date.now()}`;
+  }
+
   recipeViewUrlEl.innerHTML = '';
   recipeViewUrlEl.hidden = !recipe.url;
   if (recipe.url) {
@@ -272,6 +283,11 @@ function resetRecipeFormFields() {
   recipeIdField.value = '';
   ingredientRowsEl.innerHTML = '';
   stepRowsEl.innerHTML = '';
+  recipeImageFile = null;
+  recipeImageRemoveRequested = false;
+  recipeImageInput.value = '';
+  recipeImagePreview.hidden = true;
+  recipeImageRemoveButton.hidden = true;
 }
 
 function showRecipeEdit(recipe) {
@@ -288,6 +304,11 @@ function showRecipeEdit(recipe) {
     }
     for (const step of recipe.steps) {
       addStepRow(step);
+    }
+    if (recipe.hasImage) {
+      recipeImagePreview.src = `/api/recipes/${recipe.id}/image`;
+      recipeImagePreview.hidden = false;
+      recipeImageRemoveButton.hidden = false;
     }
   } else {
     recipeDialogTitle.textContent = 'レシピを作成';
@@ -434,6 +455,16 @@ function renderRecipeList() {
   for (const recipe of recipes) {
     const tr = document.createElement('tr');
 
+    const imageTd = document.createElement('td');
+    if (recipe.hasImage) {
+      const img = document.createElement('img');
+      img.src = `/api/recipes/${recipe.id}/image`;
+      img.alt = '';
+      img.className = 'recipe-list-image';
+      imageTd.appendChild(img);
+    }
+    tr.appendChild(imageTd);
+
     const nameTd = document.createElement('td');
     nameTd.textContent = recipe.name;
     if (recipe.url) {
@@ -543,6 +574,24 @@ useRecipeForm.addEventListener('submit', async (e) => {
   }
 });
 
+recipeImageInput.addEventListener('change', () => {
+  const file = recipeImageInput.files[0];
+  if (!file) return;
+  recipeImageFile = file;
+  recipeImageRemoveRequested = false;
+  recipeImagePreview.src = URL.createObjectURL(file);
+  recipeImagePreview.hidden = false;
+  recipeImageRemoveButton.hidden = false;
+});
+
+recipeImageRemoveButton.addEventListener('click', () => {
+  recipeImageFile = null;
+  recipeImageRemoveRequested = true;
+  recipeImageInput.value = '';
+  recipeImagePreview.hidden = true;
+  recipeImageRemoveButton.hidden = true;
+});
+
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
 addStepRowButton.addEventListener('click', () => addStepRow());
 recipeDialogCancelButton.addEventListener('click', () => {
@@ -569,6 +618,13 @@ recipeForm.addEventListener('submit', async (e) => {
     const saved = recipeIdField.value
       ? await updateRecipe(recipeIdField.value, name, url, servings, ingredients, steps)
       : await createRecipe(name, url, servings, ingredients, steps);
+    if (recipeImageFile) {
+      await uploadRecipeImage(saved.id, recipeImageFile);
+      saved.hasImage = true;
+    } else if (recipeImageRemoveRequested) {
+      await deleteRecipeImage(saved.id);
+      saved.hasImage = false;
+    }
     await loadRecipes();
     showRecipeView(saved);
   } catch (err) {

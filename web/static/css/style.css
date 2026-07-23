@@ -158,6 +158,29 @@ button.danger {
   text-decoration: none;
 }
 
+.recipe-list-image {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-view-image {
+  max-width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.recipe-image-preview {
+  max-width: 8rem;
+  max-height: 8rem;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
 .quantity-input {
   width: 6rem;
 }

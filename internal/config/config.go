@@ -3,16 +3,18 @@ package config
 import "os"
 
 type Config struct {
-	Addr    string
-	DBPath  string
-	DevMode bool
+	Addr     string
+	DBPath   string
+	ImageDir string
+	DevMode  bool
 }
 
 func Load() Config {
 	return Config{
-		Addr:    getEnv("KONDATE_ADDR", ":8080"),
-		DBPath:  getEnv("KONDATE_DB_PATH", "data/kondate.db"),
-		DevMode: os.Getenv("DEV_MODE") == "1",
+		Addr:     getEnv("KONDATE_ADDR", ":8080"),
+		DBPath:   getEnv("KONDATE_DB_PATH", "data/kondate.db"),
+		ImageDir: getEnv("KONDATE_IMAGE_DIR", "data/recipe-images"),
+		DevMode:  os.Getenv("DEV_MODE") == "1",
 	}
 }
 

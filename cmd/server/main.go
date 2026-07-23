@@ -9,6 +9,7 @@ import (
 	"kondate-supporter/internal/config"
 	"kondate-supporter/internal/db"
 	"kondate-supporter/internal/handler"
+	"kondate-supporter/internal/imagestore"
 	"kondate-supporter/internal/repository"
 	"kondate-supporter/internal/service"
 	"kondate-supporter/web"
@@ -37,9 +38,11 @@ func main() {
 	recipeRepo := repository.NewRecipeRepository(conn)
 	planRepo := repository.NewPlanRepository(conn)
 
+	imageStore := imagestore.New(cfg.ImageDir)
+
 	ingredientHandler := handler.NewIngredientHandler(ingredientRepo)
 	stockHandler := handler.NewStockHandler(stockRepo)
-	recipeHandler := handler.NewRecipeHandler(recipeRepo)
+	recipeHandler := handler.NewRecipeHandler(recipeRepo, imageStore)
 
 	shoppingListService := service.NewShoppingListService(planRepo, recipeRepo, stockRepo)
 	planHandler := handler.NewPlanHandler(planRepo, shoppingListService)

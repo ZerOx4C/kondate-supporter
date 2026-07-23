@@ -43,6 +43,7 @@
     <table id="recipe-table">
       <thead>
         <tr>
+          <th>画像</th>
           <th>名前</th>
           <th>材料</th>
           <th></th>
@@ -57,6 +58,7 @@
       <p class="error" id="recipe-error"></p>
 
       <div id="recipe-view-fields">
+        <img id="recipe-view-image" class="recipe-view-image" hidden>
         <p id="recipe-view-url" class="recipe-view-url"></p>
         <h4>材料</h4>
         <ul id="recipe-view-ingredients"></ul>
@@ -87,6 +89,16 @@
             参考URL
             <input type="url" id="recipe-url" placeholder="https://...">
           </label>
+        </div>
+        <div class="field-row">
+          <label>
+            画像
+            <input type="file" id="recipe-image-input" accept="image/*">
+          </label>
+        </div>
+        <div id="recipe-image-current">
+          <img id="recipe-image-preview" class="recipe-image-preview" hidden>
+          <button type="button" id="recipe-image-remove" hidden>画像を削除</button>
         </div>
 
         <h4>材料</h4>

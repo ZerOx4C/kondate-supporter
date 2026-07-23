@@ -6,16 +6,22 @@ import (
 	"net/http"
 	"strings"
 
+	"kondate-supporter/internal/imagestore"
 	"kondate-supporter/internal/repository"
 )
 
+// maxImageUploadSize はレシピ画像アップロードの上限サイズ。RaspberryPi Zero
+// のメモリ制約を踏まえ、無制限アップロードを許さない。
+const maxImageUploadSize = 8 << 20 // 8MB
+
 // RecipeHandler はレシピ関連のHTTPエンドポイントを提供する。
 type RecipeHandler struct {
-	repo *repository.RecipeRepository
+	repo       *repository.RecipeRepository
+	imageStore *imagestore.Store
 }
 
-func NewRecipeHandler(repo *repository.RecipeRepository) *RecipeHandler {
-	return &RecipeHandler{repo: repo}
+func NewRecipeHandler(repo *repository.RecipeRepository, imageStore *imagestore.Store) *RecipeHandler {
+	return &RecipeHandler{repo: repo, imageStore: imageStore}
 }
 
 type recipeIngredientRequest struct {
@@ -84,6 +90,7 @@ type recipeResponse struct {
 	Servings    int                        `json:"servings"`
 	Ingredients []recipeIngredientResponse `json:"ingredients"`
 	Steps       []string                   `json:"steps"`
+	HasImage    bool                       `json:"hasImage"`
 }
 
 func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
@@ -107,6 +114,7 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 		Servings:    detail.Recipe.Servings,
 		Ingredients: ingredients,
 		Steps:       steps,
+		HasImage:    detail.Recipe.ImageExt != "",
 	}
 }
 
@@ -189,6 +197,84 @@ func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.repo.Delete(r.Context(), id); err != nil {
+		h.handleError(w, err)
+		return
+	}
+	_ = h.imageStore.Delete(id) // 画像ファイル削除の失敗は致命的ではないため無視する
+	writeJSON(w, http.StatusNoContent, nil)
+}
+
+func (h *RecipeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
+	id, err := parsePathInt64(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "idが不正です")
+		return
+	}
+	if _, err := h.repo.Get(r.Context(), id); err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxImageUploadSize)
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "画像が大きすぎるか、形式が不正です")
+		return
+	}
+	defer r.MultipartForm.RemoveAll()
+
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "imageフィールドが必要です")
+		return
+	}
+	defer file.Close()
+
+	ext, err := h.imageStore.Save(id, file)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "対応していない画像形式です")
+		return
+	}
+
+	if err := h.repo.UpdateImageExt(r.Context(), id, ext); err != nil {
+		h.handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusNoContent, nil)
+}
+
+func (h *RecipeHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+	id, err := parsePathInt64(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "idが不正です")
+		return
+	}
+	detail, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+	if detail.Recipe.ImageExt == "" {
+		writeError(w, http.StatusNotFound, "画像が登録されていません")
+		return
+	}
+	http.ServeFile(w, r, h.imageStore.Path(id, detail.Recipe.ImageExt))
+}
+
+func (h *RecipeHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	id, err := parsePathInt64(r, "id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "idが不正です")
+		return
+	}
+	if _, err := h.repo.Get(r.Context(), id); err != nil {
+		h.handleError(w, err)
+		return
+	}
+	if err := h.imageStore.Delete(id); err != nil {
+		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
+		return
+	}
+	if err := h.repo.UpdateImageExt(r.Context(), id, ""); err != nil {
 		h.handleError(w, err)
 		return
 	}
