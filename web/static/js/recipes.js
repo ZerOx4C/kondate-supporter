@@ -152,9 +152,53 @@ function collectIngredientRows() {
   }));
 }
 
+let stepDragState = null;
+
+function renumberStepRows() {
+  const rows = stepRowsEl.querySelectorAll('.step-row');
+  rows.forEach((row, index) => {
+    row.querySelector('.step-number').textContent = `${index + 1}.`;
+  });
+}
+
+function onStepHandlePointerDown(e, row, handle) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  stepDragState = { row };
+  row.classList.add('dragging');
+  handle.setPointerCapture(e.pointerId);
+}
+
+function onStepHandlePointerMove(e) {
+  if (!stepDragState) return;
+  const { row } = stepDragState;
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const targetRow = target ? target.closest('.step-row') : null;
+  if (!targetRow || targetRow === row || targetRow.parentElement !== stepRowsEl) return;
+
+  const rect = targetRow.getBoundingClientRect();
+  const before = e.clientY < rect.top + rect.height / 2;
+  stepRowsEl.insertBefore(row, before ? targetRow : targetRow.nextSibling);
+  renumberStepRows();
+}
+
+function onStepHandlePointerUp(e) {
+  if (!stepDragState) return;
+  stepDragState.row.classList.remove('dragging');
+  stepDragState = null;
+}
+
 function addStepRow(text) {
   const row = document.createElement('div');
   row.className = 'step-row';
+
+  const handle = document.createElement('span');
+  handle.className = 'step-number';
+  handle.addEventListener('pointerdown', (e) => onStepHandlePointerDown(e, row, handle));
+  handle.addEventListener('pointermove', onStepHandlePointerMove);
+  handle.addEventListener('pointerup', onStepHandlePointerUp);
+  handle.addEventListener('pointercancel', onStepHandlePointerUp);
+  row.appendChild(handle);
 
   const textarea = document.createElement('textarea');
   textarea.className = 'step-text';
@@ -164,11 +208,15 @@ function addStepRow(text) {
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
   removeButton.textContent = '削除';
-  removeButton.addEventListener('click', () => row.remove());
+  removeButton.addEventListener('click', () => {
+    row.remove();
+    renumberStepRows();
+  });
 
   row.appendChild(textarea);
   row.appendChild(removeButton);
   stepRowsEl.appendChild(row);
+  renumberStepRows();
 }
 
 function collectStepRows() {

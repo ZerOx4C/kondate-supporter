@@ -140,6 +140,19 @@ button.danger {
   font: inherit;
 }
 
+.step-number {
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  padding: 0.3rem 0.4rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-row.dragging {
+  opacity: 0.4;
+}
+
 .recipe-url-link {
   margin-left: 0.3rem;
   text-decoration: none;
