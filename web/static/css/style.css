@@ -181,6 +181,11 @@ button.danger {
   margin-bottom: 0.3rem;
 }
 
+.recipe-view-image[hidden],
+.recipe-image-preview[hidden] {
+  display: none;
+}
+
 .quantity-input {
   width: 6rem;
 }

@@ -574,14 +574,17 @@ useRecipeForm.addEventListener('submit', async (e) => {
   }
 });
 
-recipeImageInput.addEventListener('change', () => {
-  const file = recipeImageInput.files[0];
-  if (!file) return;
+function setRecipeImageFile(file) {
   recipeImageFile = file;
   recipeImageRemoveRequested = false;
   recipeImagePreview.src = URL.createObjectURL(file);
   recipeImagePreview.hidden = false;
   recipeImageRemoveButton.hidden = false;
+}
+
+recipeImageInput.addEventListener('change', () => {
+  const file = recipeImageInput.files[0];
+  if (file) setRecipeImageFile(file);
 });
 
 recipeImageRemoveButton.addEventListener('click', () => {
@@ -590,6 +593,22 @@ recipeImageRemoveButton.addEventListener('click', () => {
   recipeImageInput.value = '';
   recipeImagePreview.hidden = true;
   recipeImageRemoveButton.hidden = true;
+});
+
+document.addEventListener('paste', (e) => {
+  if (!recipeDialog.open || recipeForm.hidden) return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        setRecipeImageFile(file);
+        e.preventDefault();
+      }
+      break;
+    }
+  }
 });
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
