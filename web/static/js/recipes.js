@@ -453,20 +453,32 @@ function renderRecipeList() {
   const recipes = getFilteredRecipes();
   recipeListBody.innerHTML = '';
   for (const recipe of recipes) {
-    const tr = document.createElement('tr');
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
 
-    const imageTd = document.createElement('td');
+    const media = document.createElement('div');
+    media.className = 'recipe-card-media';
     if (recipe.hasImage) {
       const img = document.createElement('img');
       img.src = `/api/recipes/${recipe.id}/image`;
       img.alt = '';
-      img.className = 'recipe-list-image';
-      imageTd.appendChild(img);
+      img.className = 'recipe-card-image';
+      media.appendChild(img);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'recipe-card-image-placeholder';
+      placeholder.textContent = '🍽️';
+      placeholder.setAttribute('aria-hidden', 'true');
+      media.appendChild(placeholder);
     }
-    tr.appendChild(imageTd);
+    card.appendChild(media);
 
-    const nameTd = document.createElement('td');
-    nameTd.textContent = recipe.name;
+    const body = document.createElement('div');
+    body.className = 'recipe-card-body';
+
+    const title = document.createElement('h3');
+    title.className = 'recipe-card-title';
+    title.textContent = recipe.name;
     if (recipe.url) {
       const link = document.createElement('a');
       link.href = recipe.url;
@@ -475,30 +487,44 @@ function renderRecipeList() {
       link.textContent = '🔗';
       link.className = 'recipe-url-link';
       link.title = recipe.url;
-      nameTd.appendChild(link);
+      title.appendChild(link);
     }
-    tr.appendChild(nameTd);
+    body.appendChild(title);
 
-    const materialsTd = document.createElement('td');
-    materialsTd.className = 'recipe-materials';
-    materialsTd.textContent = recipe.ingredients.map((ing) => `${ing.name} ${ing.quantity}${ing.unit}`).join('\n');
-    tr.appendChild(materialsTd);
+    const chips = document.createElement('ul');
+    chips.className = 'recipe-card-ingredients';
+    const shownIngredients = recipe.ingredients.slice(0, 3);
+    for (const ing of shownIngredients) {
+      const li = document.createElement('li');
+      li.className = 'material-chip';
+      li.textContent = `${ing.name} ${ing.quantity}${ing.unit}`;
+      chips.appendChild(li);
+    }
+    if (recipe.ingredients.length > shownIngredients.length) {
+      const li = document.createElement('li');
+      li.className = 'material-chip material-chip-more';
+      li.textContent = `+${recipe.ingredients.length - shownIngredients.length}`;
+      chips.appendChild(li);
+    }
+    body.appendChild(chips);
+    card.appendChild(body);
 
-    const actionTd = document.createElement('td');
+    const actions = document.createElement('div');
+    actions.className = 'recipe-card-actions';
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
     viewButton.textContent = '表示';
     viewButton.addEventListener('click', () => openRecipeDialog(recipe));
-    actionTd.appendChild(viewButton);
+    actions.appendChild(viewButton);
 
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.textContent = '使用';
     useButton.addEventListener('click', () => openUseRecipeDialog(recipe));
-    actionTd.appendChild(useButton);
+    actions.appendChild(useButton);
 
-    tr.appendChild(actionTd);
-    recipeListBody.appendChild(tr);
+    card.appendChild(actions);
+    recipeListBody.appendChild(card);
   }
 }
 

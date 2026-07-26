@@ -302,15 +302,29 @@ function renderPlans(plans) {
   const plansByDate = groupPlansByDate(plans);
   const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
   for (const date of dates) {
-    const tr = document.createElement('tr');
+    const dayEl = document.createElement('div');
+    dayEl.className = 'plan-day';
 
-    const dateTd = document.createElement('td');
-    dateTd.textContent = formatDateLabel(date);
-    tr.appendChild(dateTd);
+    const header = document.createElement('div');
+    header.className = 'plan-day-header';
 
-    const planTd = document.createElement('td');
-    planTd.className = 'plan-cell';
-    planTd.dataset.date = date;
+    const dateLabel = document.createElement('span');
+    dateLabel.className = 'plan-day-date';
+    dateLabel.textContent = formatDateLabel(date);
+    header.appendChild(dateLabel);
+
+    const addNoteButton = document.createElement('button');
+    addNoteButton.type = 'button';
+    addNoteButton.className = 'plan-add-button';
+    addNoteButton.textContent = 'メモ追加';
+    addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
+    header.appendChild(addNoteButton);
+
+    dayEl.appendChild(header);
+
+    const cell = document.createElement('div');
+    cell.className = 'plan-cell';
+    cell.dataset.date = date;
     const dayPlans = plansByDate.get(date) || [];
     if (dayPlans.length > 0) {
       const container = document.createElement('div');
@@ -318,19 +332,11 @@ function renderPlans(plans) {
       for (const plan of dayPlans) {
         container.appendChild(createPlanPanel(plan));
       }
-      planTd.appendChild(container);
+      cell.appendChild(container);
     }
+    dayEl.appendChild(cell);
 
-    const addNoteButton = document.createElement('button');
-    addNoteButton.type = 'button';
-    addNoteButton.className = 'plan-add-button';
-    addNoteButton.textContent = 'メモ追加';
-    addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
-    planTd.appendChild(addNoteButton);
-
-    tr.appendChild(planTd);
-
-    planListBody.appendChild(tr);
+    planListBody.appendChild(dayEl);
   }
 }
 
