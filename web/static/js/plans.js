@@ -17,7 +17,6 @@ const summaryEmptyEl = document.getElementById('summary-empty');
 const planRecipeNameEl = document.getElementById('plan-recipe-name');
 const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
 
-const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
 function formatDateLabel(dateStr) {
@@ -197,8 +196,7 @@ async function onDropPlan(planId, newDate) {
   }
 }
 
-function onPlanPanelPointerDown(e, plan, panel) {
-  if (e.target.closest('.plan-panel-actions')) return;
+function onPlanPanelPointerDown(e, plan, panel, handle) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
 
@@ -213,13 +211,14 @@ function onPlanPanelPointerDown(e, plan, panel) {
   dragState = {
     plan,
     panel,
+    handle,
     ghost,
     offsetX: e.clientX - rect.left,
     offsetY: e.clientY - rect.top,
     dropCell: null,
   };
   panel.classList.add('dragging');
-  panel.setPointerCapture(e.pointerId);
+  handle.setPointerCapture(e.pointerId);
 }
 
 function onPlanPanelPointerMove(e) {
@@ -239,8 +238,8 @@ function onPlanPanelPointerMove(e) {
 
 function onPlanPanelPointerUp(e) {
   if (!dragState) return;
-  const { plan, panel, ghost, dropCell } = dragState;
-  panel.releasePointerCapture(e.pointerId);
+  const { plan, panel, handle, ghost, dropCell } = dragState;
+  handle.releasePointerCapture(e.pointerId);
   panel.classList.remove('dragging');
   ghost.remove();
   if (dropCell) dropCell.classList.remove('drag-over');
@@ -265,31 +264,47 @@ function enumerateDateRange(fromStr, toStr) {
 function createPlanPanel(plan) {
   const panel = document.createElement('div');
   panel.className = 'plan-panel';
-  panel.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel));
-  panel.addEventListener('pointermove', onPlanPanelPointerMove);
-  panel.addEventListener('pointerup', onPlanPanelPointerUp);
-  panel.addEventListener('pointercancel', onPlanPanelPointerUp);
+  if (plan.mealTime !== 'other') {
+    panel.classList.add(`plan-panel-${plan.mealTime}`);
+  }
+
+  const handle = document.createElement('span');
+  handle.className = 'plan-panel-handle';
+  handle.setAttribute('aria-hidden', 'true');
+  handle.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel, handle));
+  handle.addEventListener('pointermove', onPlanPanelPointerMove);
+  handle.addEventListener('pointerup', onPlanPanelPointerUp);
+  handle.addEventListener('pointercancel', onPlanPanelPointerUp);
+  panel.appendChild(handle);
 
   const text = document.createElement('span');
-  const mealTimeLabel = mealTimeLabels[plan.mealTime] || plan.mealTime;
-  text.textContent = plan.recipeId
-    ? `[${mealTimeLabel}] ${plan.recipeName} (${plan.servings}人分)`
-    : `[${mealTimeLabel}] ${plan.note}`;
+  text.className = 'plan-panel-text';
+  text.textContent = plan.recipeId ? plan.recipeName : plan.note;
   panel.appendChild(text);
+
+  if (plan.recipeId) {
+    const servings = document.createElement('span');
+    servings.className = 'plan-panel-servings';
+    servings.innerHTML = `<i class="fa-solid fa-user-group" aria-hidden="true"></i> ${plan.servings}`;
+    panel.appendChild(servings);
+  }
 
   const actions = document.createElement('span');
   actions.className = 'plan-panel-actions';
 
   const editButton = document.createElement('button');
   editButton.type = 'button';
-  editButton.textContent = '編集';
+  editButton.className = 'icon-button';
+  editButton.setAttribute('aria-label', '編集');
+  editButton.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i>';
   editButton.addEventListener('click', () => openPlanDialog(plan));
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
-  deleteButton.textContent = '削除';
-  deleteButton.className = 'danger';
+  deleteButton.className = 'icon-button danger';
+  deleteButton.setAttribute('aria-label', '削除');
+  deleteButton.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
   deleteButton.addEventListener('click', () => onDeletePlan(plan));
   actions.appendChild(deleteButton);
 
