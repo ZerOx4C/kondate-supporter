@@ -17,6 +17,7 @@ type PlanDetail struct {
 	RecipeID            *int64
 	RecipeName          string
 	RecipeServings      int
+	HasImage            bool
 	Servings            int
 	MealTime            string
 	Note                string
@@ -43,7 +44,7 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time, p.note
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 	`)
@@ -83,11 +84,12 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 			recipeID       sql.NullInt64
 			recipeName     sql.NullString
 			recipeServings sql.NullInt64
+			recipeImageExt sql.NullString
 		)
-		if err := rows.Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &p.Servings, &p.MealTime, &p.Note); err != nil {
+		if err := rows.Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note); err != nil {
 			return nil, err
 		}
-		applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings)
+		applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings, recipeImageExt)
 		plans = append(plans, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -114,20 +116,21 @@ func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) 
 		recipeID       sql.NullInt64
 		recipeName     sql.NullString
 		recipeServings sql.NullInt64
+		recipeImageExt sql.NullString
 	)
 	err := r.db.QueryRowContext(ctx, `
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, p.servings, p.meal_time, p.note
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &p.Servings, &p.MealTime, &p.Note)
+	`, id).Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}
 	if err != nil {
 		return PlanDetail{}, err
 	}
-	applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings)
+	applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings, recipeImageExt)
 
 	overridesByPlan, err := queryPlanIngredientOverrides(ctx, r.db, []int64{id})
 	if err != nil {
@@ -179,7 +182,7 @@ func queryPlanIngredientOverrides(ctx context.Context, db *sql.DB, planIDs []int
 
 // applyRecipeJoinResult はLEFT JOINで取得したレシピ情報をPlanDetailに反映する。
 // recipeIDがNULLの行(メモ行)ではRecipeIDをnilのままにする。
-func applyRecipeJoinResult(p *PlanDetail, recipeID sql.NullInt64, recipeName sql.NullString, recipeServings sql.NullInt64) {
+func applyRecipeJoinResult(p *PlanDetail, recipeID sql.NullInt64, recipeName sql.NullString, recipeServings sql.NullInt64, recipeImageExt sql.NullString) {
 	if !recipeID.Valid {
 		return
 	}
@@ -187,6 +190,7 @@ func applyRecipeJoinResult(p *PlanDetail, recipeID sql.NullInt64, recipeName sql
 	p.RecipeID = &id
 	p.RecipeName = recipeName.String
 	p.RecipeServings = int(recipeServings.Int64)
+	p.HasImage = recipeImageExt.String != ""
 }
 
 // validateRecipeExists は指定されたレシピIDが存在するか検証する。

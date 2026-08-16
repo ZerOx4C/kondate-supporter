@@ -138,11 +138,14 @@
     </dialog>
 
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
-      <label>
-        食材を検索
-        <input type="text" id="recipe-ingredient-search-field" placeholder="食材名で検索" autocomplete="off">
-      </label>
-      <ul id="recipe-ingredient-filter-list" class="ingredient-filter-list"></ul>
+      <div class="search-field">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="text" id="recipe-ingredient-search-field" placeholder="食材名で検索" autocomplete="off" aria-label="食材名で検索">
+        <button type="button" id="recipe-ingredient-search-clear" class="icon-button" aria-label="検索をクリア">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div id="recipe-ingredient-filter-list" class="ingredient-filter-list"></div>
       <div class="dialog-actions">
         <button type="button" id="recipe-ingredient-filter-close">決定</button>
       </div>

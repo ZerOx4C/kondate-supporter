@@ -101,6 +101,7 @@ type planResponse struct {
 	Date                string                           `json:"date"`
 	RecipeID            *int64                           `json:"recipeId"`
 	RecipeName          string                           `json:"recipeName"`
+	HasImage            bool                             `json:"hasImage"`
 	Servings            int                              `json:"servings"`
 	MealTime            string                           `json:"mealTime"`
 	Note                string                           `json:"note"`
@@ -128,6 +129,7 @@ func toPlanResponse(detail repository.PlanDetail) planResponse {
 		Date:                detail.Date,
 		RecipeID:            detail.RecipeID,
 		RecipeName:          detail.RecipeName,
+		HasImage:            detail.HasImage,
 		Servings:            detail.Servings,
 		MealTime:            detail.MealTime,
 		Note:                detail.Note,

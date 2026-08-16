@@ -269,11 +269,29 @@ function createPlanPanel(plan) {
   const handle = document.createElement('span');
   handle.className = 'plan-panel-handle';
   handle.setAttribute('aria-hidden', 'true');
+  handle.innerHTML = '<i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>';
   handle.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel, handle));
   handle.addEventListener('pointermove', onPlanPanelPointerMove);
   handle.addEventListener('pointerup', onPlanPanelPointerUp);
   handle.addEventListener('pointercancel', onPlanPanelPointerUp);
   panel.appendChild(handle);
+
+  const media = document.createElement('div');
+  media.className = 'plan-panel-media';
+  if (plan.recipeId && plan.hasImage) {
+    const img = document.createElement('img');
+    img.src = `/api/recipes/${plan.recipeId}/image`;
+    img.alt = '';
+    img.className = 'plan-panel-image';
+    media.appendChild(img);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'plan-panel-image-placeholder';
+    placeholder.textContent = plan.recipeId ? '🍽️' : '📝';
+    placeholder.setAttribute('aria-hidden', 'true');
+    media.appendChild(placeholder);
+  }
+  panel.appendChild(media);
 
   const text = document.createElement('span');
   text.className = 'plan-panel-text';
@@ -329,7 +347,8 @@ function renderPlans(plans) {
     const addNoteButton = document.createElement('button');
     addNoteButton.type = 'button';
     addNoteButton.className = 'plan-add-button';
-    addNoteButton.textContent = 'メモ追加';
+    addNoteButton.setAttribute('aria-label', 'メモを追加');
+    addNoteButton.innerHTML = '<i class="fa-solid fa-note-sticky" aria-hidden="true"></i>';
     addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
     header.appendChild(addNoteButton);
 

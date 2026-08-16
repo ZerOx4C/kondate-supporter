@@ -31,6 +31,7 @@
   --color-meal-morning-bg: light-dark(#dff3fb, #163646);
   --color-meal-noon-bg: light-dark(#fdefd2, #4a3a12);
   --color-meal-night-bg: light-dark(#ece4fa, #352d4a);
+  --color-surplus-bg: light-dark(#e6f4ea, #1b3320);
 }
 
 body {
@@ -288,20 +289,41 @@ form .field-row label {
 
 .ingredient-filter-list {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  list-style: none;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.4rem;
   padding: 0;
   margin: 0.6rem 0;
-  max-height: 50vh;
-  overflow-y: auto;
+  height: 50vh;
+  overflow: hidden;
 }
 
-.ingredient-filter-list label {
-  display: flex;
+.ingredient-filter-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.8rem;
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.ingredient-filter-tag.surplus {
+  background: var(--color-surplus-bg);
+}
+
+.ingredient-filter-tag-remaining {
+  margin-left: 0.4rem;
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+}
+
+.ingredient-filter-tag.selected {
+  border-color: var(--color-accent);
+  border-width: 2px;
+  padding: 0.25rem 0.75rem;
 }
 
 .dialog-actions {
@@ -495,37 +517,48 @@ form .field-row label {
 .plan-timeline {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
-  max-width: 40rem;
+  max-width: 46rem;
 }
 
 .plan-day {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plan-day:last-child {
+  border-bottom: none;
 }
 
 .plan-day-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--color-bg-sunken);
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  width: 6rem;
+  padding-top: 0.2rem;
+}
+
+.plan-day-date {
   font-weight: bold;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
+  white-space: nowrap;
 }
 
 .plan-cell {
-  padding: var(--space-sm);
-  min-height: 2.5rem;
-  transition: background 0.1s ease;
+  flex: 1;
+  min-width: 0;
+  transition: outline-color 0.1s ease;
 }
 
 .plan-cell:empty::before {
   content: '予定なし';
+  display: block;
+  padding-top: 0.3rem;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -533,17 +566,25 @@ form .field-row label {
 .day-plans {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-sm);
 }
 
 .plan-panel {
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
+  min-height: 4rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-bg-surface);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.plan-panel:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .plan-panel-morning {
@@ -561,8 +602,11 @@ form .field-row label {
 .plan-panel-handle {
   flex-shrink: 0;
   width: 1.5rem;
-  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -585,7 +629,31 @@ form .field-row label {
 }
 
 .plan-cell.drag-over {
-  background: var(--color-bg-hover);
+  outline: 2px dashed var(--color-accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.plan-panel-media {
+  width: 6rem;
+  flex-shrink: 0;
+  background: var(--color-bg-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.plan-panel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.plan-panel-image-placeholder {
+  font-size: 1.2rem;
+  opacity: 0.5;
 }
 
 .plan-panel-text {
@@ -608,9 +676,9 @@ form .field-row label {
 .plan-panel-actions {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.3rem;
   flex-shrink: 0;
-  padding: 0 0.4rem 0 0;
+  padding: 0 0.5rem;
 }
 
 .icon-button {
@@ -634,8 +702,33 @@ form .field-row label {
   opacity: 0.8;
 }
 
+.plan-panel-actions .icon-button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.plan-panel-actions .icon-button:hover {
+  background: var(--color-bg-hover);
+}
+
 .plan-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
   font-size: 0.85rem;
+}
+
+.plan-add-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
 }
 
 .plan-dialog {

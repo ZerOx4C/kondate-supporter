@@ -7,6 +7,7 @@ const recipeIngredientFilterClearButton = document.getElementById('recipe-ingred
 const recipeIngredientFilterDialog = document.getElementById('recipe-ingredient-filter-dialog');
 const recipeIngredientFilterCloseButton = document.getElementById('recipe-ingredient-filter-close');
 const recipeIngredientSearchField = document.getElementById('recipe-ingredient-search-field');
+const recipeIngredientSearchClearButton = document.getElementById('recipe-ingredient-search-clear');
 const recipeIngredientFilterListEl = document.getElementById('recipe-ingredient-filter-list');
 const recipeSelectedIngredientsEl = document.getElementById('recipe-selected-ingredients');
 
@@ -56,6 +57,7 @@ let ingredientMaster = [];
 let currentRecipes = [];
 let filterableIngredients = [];
 let selectedIngredientFilterIds = new Set();
+let ingredientRemainingById = new Map();
 let useRecipeTarget = null;
 
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
@@ -379,11 +381,61 @@ function buildFilterableIngredients(recipes) {
   for (const recipe of recipes) {
     for (const ing of recipe.ingredients) {
       if (!map.has(ing.ingredientId)) {
-        map.set(ing.ingredientId, { id: ing.ingredientId, name: ing.name });
+        map.set(ing.ingredientId, { id: ing.ingredientId, name: ing.name, unit: ing.unit });
       }
     }
   }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  return Array.from(map.values());
+}
+
+async function loadIngredientRemaining() {
+  try {
+    const items = await getPlanSummary(rangeFromField.value, rangeToField.value);
+    ingredientRemainingById = new Map(items.map((item) => [item.ingredientId, item.remaining]));
+  } catch {
+    ingredientRemainingById = new Map();
+  }
+  renderIngredientFilterList();
+}
+
+function sortFilterableIngredients(items) {
+  return [...items].sort((a, b) => {
+    const aSelected = selectedIngredientFilterIds.has(a.id);
+    const bSelected = selectedIngredientFilterIds.has(b.id);
+    if (aSelected !== bSelected) return aSelected ? -1 : 1;
+    const aSurplus = (ingredientRemainingById.get(a.id) || 0) > 0;
+    const bSurplus = (ingredientRemainingById.get(b.id) || 0) > 0;
+    if (aSurplus !== bSurplus) return aSurplus ? -1 : 1;
+    return a.name.localeCompare(b.name, 'ja');
+  });
+}
+
+function createIngredientFilterTag(ingredient) {
+  const remaining = ingredientRemainingById.get(ingredient.id);
+  const surplus = typeof remaining === 'number' && remaining > 0;
+  const tag = document.createElement('button');
+  tag.type = 'button';
+  tag.className = 'ingredient-filter-tag';
+  tag.dataset.ingredientId = ingredient.id;
+  tag.classList.toggle('surplus', surplus);
+  tag.classList.toggle('selected', selectedIngredientFilterIds.has(ingredient.id));
+  tag.appendChild(document.createTextNode(ingredient.name));
+  if (surplus) {
+    const remainingEl = document.createElement('span');
+    remainingEl.className = 'ingredient-filter-tag-remaining';
+    remainingEl.textContent = `${remaining}${ingredient.unit}`;
+    tag.appendChild(remainingEl);
+  }
+  tag.addEventListener('click', () => onToggleIngredientFilter(ingredient.id));
+  return tag;
+}
+
+// タグの並び順は変えず、選択中の見た目だけを更新する
+function updateIngredientFilterTagSelection() {
+  for (const tag of recipeIngredientFilterListEl.children) {
+    const id = Number(tag.dataset.ingredientId);
+    tag.classList.toggle('selected', selectedIngredientFilterIds.has(id));
+  }
 }
 
 function renderIngredientFilterList() {
@@ -391,25 +443,34 @@ function renderIngredientFilterList() {
   const items = query
     ? filterableIngredients.filter((i) => i.name.toLowerCase().includes(query))
     : filterableIngredients;
+  const sorted = sortFilterableIngredients(items);
 
   recipeIngredientFilterListEl.innerHTML = '';
-  for (const ingredient of items) {
-    const li = document.createElement('li');
-    const label = document.createElement('label');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = selectedIngredientFilterIds.has(ingredient.id);
-    checkbox.addEventListener('change', () => onToggleIngredientFilter(ingredient.id, checkbox.checked));
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(ingredient.name));
-    li.appendChild(label);
-    recipeIngredientFilterListEl.appendChild(li);
+  const tagEls = [];
+  for (const ingredient of sorted) {
+    const tag = createIngredientFilterTag(ingredient);
+    recipeIngredientFilterListEl.appendChild(tag);
+    tagEls.push(tag);
+  }
+
+  // オーバーレイの高さを超える分は表示しない(検索で絞り込む想定のためスクロールはしない)
+  if (recipeIngredientFilterDialog.open) {
+    while (
+      tagEls.length > 0 &&
+      recipeIngredientFilterListEl.scrollHeight > recipeIngredientFilterListEl.clientHeight
+    ) {
+      tagEls.pop().remove();
+    }
   }
 }
 
-function onToggleIngredientFilter(ingredientId, checked) {
-  if (checked) selectedIngredientFilterIds.add(ingredientId);
-  else selectedIngredientFilterIds.delete(ingredientId);
+function onToggleIngredientFilter(ingredientId) {
+  if (selectedIngredientFilterIds.has(ingredientId)) {
+    selectedIngredientFilterIds.delete(ingredientId);
+  } else {
+    selectedIngredientFilterIds.add(ingredientId);
+  }
+  updateIngredientFilterTagSelection();
   renderSelectedIngredientChips();
   renderRecipeList();
 }
@@ -569,11 +630,16 @@ recipeSearchClearButton.addEventListener('click', () => {
 });
 
 recipeIngredientSearchField.addEventListener('input', renderIngredientFilterList);
+recipeIngredientSearchClearButton.addEventListener('click', () => {
+  recipeIngredientSearchField.value = '';
+  recipeIngredientSearchField.focus();
+  renderIngredientFilterList();
+});
 
 function openIngredientFilterDialog() {
   recipeIngredientSearchField.value = '';
-  renderIngredientFilterList();
   recipeIngredientFilterDialog.showModal();
+  renderIngredientFilterList();
   recipeIngredientSearchField.focus();
 }
 
@@ -699,6 +765,8 @@ recipeForm.addEventListener('submit', async (e) => {
   }
 });
 
+document.addEventListener('daterangechange', loadIngredientRemaining);
+
 async function init() {
   recipeListErrorEl.textContent = '';
   try {
@@ -706,7 +774,7 @@ async function init() {
   } catch (err) {
     recipeListErrorEl.textContent = err.message;
   }
-  await loadRecipes();
+  await Promise.all([loadRecipes(), loadIngredientRemaining()]);
 }
 
 init();
