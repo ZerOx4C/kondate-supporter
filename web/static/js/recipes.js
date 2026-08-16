@@ -471,18 +471,6 @@ function renderRecipeList() {
       placeholder.setAttribute('aria-hidden', 'true');
       media.appendChild(placeholder);
     }
-
-    const useButton = document.createElement('button');
-    useButton.type = 'button';
-    useButton.className = 'icon-button recipe-card-use-button';
-    useButton.setAttribute('aria-label', '使用');
-    useButton.innerHTML = '<i class="fa-solid fa-utensils" aria-hidden="true"></i>';
-    useButton.addEventListener('click', (event) => {
-      event.stopPropagation();
-      openUseRecipeDialog(recipe);
-    });
-    media.appendChild(useButton);
-
     card.appendChild(media);
 
     const body = document.createElement('div');
@@ -510,6 +498,17 @@ function renderRecipeList() {
     }
     body.appendChild(chips);
     card.appendChild(body);
+
+    const useButton = document.createElement('button');
+    useButton.type = 'button';
+    useButton.className = 'icon-button recipe-card-use-button';
+    useButton.setAttribute('aria-label', '使用');
+    useButton.innerHTML = '<i class="fa-solid fa-utensils" aria-hidden="true"></i>';
+    useButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openUseRecipeDialog(recipe);
+    });
+    card.appendChild(useButton);
 
     card.addEventListener('click', () => openRecipeDialog(recipe));
     recipeListBody.appendChild(card);
