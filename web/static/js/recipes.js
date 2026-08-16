@@ -518,7 +518,7 @@ function renderRecipeList() {
 function updateCreateButton() {
   const query = recipeSearchField.value.trim();
   if (query) {
-    recipeCreateButton.textContent = `「${query}」を新規作成`;
+    recipeCreateButton.setAttribute('aria-label', `「${query}」を新規作成`);
     recipeCreateButton.hidden = false;
   } else {
     recipeCreateButton.hidden = true;

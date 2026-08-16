@@ -36,12 +36,14 @@
     <h2>レシピ</h2>
 
     <div class="field-row">
-      <label>
-        レシピ名で検索
-        <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off">
-      </label>
+      <div class="search-field">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off" aria-label="レシピ名で検索">
+        <button type="button" id="recipe-create-button" class="icon-button" aria-label="新規作成" hidden>
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        </button>
+      </div>
       <button type="button" id="recipe-ingredient-filter-open">含める食材で絞り込む</button>
-      <button type="button" id="recipe-create-button" hidden></button>
     </div>
 
     <div id="recipe-selected-ingredients" class="selected-ingredient-chips"></div>

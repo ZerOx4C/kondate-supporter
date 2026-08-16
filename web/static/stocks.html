@@ -35,20 +35,12 @@
   <main>
     <h2>在庫</h2>
 
-    <label class="stock-search">
-      食材を検索
-      <input type="text" id="stock-search" placeholder="2文字以上入力して検索">
-    </label>
-
-    <div id="new-ingredient-panel" class="new-ingredient-panel" hidden>
-      <p>「<span id="new-ingredient-query"></span>」を新規食材として登録</p>
-      <form id="new-ingredient-form" class="inline-form">
-        <label>
-          単位
-          <input type="text" id="new-ingredient-unit" placeholder="g, 本, 個 など" required>
-        </label>
-        <button type="submit">追加</button>
-      </form>
+    <div class="search-field">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="text" id="stock-search" placeholder="2文字以上入力して検索" aria-label="食材を検索">
+      <button type="button" id="new-ingredient-button" class="icon-button" aria-label="新規食材を追加" hidden>
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+      </button>
     </div>
 
     <table id="stock-table">

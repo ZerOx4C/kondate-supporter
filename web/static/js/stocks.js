@@ -1,10 +1,7 @@
 const stockListBody = document.getElementById('stock-list');
 const stockErrorEl = document.getElementById('stock-error');
 const stockSearchField = document.getElementById('stock-search');
-const newIngredientPanel = document.getElementById('new-ingredient-panel');
-const newIngredientQueryEl = document.getElementById('new-ingredient-query');
-const newIngredientForm = document.getElementById('new-ingredient-form');
-const newIngredientUnitField = document.getElementById('new-ingredient-unit');
+const newIngredientButton = document.getElementById('new-ingredient-button');
 
 let currentStocks = [];
 
@@ -33,12 +30,9 @@ function formatUpdatedAt(value) {
 }
 
 function render() {
-  const { query, filtering, stocks } = getVisibleStocks();
+  const { filtering, stocks } = getVisibleStocks();
 
-  newIngredientPanel.hidden = !filtering;
-  if (filtering) {
-    newIngredientQueryEl.textContent = query;
-  }
+  newIngredientButton.hidden = !filtering;
 
   stockListBody.innerHTML = '';
   for (const stock of stocks) {
@@ -90,14 +84,13 @@ async function loadStocks() {
 
 stockSearchField.addEventListener('input', render);
 
-newIngredientForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  stockErrorEl.textContent = '';
+newIngredientButton.addEventListener('click', async () => {
   const name = stockSearchField.value.trim();
-  const unit = newIngredientUnitField.value.trim();
+  const unit = (window.prompt(`「${name}」の単位を入力してください(例: g, 本, 個)`) || '').trim();
+  if (!unit) return;
+  stockErrorEl.textContent = '';
   try {
     await createIngredient(name, unit);
-    newIngredientUnitField.value = '';
     await loadStocks();
   } catch (err) {
     stockErrorEl.textContent = err.message;
