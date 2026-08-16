@@ -374,12 +374,12 @@ form .field-row label {
   overflow: hidden;
 }
 
-.recipe-card-use-button {
+.icon-button.recipe-card-use-button {
   position: absolute;
   right: var(--space-xs);
   bottom: var(--space-xs);
-  background: var(--color-bg-surface);
-  box-shadow: var(--shadow-card);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-sm);
 }
 
 .recipe-card-image {
