@@ -342,7 +342,7 @@ form .field-row label {
 
 .recipe-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
@@ -367,7 +367,7 @@ form .field-row label {
 }
 
 .recipe-card-media {
-  width: 4rem;
+  aspect-ratio: 1 / 1;
   flex-shrink: 0;
   background: var(--color-bg-sunken);
   display: flex;
