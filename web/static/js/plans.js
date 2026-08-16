@@ -269,7 +269,7 @@ function createPlanPanel(plan) {
   const handle = document.createElement('span');
   handle.className = 'plan-panel-handle';
   handle.setAttribute('aria-hidden', 'true');
-  handle.innerHTML = '<i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>';
+  handle.innerHTML = '<i class="ti ti-grip-vertical" aria-hidden="true"></i>';
   handle.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel, handle));
   handle.addEventListener('pointermove', onPlanPanelPointerMove);
   handle.addEventListener('pointerup', onPlanPanelPointerUp);
@@ -301,7 +301,7 @@ function createPlanPanel(plan) {
   if (plan.recipeId) {
     const servings = document.createElement('span');
     servings.className = 'plan-panel-servings';
-    servings.innerHTML = `<i class="fa-solid fa-user-group" aria-hidden="true"></i> ${plan.servings}`;
+    servings.innerHTML = `<i class="ti ti-users-group" aria-hidden="true"></i> ${plan.servings}`;
     panel.appendChild(servings);
   }
 
@@ -312,7 +312,7 @@ function createPlanPanel(plan) {
   editButton.type = 'button';
   editButton.className = 'icon-button';
   editButton.setAttribute('aria-label', '編集');
-  editButton.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i>';
+  editButton.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
   editButton.addEventListener('click', () => openPlanDialog(plan));
   actions.appendChild(editButton);
 
@@ -320,7 +320,7 @@ function createPlanPanel(plan) {
   deleteButton.type = 'button';
   deleteButton.className = 'icon-button danger';
   deleteButton.setAttribute('aria-label', '削除');
-  deleteButton.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+  deleteButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   deleteButton.addEventListener('click', () => onDeletePlan(plan));
   actions.appendChild(deleteButton);
 
@@ -348,7 +348,7 @@ function renderPlans(plans) {
     addNoteButton.type = 'button';
     addNoteButton.className = 'plan-add-button';
     addNoteButton.setAttribute('aria-label', 'メモを追加');
-    addNoteButton.innerHTML = '<i class="fa-solid fa-note-sticky" aria-hidden="true"></i>';
+    addNoteButton.innerHTML = '<i class="ti ti-notes" aria-hidden="true"></i>';
     addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
     header.appendChild(addNoteButton);
 

@@ -98,7 +98,7 @@ header fieldset.inline-form {
   align-items: center;
 }
 
-header fieldset.inline-form .fa-calendar-days {
+header fieldset.inline-form .ti-calendar {
   color: var(--color-text-muted);
 }
 
@@ -157,7 +157,7 @@ button.danger {
   background: var(--color-bg-surface);
 }
 
-.search-field .fa-magnifying-glass {
+.search-field .ti-search {
   color: var(--color-text-muted);
   flex-shrink: 0;
 }

@@ -533,7 +533,7 @@ function getFilteredRecipes() {
 function createRecipeAddCard() {
   const card = document.createElement('div');
   card.className = 'recipe-card recipe-card-add';
-  card.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>新規追加</span>';
+  card.innerHTML = '<i class="ti ti-plus" aria-hidden="true"></i><span>新規追加</span>';
   card.addEventListener('click', () => openRecipeDialog());
   return card;
 }
@@ -593,7 +593,7 @@ function renderRecipeList() {
     useButton.type = 'button';
     useButton.className = 'icon-button recipe-card-use-button';
     useButton.setAttribute('aria-label', '使用');
-    useButton.innerHTML = '<i class="fa-solid fa-utensils" aria-hidden="true"></i>';
+    useButton.innerHTML = '<i class="ti ti-tools-kitchen-2" aria-hidden="true"></i>';
     useButton.addEventListener('click', (event) => {
       event.stopPropagation();
       openUseRecipeDialog(recipe);
