@@ -351,6 +351,7 @@ form .field-row label {
   display: flex;
   flex-direction: row;
   align-items: stretch;
+  height: 6rem;
   gap: var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
