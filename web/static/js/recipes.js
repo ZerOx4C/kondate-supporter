@@ -418,6 +418,14 @@ function renderSelectedIngredientChips() {
   const container = recipeSelectedIngredientsEl;
   container.innerHTML = '';
 
+  if (selectedIngredientFilterIds.size === 0) {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'filter-field-placeholder';
+    placeholder.textContent = '食材で検索';
+    container.appendChild(placeholder);
+    return;
+  }
+
   const chipEls = [];
   for (const id of selectedIngredientFilterIds) {
     const ingredient = filterableIngredients.find((i) => i.id === id);
@@ -546,6 +554,7 @@ async function loadRecipes() {
     currentRecipes = await listRecipes();
     filterableIngredients = buildFilterableIngredients(currentRecipes);
     renderIngredientFilterList();
+    renderSelectedIngredientChips();
     renderRecipeList();
   } catch (err) {
     recipeListErrorEl.textContent = err.message;

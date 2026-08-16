@@ -317,15 +317,19 @@ form .field-row label {
   border-radius: var(--radius-sm);
   padding: 0 0.6rem;
   height: 2.4rem;
-  max-width: 20rem;
+  width: 20rem;
   margin-bottom: 0.8rem;
   background: var(--color-bg-surface);
   cursor: pointer;
 }
 
-.filter-field .fa-filter {
+.filter-field > i {
   color: var(--color-text-muted);
   flex-shrink: 0;
+}
+
+.filter-field-placeholder {
+  color: var(--color-text-muted);
 }
 
 .filter-field-chips {
