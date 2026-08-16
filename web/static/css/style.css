@@ -209,11 +209,6 @@ button.danger {
   opacity: 0.4;
 }
 
-.recipe-url-link {
-  margin-left: 0.3rem;
-  text-decoration: none;
-}
-
 .recipe-view-image {
   max-width: 100%;
   max-height: 16rem;
@@ -361,6 +356,7 @@ form .field-row label {
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
 }
 
 .recipe-card:hover {
@@ -369,12 +365,21 @@ form .field-row label {
 }
 
 .recipe-card-media {
+  position: relative;
   aspect-ratio: 4 / 3;
   background: var(--color-bg-sunken);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+.recipe-card-use-button {
+  position: absolute;
+  right: var(--space-xs);
+  bottom: var(--space-xs);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .recipe-card-image {
@@ -419,17 +424,6 @@ form .field-row label {
 .material-chip-more {
   color: var(--color-accent);
   border-color: var(--color-accent);
-}
-
-.recipe-card-actions {
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  border-top: 1px solid var(--color-border);
-}
-
-.recipe-card-actions button {
-  flex: 1;
 }
 
 .plan-timeline {

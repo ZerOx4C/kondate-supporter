@@ -471,6 +471,18 @@ function renderRecipeList() {
       placeholder.setAttribute('aria-hidden', 'true');
       media.appendChild(placeholder);
     }
+
+    const useButton = document.createElement('button');
+    useButton.type = 'button';
+    useButton.className = 'icon-button recipe-card-use-button';
+    useButton.setAttribute('aria-label', '使用');
+    useButton.innerHTML = '<i class="fa-solid fa-utensils" aria-hidden="true"></i>';
+    useButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openUseRecipeDialog(recipe);
+    });
+    media.appendChild(useButton);
+
     card.appendChild(media);
 
     const body = document.createElement('div');
@@ -479,16 +491,6 @@ function renderRecipeList() {
     const title = document.createElement('h3');
     title.className = 'recipe-card-title';
     title.textContent = recipe.name;
-    if (recipe.url) {
-      const link = document.createElement('a');
-      link.href = recipe.url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = '🔗';
-      link.className = 'recipe-url-link';
-      link.title = recipe.url;
-      title.appendChild(link);
-    }
     body.appendChild(title);
 
     const chips = document.createElement('ul');
@@ -509,21 +511,7 @@ function renderRecipeList() {
     body.appendChild(chips);
     card.appendChild(body);
 
-    const actions = document.createElement('div');
-    actions.className = 'recipe-card-actions';
-    const viewButton = document.createElement('button');
-    viewButton.type = 'button';
-    viewButton.textContent = '表示';
-    viewButton.addEventListener('click', () => openRecipeDialog(recipe));
-    actions.appendChild(viewButton);
-
-    const useButton = document.createElement('button');
-    useButton.type = 'button';
-    useButton.textContent = '使用';
-    useButton.addEventListener('click', () => openUseRecipeDialog(recipe));
-    actions.appendChild(useButton);
-
-    card.appendChild(actions);
+    card.addEventListener('click', () => openRecipeDialog(recipe));
     recipeListBody.appendChild(card);
   }
 }
