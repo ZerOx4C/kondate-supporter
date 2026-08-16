@@ -7,7 +7,7 @@ let currentStocks = [];
 
 function getVisibleStocks() {
   const query = stockSearchField.value.trim();
-  if (query.length < 2) {
+  if (query.length < 1) {
     return { query: '', filtering: false, stocks: currentStocks.filter((s) => s.quantity !== 0) };
   }
   const lowerQuery = query.toLowerCase();
