@@ -89,6 +89,7 @@ th, td {
 
 header fieldset.inline-form {
   border: 1px solid light-dark(#ccc, #555);
+  border-radius: var(--radius-sm);
   padding: 0 0.8rem;
   margin: 0;
   height: 2.6rem;
@@ -97,7 +98,7 @@ header fieldset.inline-form {
 }
 
 header fieldset.inline-form .fa-calendar-days {
-  color: var(--color-accent);
+  color: var(--color-text-muted);
 }
 
 .date-range-row {
