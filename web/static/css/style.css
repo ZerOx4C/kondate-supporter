@@ -309,26 +309,48 @@ form .field-row label {
   justify-content: flex-end;
 }
 
-.selected-ingredient-chips {
+.filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 0.6rem;
+  height: 2.4rem;
+  max-width: 20rem;
+  margin-bottom: 0.8rem;
+  background: var(--color-bg-surface);
+  cursor: pointer;
+}
+
+.filter-field .fa-filter {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.filter-field-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.3rem;
-  margin-bottom: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ingredient-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  flex-shrink: 0;
   border: 1px solid light-dark(#ccc, #555);
   border-radius: 1rem;
-  padding: 0.1rem 0.3rem 0.1rem 0.6rem;
+  padding: 0.1rem 0.6rem;
   font-size: 0.8rem;
 }
 
-.ingredient-chip button {
-  padding: 0 0.3rem;
-  font-size: 0.8rem;
+.ingredient-chip-more {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .recipe-dialog {
@@ -375,6 +397,23 @@ form .field-row label {
 .recipe-card:hover {
   border-color: var(--color-border-strong);
   box-shadow: var(--shadow-card-hover);
+}
+
+.recipe-card-add {
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-sm);
+  border-style: dashed;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+}
+
+.recipe-card-add:hover {
+  color: var(--color-text);
+}
+
+.recipe-card-add i {
+  font-size: 1.3rem;
 }
 
 .recipe-card-media {

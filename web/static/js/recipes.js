@@ -1,8 +1,9 @@
 const recipeListBody = document.getElementById('recipe-list');
 const recipeListErrorEl = document.getElementById('recipe-list-error');
 const recipeSearchField = document.getElementById('recipe-search-field');
-const recipeCreateButton = document.getElementById('recipe-create-button');
+const recipeSearchClearButton = document.getElementById('recipe-search-clear');
 const recipeIngredientFilterOpenButton = document.getElementById('recipe-ingredient-filter-open');
+const recipeIngredientFilterClearButton = document.getElementById('recipe-ingredient-filter-clear');
 const recipeIngredientFilterDialog = document.getElementById('recipe-ingredient-filter-dialog');
 const recipeIngredientFilterCloseButton = document.getElementById('recipe-ingredient-filter-close');
 const recipeIngredientSearchField = document.getElementById('recipe-ingredient-search-field');
@@ -414,24 +415,35 @@ function onToggleIngredientFilter(ingredientId, checked) {
 }
 
 function renderSelectedIngredientChips() {
-  recipeSelectedIngredientsEl.innerHTML = '';
+  const container = recipeSelectedIngredientsEl;
+  container.innerHTML = '';
+
+  const chipEls = [];
   for (const id of selectedIngredientFilterIds) {
     const ingredient = filterableIngredients.find((i) => i.id === id);
     if (!ingredient) continue;
     const chip = document.createElement('span');
     chip.className = 'ingredient-chip';
     chip.textContent = ingredient.name;
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.textContent = '×';
-    removeButton.addEventListener('click', () => {
-      selectedIngredientFilterIds.delete(id);
-      renderIngredientFilterList();
-      renderSelectedIngredientChips();
-      renderRecipeList();
-    });
-    chip.appendChild(removeButton);
-    recipeSelectedIngredientsEl.appendChild(chip);
+    container.appendChild(chip);
+    chipEls.push(chip);
+  }
+
+  let hiddenCount = 0;
+  while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
+    chipEls.pop().remove();
+    hiddenCount++;
+  }
+  if (hiddenCount > 0) {
+    const more = document.createElement('span');
+    more.className = 'ingredient-chip ingredient-chip-more';
+    more.textContent = `+${hiddenCount}`;
+    container.appendChild(more);
+    while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
+      chipEls.pop().remove();
+      hiddenCount++;
+      more.textContent = `+${hiddenCount}`;
+    }
   }
 }
 
@@ -449,9 +461,18 @@ function getFilteredRecipes() {
   });
 }
 
+function createRecipeAddCard() {
+  const card = document.createElement('div');
+  card.className = 'recipe-card recipe-card-add';
+  card.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>新規追加</span>';
+  card.addEventListener('click', () => openRecipeDialog());
+  return card;
+}
+
 function renderRecipeList() {
   const recipes = getFilteredRecipes();
   recipeListBody.innerHTML = '';
+  recipeListBody.appendChild(createRecipeAddCard());
   for (const recipe of recipes) {
     const card = document.createElement('div');
     card.className = 'recipe-card';
@@ -515,19 +536,8 @@ function renderRecipeList() {
   }
 }
 
-function updateCreateButton() {
-  const query = recipeSearchField.value.trim();
-  if (query) {
-    recipeCreateButton.setAttribute('aria-label', `「${query}」を新規作成`);
-    recipeCreateButton.hidden = false;
-  } else {
-    recipeCreateButton.hidden = true;
-  }
-}
-
 function onRecipeSearchInput() {
   renderRecipeList();
-  updateCreateButton();
 }
 
 async function loadRecipes() {
@@ -537,22 +547,38 @@ async function loadRecipes() {
     filterableIngredients = buildFilterableIngredients(currentRecipes);
     renderIngredientFilterList();
     renderRecipeList();
-    updateCreateButton();
   } catch (err) {
     recipeListErrorEl.textContent = err.message;
   }
 }
 
 recipeSearchField.addEventListener('input', onRecipeSearchInput);
-recipeCreateButton.addEventListener('click', () => openRecipeDialog());
+recipeSearchClearButton.addEventListener('click', () => {
+  recipeSearchField.value = '';
+  recipeSearchField.focus();
+  onRecipeSearchInput();
+});
 
 recipeIngredientSearchField.addEventListener('input', renderIngredientFilterList);
 
-recipeIngredientFilterOpenButton.addEventListener('click', () => {
+function openIngredientFilterDialog() {
   recipeIngredientSearchField.value = '';
   renderIngredientFilterList();
   recipeIngredientFilterDialog.showModal();
   recipeIngredientSearchField.focus();
+}
+
+recipeIngredientFilterOpenButton.addEventListener('click', (e) => {
+  if (e.target.closest('#recipe-ingredient-filter-clear')) return;
+  openIngredientFilterDialog();
+});
+
+recipeIngredientFilterClearButton.addEventListener('click', (e) => {
+  e.stopPropagation();
+  selectedIngredientFilterIds.clear();
+  renderIngredientFilterList();
+  renderSelectedIngredientChips();
+  renderRecipeList();
 });
 
 recipeIngredientFilterCloseButton.addEventListener('click', () => {

@@ -39,14 +39,18 @@
       <div class="search-field">
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <input type="text" id="recipe-search-field" placeholder="レシピ名で検索" autocomplete="off" aria-label="レシピ名で検索">
-        <button type="button" id="recipe-create-button" class="icon-button" aria-label="新規作成" hidden>
-          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        <button type="button" id="recipe-search-clear" class="icon-button" aria-label="検索をクリア">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
-      <button type="button" id="recipe-ingredient-filter-open">含める食材で絞り込む</button>
+      <div class="filter-field" id="recipe-ingredient-filter-open" aria-label="含める食材で絞り込む">
+        <i class="fa-solid fa-filter" aria-hidden="true"></i>
+        <div id="recipe-selected-ingredients" class="filter-field-chips"></div>
+        <button type="button" id="recipe-ingredient-filter-clear" class="icon-button" aria-label="絞り込みをクリア">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
-
-    <div id="recipe-selected-ingredients" class="selected-ingredient-chips"></div>
 
     <div id="recipe-list" class="recipe-grid"></div>
     <p class="error" id="recipe-list-error"></p>
