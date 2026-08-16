@@ -350,12 +350,12 @@ form .field-row label {
 .recipe-card {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-sm);
-  padding: var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
+  overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
@@ -368,9 +368,7 @@ form .field-row label {
 
 .recipe-card-media {
   width: 4rem;
-  height: 4rem;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
   background: var(--color-bg-sunken);
   display: flex;
   align-items: center;
@@ -380,9 +378,16 @@ form .field-row label {
 
 .icon-button.recipe-card-use-button {
   flex-shrink: 0;
+  align-self: center;
+  margin-right: var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-surface);
+  color: var(--color-text);
+}
+
+.icon-button.recipe-card-use-button:hover {
+  background: var(--color-bg-hover);
 }
 
 .recipe-card-image {
@@ -400,6 +405,7 @@ form .field-row label {
 .recipe-card-body {
   flex: 1;
   min-width: 0;
+  padding: var(--space-sm) 0;
 }
 
 .recipe-card-title {
