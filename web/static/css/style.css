@@ -28,9 +28,12 @@
   --font-size-md: 1rem;
   --font-size-lg: 1.15rem;
 
-  --color-meal-morning-bg: light-dark(#dff3fb, #163646);
-  --color-meal-noon-bg: light-dark(#fdefd2, #4a3a12);
-  --color-meal-night-bg: light-dark(#ece4fa, #352d4a);
+  --color-meal-morning-bg: light-dark(#e4ecf1, #253037);
+  --color-meal-morning-fg: light-dark(#4a7089, #a9c4d6);
+  --color-meal-noon-bg: light-dark(#f6ecdc, #3b2f1c);
+  --color-meal-noon-fg: light-dark(#8a6432, #dfc39f);
+  --color-meal-night-bg: light-dark(#e9e1e8, #2c252b);
+  --color-meal-night-fg: light-dark(#7a5470, #d5b9cd);
   --color-surplus-bg: light-dark(#e6f4ea, #1b3320);
 }
 
@@ -573,7 +576,7 @@ form .field-row label {
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
-  min-height: 4rem;
+  height: 4rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
@@ -591,12 +594,27 @@ form .field-row label {
   background: var(--color-meal-morning-bg);
 }
 
+.plan-panel-morning .plan-panel-text,
+.plan-panel-morning .plan-panel-servings {
+  color: var(--color-meal-morning-fg);
+}
+
 .plan-panel-noon {
   background: var(--color-meal-noon-bg);
 }
 
+.plan-panel-noon .plan-panel-text,
+.plan-panel-noon .plan-panel-servings {
+  color: var(--color-meal-noon-fg);
+}
+
 .plan-panel-night {
   background: var(--color-meal-night-bg);
+}
+
+.plan-panel-night .plan-panel-text,
+.plan-panel-night .plan-panel-servings {
+  color: var(--color-meal-night-fg);
 }
 
 .plan-panel-handle {
