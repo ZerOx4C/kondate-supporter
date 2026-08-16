@@ -10,12 +10,17 @@
 <body>
   <header>
     <h1>kondate-supporter</h1>
-    <fieldset class="inline-form date-range">
-      <legend>検討期間</legend>
-      <input type="date" id="range-from" aria-label="開始日">
-      <span>～</span>
-      <input type="date" id="range-to" aria-label="終了日">
-    </fieldset>
+    <div class="date-range-row">
+      <fieldset class="inline-form date-range">
+        <legend>検討期間</legend>
+        <input type="date" id="range-from" aria-label="開始日">
+        <span>～</span>
+        <input type="date" id="range-to" aria-label="終了日">
+      </fieldset>
+      <button type="button" id="summary-toggle" class="summary-toggle-button" aria-label="材料集計を表示">
+        <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+      </button>
+    </div>
     <nav>
       <ul>
         <li><a href="/">トップ</a></li>
@@ -59,8 +64,31 @@
     </table>
     <p class="error" id="stock-error"></p>
   </main>
+
+  <dialog id="summary-dialog" class="summary-dialog">
+    <h3>材料集計</h3>
+    <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
+    <table id="summary-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>必要量</th>
+          <th>残り</th>
+        </tr>
+      </thead>
+      <tbody id="summary-list"></tbody>
+    </table>
+    <p id="summary-empty" hidden>表示できる食材がありません。</p>
+    <p class="error" id="summary-error"></p>
+    <div class="dialog-actions">
+      <button type="button" id="summary-dialog-close">閉じる</button>
+    </div>
+  </dialog>
+
   <script src="/js/api.js"></script>
   <script src="/js/daterange.js"></script>
+  <script src="/js/dialog.js"></script>
+  <script src="/js/summary.js"></script>
   <script src="/js/stocks.js"></script>
 </body>
 </html>

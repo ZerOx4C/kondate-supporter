@@ -90,7 +90,7 @@ th, td {
 header fieldset.inline-form {
   border: 1px solid light-dark(#ccc, #555);
   padding: 0.5rem 0.8rem;
-  margin: 0.5rem 0 0;
+  margin: 0;
   max-width: 24rem;
   align-items: center;
 }
@@ -98,6 +98,30 @@ header fieldset.inline-form {
 header fieldset.inline-form legend {
   font-size: 0.85rem;
   padding: 0 0.3rem;
+}
+
+.date-range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+
+.summary-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.6rem;
+  min-height: 2.6rem;
+  border: 1px solid light-dark(#ccc, #555);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.summary-toggle-button:hover {
+  background: var(--color-bg-hover);
 }
 
 button, input, select {
@@ -596,4 +620,19 @@ form .field-row label {
 
 .plan-ingredient-requirement-input {
   width: 4.5rem;
+}
+
+.summary-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.8rem 1rem;
+  width: 30rem;
+  max-width: 95vw;
+}
+
+.summary-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.summary-dialog h3 {
+  margin-top: 0;
 }

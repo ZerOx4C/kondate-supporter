@@ -12,8 +12,6 @@ const planDialogCancelButton = document.getElementById('plan-dialog-cancel');
 const planRecipeFieldsEl = document.getElementById('plan-recipe-fields');
 const planNoteFieldsEl = document.getElementById('plan-note-fields');
 const planNoteField = document.getElementById('plan-note');
-const summaryListBody = document.getElementById('summary-list');
-const summaryEmptyEl = document.getElementById('summary-empty');
 const planRecipeNameEl = document.getElementById('plan-recipe-name');
 const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
 
@@ -365,41 +363,8 @@ async function loadPlans() {
   }
 }
 
-function renderSummary(items) {
-  summaryListBody.innerHTML = '';
-  summaryEmptyEl.hidden = items.length > 0;
-  for (const item of items) {
-    const tr = document.createElement('tr');
-
-    const nameTd = document.createElement('td');
-    nameTd.textContent = item.name;
-    tr.appendChild(nameTd);
-
-    const requiredTd = document.createElement('td');
-    requiredTd.textContent = `${item.required}${item.unit}`;
-    tr.appendChild(requiredTd);
-
-    const remainingTd = document.createElement('td');
-    remainingTd.textContent = `${item.remaining}${item.unit}`;
-    tr.appendChild(remainingTd);
-
-    summaryListBody.appendChild(tr);
-  }
-}
-
-async function loadSummary() {
-  planErrorEl.textContent = '';
-  try {
-    const items = await getPlanSummary(rangeFromField.value, rangeToField.value);
-    renderSummary(items);
-  } catch (err) {
-    planErrorEl.textContent = err.message;
-  }
-}
-
 async function refresh() {
   await loadPlans();
-  await loadSummary();
 }
 
 document.addEventListener('daterangechange', refresh);
