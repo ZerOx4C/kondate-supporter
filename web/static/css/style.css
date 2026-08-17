@@ -536,6 +536,14 @@ form .field-row label {
   border-bottom: none;
 }
 
+.plan-day-unscheduled {
+  border-bottom: 2px solid var(--color-border-strong);
+}
+
+.plan-day-unscheduled .plan-day-date {
+  color: var(--color-text-muted);
+}
+
 .plan-day-header {
   display: flex;
   align-items: center;
@@ -807,4 +815,18 @@ form .field-row label {
 
 .summary-dialog h3 {
   margin-top: 0;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-lg);
+  transform: translateX(-50%);
+  z-index: 2000;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg-surface);
+  box-shadow: var(--shadow-card-hover);
+  font-size: var(--font-size-sm);
 }

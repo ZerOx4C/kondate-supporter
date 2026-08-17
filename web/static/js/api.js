@@ -101,6 +101,10 @@ function listPlans(from, to) {
   return apiRequest(`/api/plans${query ? `?${query}` : ''}`);
 }
 
+function listUnscheduledPlans() {
+  return apiRequest('/api/plans/unscheduled');
+}
+
 function getPlan(id) {
   return apiRequest(`/api/plans/${id}`);
 }

@@ -119,6 +119,10 @@ function applyPlanDialogMode(mode) {
 function renderPlanDateOptions() {
   const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
   planDateField.innerHTML = '';
+  const unscheduledOption = document.createElement('option');
+  unscheduledOption.value = '';
+  unscheduledOption.textContent = '未定';
+  planDateField.appendChild(unscheduledOption);
   for (const dateStr of dates) {
     const option = document.createElement('option');
     option.value = dateStr;
@@ -136,7 +140,7 @@ function openPlanDialog(plan, defaultDate, mode) {
   if (plan) {
     planDialogTitle.textContent = '献立を編集';
     planIdField.value = plan.id;
-    planDateField.value = plan.date;
+    planDateField.value = plan.date || '';
     planMealTimeField.value = plan.mealTime;
 
     if (effectiveMode === 'recipe') {
@@ -150,7 +154,7 @@ function openPlanDialog(plan, defaultDate, mode) {
     }
   } else {
     planDialogTitle.textContent = '献立を追加';
-    planDateField.value = defaultDate || toDateInputValue(new Date());
+    planDateField.value = defaultDate ?? toDateInputValue(new Date());
   }
   planDialog.showModal();
   if (effectiveMode === 'recipe') {
@@ -161,7 +165,7 @@ function openPlanDialog(plan, defaultDate, mode) {
 }
 
 async function onDeletePlan(plan) {
-  if (!confirm(`${plan.date}の「${plan.recipeName}」を削除しますか?`)) return;
+  if (!confirm(`${plan.date || '未定'}の「${plan.recipeName}」を削除しますか?`)) return;
   planErrorEl.textContent = '';
   try {
     await deletePlan(plan.id);
@@ -173,7 +177,6 @@ async function onDeletePlan(plan) {
 
 function groupPlansByDate(plans) {
   const map = new Map();
-  plansById = new Map();
   for (const plan of plans) {
     plansById.set(plan.id, plan);
     if (!map.has(plan.date)) map.set(plan.date, []);
@@ -243,7 +246,9 @@ function onPlanPanelPointerUp(e) {
   if (dropCell) dropCell.classList.remove('drag-over');
   dragState = null;
 
-  if (dropCell && dropCell.dataset.date) {
+  if (dropCell && dropCell.dataset.unscheduled === 'true') {
+    onDropPlan(plan.id, null);
+  } else if (dropCell && dropCell.dataset.date) {
     onDropPlan(plan.id, dropCell.dataset.date);
   }
 }
@@ -328,55 +333,77 @@ function createPlanPanel(plan) {
   return panel;
 }
 
-function renderPlans(plans) {
+function createPlanAreaEl(label, plans, { unscheduled = false, date = null, onAddNote }) {
+  const dayEl = document.createElement('div');
+  dayEl.className = 'plan-day';
+  if (unscheduled) dayEl.classList.add('plan-day-unscheduled');
+
+  const header = document.createElement('div');
+  header.className = 'plan-day-header';
+
+  const dateLabel = document.createElement('span');
+  dateLabel.className = 'plan-day-date';
+  dateLabel.textContent = label;
+  header.appendChild(dateLabel);
+
+  const addNoteButton = document.createElement('button');
+  addNoteButton.type = 'button';
+  addNoteButton.className = 'plan-add-button';
+  addNoteButton.setAttribute('aria-label', 'メモを追加');
+  addNoteButton.innerHTML = '<i class="ti ti-message-plus" aria-hidden="true"></i>';
+  addNoteButton.addEventListener('click', onAddNote);
+  header.appendChild(addNoteButton);
+
+  dayEl.appendChild(header);
+
+  const cell = document.createElement('div');
+  cell.className = 'plan-cell';
+  if (unscheduled) {
+    cell.dataset.unscheduled = 'true';
+  } else {
+    cell.dataset.date = date;
+  }
+  if (plans.length > 0) {
+    const container = document.createElement('div');
+    container.className = 'day-plans';
+    for (const plan of plans) {
+      container.appendChild(createPlanPanel(plan));
+    }
+    cell.appendChild(container);
+  }
+  dayEl.appendChild(cell);
+
+  return dayEl;
+}
+
+function renderPlans(scheduledPlans, unscheduledPlans) {
   planListBody.innerHTML = '';
-  const plansByDate = groupPlansByDate(plans);
+  plansById = new Map();
+  for (const plan of unscheduledPlans) plansById.set(plan.id, plan);
+  const plansByDate = groupPlansByDate(scheduledPlans);
+
+  planListBody.appendChild(createPlanAreaEl('未定', unscheduledPlans, {
+    unscheduled: true,
+    onAddNote: () => openPlanDialog(null, '', 'note'),
+  }));
+
   const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
   for (const date of dates) {
-    const dayEl = document.createElement('div');
-    dayEl.className = 'plan-day';
-
-    const header = document.createElement('div');
-    header.className = 'plan-day-header';
-
-    const dateLabel = document.createElement('span');
-    dateLabel.className = 'plan-day-date';
-    dateLabel.textContent = formatDateLabel(date);
-    header.appendChild(dateLabel);
-
-    const addNoteButton = document.createElement('button');
-    addNoteButton.type = 'button';
-    addNoteButton.className = 'plan-add-button';
-    addNoteButton.setAttribute('aria-label', 'メモを追加');
-    addNoteButton.innerHTML = '<i class="ti ti-message-plus" aria-hidden="true"></i>';
-    addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
-    header.appendChild(addNoteButton);
-
-    dayEl.appendChild(header);
-
-    const cell = document.createElement('div');
-    cell.className = 'plan-cell';
-    cell.dataset.date = date;
-    const dayPlans = plansByDate.get(date) || [];
-    if (dayPlans.length > 0) {
-      const container = document.createElement('div');
-      container.className = 'day-plans';
-      for (const plan of dayPlans) {
-        container.appendChild(createPlanPanel(plan));
-      }
-      cell.appendChild(container);
-    }
-    dayEl.appendChild(cell);
-
-    planListBody.appendChild(dayEl);
+    planListBody.appendChild(createPlanAreaEl(formatDateLabel(date), plansByDate.get(date) || [], {
+      date,
+      onAddNote: () => openPlanDialog(null, date, 'note'),
+    }));
   }
 }
 
 async function loadPlans() {
   planErrorEl.textContent = '';
   try {
-    const plans = await listPlans(rangeFromField.value, rangeToField.value);
-    renderPlans(plans);
+    const [scheduledPlans, unscheduledPlans] = await Promise.all([
+      listPlans(rangeFromField.value, rangeToField.value),
+      listUnscheduledPlans(),
+    ]);
+    renderPlans(scheduledPlans, unscheduledPlans);
   } catch (err) {
     planErrorEl.textContent = err.message;
   }
@@ -399,7 +426,7 @@ planDialog.addEventListener('click', (e) => {
 planForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   planErrorEl.textContent = '';
-  const date = planDateField.value;
+  const date = planDateField.value || null;
   const mealTime = planMealTimeField.value;
   try {
     if (planDialogMode === 'recipe') {

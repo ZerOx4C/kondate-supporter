@@ -118,25 +118,6 @@
       </form>
     </dialog>
 
-    <dialog id="use-recipe-dialog" class="recipe-dialog">
-      <h3 id="use-recipe-dialog-title">献立に追加</h3>
-      <form id="use-recipe-form" class="inline-form">
-        <select id="use-recipe-date" required aria-label="日付"></select>
-        <select id="use-recipe-meal-time" required aria-label="区分">
-          <option value="morning">朝</option>
-          <option value="noon">昼</option>
-          <option value="night">夜</option>
-          <option value="other">その他</option>
-        </select>
-        <input type="number" id="use-recipe-servings" min="1" step="1" required aria-label="人数">人分
-        <p class="error" id="use-recipe-error"></p>
-        <div class="dialog-actions">
-          <button type="button" id="use-recipe-cancel">キャンセル</button>
-          <button type="submit" id="use-recipe-submit">追加</button>
-        </div>
-      </form>
-    </dialog>
-
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
       <div class="search-field">
         <i class="ti ti-search" aria-hidden="true"></i>
@@ -176,6 +157,7 @@
   <script src="/js/daterange.js"></script>
   <script src="/js/dialog.js"></script>
   <script src="/js/summary.js"></script>
+  <script src="/js/toast.js"></script>
   <script src="/js/recipes.js"></script>
 </body>
 </html>

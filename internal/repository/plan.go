@@ -10,10 +10,10 @@ import (
 
 // PlanDetail はplanとrecipeをLEFT JOINした結果。repository層はHTTP/JSONを
 // 意識しないため、JSONタグは付けない。RecipeIDがnilの行はレシピに依存しない
-// メモ行(外食予定や作り置きなど)を表す。
+// メモ行(外食予定や作り置きなど)を表す。Dateがnilの行は日付未定(未定エリア)を表す。
 type PlanDetail struct {
 	ID                  int64
-	Date                string
+	Date                *string
 	RecipeID            *int64
 	RecipeName          string
 	RecipeServings      int
@@ -41,6 +41,7 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 }
 
 // List は指定された日付範囲(片方または両方省略可)の献立をレシピ名込みで返す。
+// 日付未定(未定エリア)の献立は対象外。
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
@@ -48,7 +49,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 	`)
-	var conditions []string
+	conditions := []string{"p.date IS NOT NULL"}
 	var args []any
 	if from != "" {
 		conditions = append(conditions, "p.date >= ?")
@@ -58,9 +59,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 		conditions = append(conditions, "p.date <= ?")
 		args = append(args, to)
 	}
-	if len(conditions) > 0 {
-		query.WriteString("WHERE " + strings.Join(conditions, " AND ") + " ")
-	}
+	query.WriteString("WHERE " + strings.Join(conditions, " AND ") + " ")
 	// 同じ日付の中では朝→昼→夜→その他の順に並べ、献立画面で時系列に見えるようにする。
 	query.WriteString(`ORDER BY p.date,
 		CASE p.meal_time
@@ -71,7 +70,31 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 		END,
 		p.id`)
 
-	rows, err := r.db.QueryContext(ctx, query.String(), args...)
+	return r.queryPlans(ctx, query.String(), args...)
+}
+
+// ListUnscheduled は日付未定(未定エリア)の献立をレシピ名込みで返す。
+// 未定エリアは検討期間によらず常に表示されるため、範囲指定は行わない。
+func (r *PlanRepository) ListUnscheduled(ctx context.Context) ([]PlanDetail, error) {
+	query := `
+		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
+		FROM plans p
+		LEFT JOIN recipes r ON r.id = p.recipe_id
+		WHERE p.date IS NULL
+		ORDER BY
+			CASE p.meal_time
+				WHEN 'morning' THEN 0
+				WHEN 'noon' THEN 1
+				WHEN 'night' THEN 2
+				ELSE 3
+			END,
+			p.id`
+
+	return r.queryPlans(ctx, query)
+}
+
+func (r *PlanRepository) queryPlans(ctx context.Context, query string, args ...any) ([]PlanDetail, error) {
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +104,17 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 	for rows.Next() {
 		var (
 			p              PlanDetail
+			date           sql.NullString
 			recipeID       sql.NullInt64
 			recipeName     sql.NullString
 			recipeServings sql.NullInt64
 			recipeImageExt sql.NullString
 		)
-		if err := rows.Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note); err != nil {
+		if err := rows.Scan(&p.ID, &date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note); err != nil {
 			return nil, err
+		}
+		if date.Valid {
+			p.Date = &date.String
 		}
 		applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings, recipeImageExt)
 		plans = append(plans, p)
@@ -113,6 +140,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) {
 	var (
 		p              PlanDetail
+		date           sql.NullString
 		recipeID       sql.NullInt64
 		recipeName     sql.NullString
 		recipeServings sql.NullInt64
@@ -123,12 +151,15 @@ func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) 
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &p.Date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note)
+	`, id).Scan(&p.ID, &date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}
 	if err != nil {
 		return PlanDetail{}, err
+	}
+	if date.Valid {
+		p.Date = &date.String
 	}
 	applyRecipeJoinResult(&p, recipeID, recipeName, recipeServings, recipeImageExt)
 
@@ -206,7 +237,7 @@ func validateRecipeExists(ctx context.Context, tx *sql.Tx, recipeID int64) error
 	return nil
 }
 
-func (r *PlanRepository) Create(ctx context.Context, date string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
+func (r *PlanRepository) Create(ctx context.Context, date *string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -237,7 +268,7 @@ func (r *PlanRepository) Create(ctx context.Context, date string, recipeID *int6
 	return r.Get(ctx, id)
 }
 
-func (r *PlanRepository) Update(ctx context.Context, id int64, date string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride) (PlanDetail, error) {
+func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err

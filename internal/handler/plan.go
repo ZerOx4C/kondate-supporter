@@ -35,7 +35,7 @@ type planIngredientOverrideRequest struct {
 }
 
 type planRequest struct {
-	Date                string                          `json:"date"`
+	Date                *string                         `json:"date"`
 	RecipeID            *int64                          `json:"recipeId"`
 	Servings            int                             `json:"servings"`
 	MealTime            string                          `json:"mealTime"`
@@ -45,28 +45,31 @@ type planRequest struct {
 
 // validate はレシピに紐づく献立(RecipeIDが非nil)と、レシピに依存しない
 // メモ(RecipeIDがnilかつnoteが非空)のいずれかとしてリクエストを検証する。
-func (req planRequest) validate() (date string, recipeID *int64, servings int, mealTime, note string, overrides []repository.PlanIngredientOverride, err error) {
-	if _, err := time.Parse(time.DateOnly, req.Date); err != nil {
-		return "", nil, 0, "", "", nil, errors.New("dateはYYYY-MM-DD形式である必要があります")
+// dateがnilの場合は日付未定(未定エリア)として扱う。
+func (req planRequest) validate() (date *string, recipeID *int64, servings int, mealTime, note string, overrides []repository.PlanIngredientOverride, err error) {
+	if req.Date != nil {
+		if _, err := time.Parse(time.DateOnly, *req.Date); err != nil {
+			return nil, nil, 0, "", "", nil, errors.New("dateはYYYY-MM-DD形式である必要があります")
+		}
 	}
 	if !validMealTimes[req.MealTime] {
-		return "", nil, 0, "", "", nil, errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
+		return nil, nil, 0, "", "", nil, errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
 	}
 
 	if req.RecipeID != nil {
 		if req.Servings <= 0 {
-			return "", nil, 0, "", "", nil, errors.New("servingsは1以上である必要があります")
+			return nil, nil, 0, "", "", nil, errors.New("servingsは1以上である必要があります")
 		}
 		overrides, err := validatePlanIngredientOverrides(req.IngredientOverrides)
 		if err != nil {
-			return "", nil, 0, "", "", nil, err
+			return nil, nil, 0, "", "", nil, err
 		}
 		return req.Date, req.RecipeID, req.Servings, req.MealTime, "", overrides, nil
 	}
 
 	note = strings.TrimSpace(req.Note)
 	if note == "" {
-		return "", nil, 0, "", "", nil, errors.New("recipeIdまたはnoteのいずれかを指定してください")
+		return nil, nil, 0, "", "", nil, errors.New("recipeIdまたはnoteのいずれかを指定してください")
 	}
 	return req.Date, nil, 0, req.MealTime, note, nil, nil
 }
@@ -98,7 +101,7 @@ type planIngredientOverrideResponse struct {
 
 type planResponse struct {
 	ID                  int64                            `json:"id"`
-	Date                string                           `json:"date"`
+	Date                *string                          `json:"date"`
 	RecipeID            *int64                           `json:"recipeId"`
 	RecipeName          string                           `json:"recipeName"`
 	HasImage            bool                             `json:"hasImage"`
@@ -145,6 +148,22 @@ func (h *PlanHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	plans, err := h.repo.List(r.Context(), from, to)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
+		return
+	}
+
+	res := make([]planResponse, 0, len(plans))
+	for _, p := range plans {
+		res = append(res, toPlanResponse(p))
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+// ListUnscheduled は日付未定(未定エリア)の献立をレシピ名込みで返す。
+// 未定エリアは検討期間によらず常に表示されるため、範囲指定は受け付けない。
+func (h *PlanHandler) ListUnscheduled(w http.ResponseWriter, r *http.Request) {
+	plans, err := h.repo.ListUnscheduled(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
 		return
