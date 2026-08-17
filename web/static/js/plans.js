@@ -301,7 +301,7 @@ function createPlanPanel(plan) {
   if (plan.recipeId) {
     const servings = document.createElement('span');
     servings.className = 'plan-panel-servings';
-    servings.innerHTML = `<i class="ti ti-users-group" aria-hidden="true"></i> ${plan.servings}`;
+    servings.innerHTML = `<i class="ti ti-users" aria-hidden="true"></i> ${plan.servings}`;
     panel.appendChild(servings);
   }
 
@@ -348,7 +348,7 @@ function renderPlans(plans) {
     addNoteButton.type = 'button';
     addNoteButton.className = 'plan-add-button';
     addNoteButton.setAttribute('aria-label', 'メモを追加');
-    addNoteButton.innerHTML = '<i class="ti ti-notes" aria-hidden="true"></i>';
+    addNoteButton.innerHTML = '<i class="ti ti-message-plus" aria-hidden="true"></i>';
     addNoteButton.addEventListener('click', () => openPlanDialog(null, date, 'note'));
     header.appendChild(addNoteButton);
 

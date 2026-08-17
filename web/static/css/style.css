@@ -101,7 +101,7 @@ header fieldset.inline-form {
   align-items: center;
 }
 
-header fieldset.inline-form .ti-calendar {
+header fieldset.inline-form .ti-calendar-week {
   color: var(--color-text-muted);
 }
 

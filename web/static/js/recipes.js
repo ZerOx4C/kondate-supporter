@@ -593,7 +593,7 @@ function renderRecipeList() {
     useButton.type = 'button';
     useButton.className = 'icon-button recipe-card-use-button';
     useButton.setAttribute('aria-label', '使用');
-    useButton.innerHTML = '<i class="ti ti-tools-kitchen-2" aria-hidden="true"></i>';
+    useButton.innerHTML = '<i class="ti ti-calendar-plus" aria-hidden="true"></i>';
     useButton.addEventListener('click', (event) => {
       event.stopPropagation();
       openUseRecipeDialog(recipe);
