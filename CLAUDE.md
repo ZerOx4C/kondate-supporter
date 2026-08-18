@@ -45,6 +45,7 @@ data/                     # SQLiteファイルの実行時生成先(Git管理外
 - 改修予定は `ROADMAP.md`(CLAUDE.mdと同じディレクトリに設置)に簡潔な箇条書きで記載する
 - 改修を進める際は、ROADMAP.mdの内容からスムーズに実施できる順序を検討して提案する
 - 実装前に [docs/architecture.md](docs/architecture.md) を読み、現状のDB構造・API・画面構成・既知の設計判断を把握してから着手する
+- ROADMAP.mdやdocs/architecture.mdの更新など、ドキュメント編集にとどまらない実際のコード実装(仕様検討・設計判断を伴う変更)に着手する際は、プランモードに切り替えてから進める
 - DB・API・画面構成に変更が入る機能改修をコミットした直後、[docs/architecture.md](docs/architecture.md) の該当箇所を更新する
 - 自動モードで機能改修を実施しコミットした後は、プランモードに戻る
 
