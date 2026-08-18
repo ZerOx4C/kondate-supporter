@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kondate-supporter",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/server"],
+      "port": 8081,
+      "env": {
+        "KONDATE_ADDR": ":8081",
+        "KONDATE_DB_PATH": "data/kondate-preview.db"
+      }
+    }
+  ]
+}

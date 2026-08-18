@@ -17,13 +17,6 @@ PCブラウザ・スマートフォン・タブレットなど複数の端末か
 - 買い物リストの生成(登録した献立に対し、在庫が不足している食材を算出)
 - 材料の単位(g、本、個など)の管理(マスタ化はせず食材ごとに文字列で保持)
 
-## 技術スタック(変更不可の制約)
-
-- バックエンド: Go + 標準 `net/http` のみ(Gin/Echo等の追加Webフレームワークは導入しない)
-- DB: SQLite、ドライバは `modernc.org/sqlite`(CGO不要な純Go実装。CGO必須の `mattn/go-sqlite3` はRaspberryPi Zero向けクロスコンパイルが煩雑になるため不採用)
-- フロントエンド: 素のHTML/CSS/JavaScript(フレームワーク・ビルドツールなし、SPA化もしない)
-- 個人利用専用。チーム開発向けの過剰な抽象化は避ける。
-
 ## ディレクトリ構成
 
 ```
@@ -42,30 +35,31 @@ data/                     # SQLiteファイルの実行時生成先(Git管理外
 
 依存の方向は `handler → service → repository` の一方向。上位層は下位層のみに依存する。
 
-## 開発規約
+## 技術スタック・開発規約
 
-- 新規の外部依存パッケージを追加する前に、標準ライブラリで実現できないか検討する
-- DBアクセスは repository 層に閉じ込め、handler から直接SQLを書かない
-- 買い物リスト算出などのビジネスロジックは service 層に置く
-- 食材の数量・単位は「食材ごとに固定単位」ルールを厳守し、単位換算ロジックは持たない
-- APIレスポンスはJSON、エラーは `{"error": "message"}` 形式で統一する
-- マイグレーションファイルは追記のみ(既存ファイルの内容変更は禁止)
+変更不可の技術制約、実装規約、注意事項は [docs/development.md](docs/development.md) を参照。
+外部パッケージの追加検討時、アーキテクチャ判断時、実装規約を確認したい時に読むこと。
 
 ## 開発フロー
 
 - 改修予定は `ROADMAP.md`(CLAUDE.mdと同じディレクトリに設置)に簡潔な箇条書きで記載する
 - 改修を進める際は、ROADMAP.mdの内容からスムーズに実施できる順序を検討して提案する
+- 実装前に [docs/architecture.md](docs/architecture.md) を読み、現状のDB構造・API・画面構成・既知の設計判断を把握してから着手する
+- DB・API・画面構成に変更が入る機能改修をコミットした直後、[docs/architecture.md](docs/architecture.md) の該当箇所を更新する
 - 自動モードで機能改修を実施しコミットした後は、プランモードに戻る
 
-## RaspberryPi Zero向けビルド・デプロイ手順
+### 軽量タスクの委譲
 
-1. クロスコンパイル: `make build-rpi`
-   (`GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=0 go build -o bin/kondate-supporter-armv6 ./cmd/server`)
-2. 転送: `scp bin/kondate-supporter-armv6 pi@<host>:/home/pi/kondate-supporter/`
-3. RaspberryPi Zero上でsystemdサービスとして登録し常時稼働させる
-4. DBファイルは `data/kondate.db` に配置され、起動時に未適用のマイグレーションが自動実行される
+以下の定型作業は、設計判断を伴わないため `docs-editor` / `commit-message-writer` サブエージェント(Haiku)にAgentツールで委譲する。
 
-## 注意事項
+- ROADMAP.mdへの項目追加・完了項目のクリア → `docs-editor`
+- docs/architecture.mdの機械的な更新(表への追記など) → `docs-editor`
+- コミットメッセージ案の作成(コミット自体はメインで実行) → `commit-message-writer`
 
-- 外部公開を前提としない(HTTPS化・認証・CSRF対策等は現時点でスコープ外)
-- RaspberryPi Zeroのメモリ制約を常に意識し、依存追加や常駐メモリ増加には慎重になること
+### 動作検証時の注意
+
+ユーザーが手動起動する開発サーバー(`make run`, `:8080`, `data/kondate.db`)とは別に、Claude Codeがpreview系ツールで動作検証を行う際は `.claude/launch.json` の設定により自動的に `:8081` / `data/kondate-preview.db` を使う(ポート・DBとも分離済み)。
+
+## デプロイ
+
+ビルド・デプロイ手順は [README.md](README.md) を参照。
