@@ -96,7 +96,10 @@ func (s *ShoppingListService) aggregate(ctx context.Context, from, to string) (m
 				amount = &requiredAmount{name: ing.Name, unit: ing.Unit}
 				required[ing.IngredientID] = amount
 			}
-			qty := ing.Quantity * factor
+			qty := ing.Quantity
+			if !ing.FixedQuantity {
+				qty = ing.Quantity * factor
+			}
 			if o, ok := overrideByIngredient[ing.IngredientID]; ok {
 				qty = o
 			}

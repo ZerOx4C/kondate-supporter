@@ -31,6 +31,7 @@ let planIngredientOverrides = new Map();
 let planSeasoningOverrides = new Map();
 
 function computeIngredientRequirement(ing) {
+  if (ing.fixedQuantity) return ing.quantity;
   const servings = Number(planServingsField.value) || 0;
   return ing.quantity * (servings / planRecipeDetail.servings);
 }
@@ -84,6 +85,7 @@ function renderPlanIngredientRequirements() {
 }
 
 function computeSeasoningRequirement(s) {
+  if (s.fixedQuantity) return s.quantity;
   const servings = Number(planServingsField.value) || 0;
   return s.quantity * (servings / planRecipeDetail.servings);
 }

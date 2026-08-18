@@ -25,13 +25,15 @@ func NewRecipeHandler(repo *repository.RecipeRepository, imageStore *imagestore.
 }
 
 type recipeIngredientRequest struct {
-	IngredientID int64   `json:"ingredientId"`
-	Quantity     float64 `json:"quantity"`
+	IngredientID  int64   `json:"ingredientId"`
+	Quantity      float64 `json:"quantity"`
+	FixedQuantity bool    `json:"fixedQuantity"`
 }
 
 type recipeSeasoningRequest struct {
-	SeasoningID int64   `json:"seasoningId"`
-	Quantity    float64 `json:"quantity"`
+	SeasoningID   int64   `json:"seasoningId"`
+	Quantity      float64 `json:"quantity"`
+	FixedQuantity bool    `json:"fixedQuantity"`
 }
 
 type recipeRequest struct {
@@ -65,8 +67,9 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 		}
 		seen[ing.IngredientID] = struct{}{}
 		items = append(items, repository.RecipeIngredientInput{
-			IngredientID: ing.IngredientID,
-			Quantity:     ing.Quantity,
+			IngredientID:  ing.IngredientID,
+			Quantity:      ing.Quantity,
+			FixedQuantity: ing.FixedQuantity,
 		})
 	}
 
@@ -81,8 +84,9 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 		}
 		seenSeasonings[s.SeasoningID] = struct{}{}
 		seasoningItems = append(seasoningItems, repository.RecipeSeasoningInput{
-			SeasoningID: s.SeasoningID,
-			Quantity:    s.Quantity,
+			SeasoningID:   s.SeasoningID,
+			Quantity:      s.Quantity,
+			FixedQuantity: s.FixedQuantity,
 		})
 	}
 
@@ -99,19 +103,21 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 }
 
 type recipeIngredientResponse struct {
-	IngredientID int64   `json:"ingredientId"`
-	Name         string  `json:"name"`
-	Unit         string  `json:"unit"`
-	Quantity     float64 `json:"quantity"`
+	IngredientID  int64   `json:"ingredientId"`
+	Name          string  `json:"name"`
+	Unit          string  `json:"unit"`
+	Quantity      float64 `json:"quantity"`
+	FixedQuantity bool    `json:"fixedQuantity"`
 }
 
 // recipeSeasoningResponse のUnitは常に"mL"固定(seasoningsテーブルにunitカラムは
 // 持たせていないため、recipeIngredientResponseと表示コードを共通化する目的でここに固定値を持たせる)。
 type recipeSeasoningResponse struct {
-	SeasoningID int64   `json:"seasoningId"`
-	Name        string  `json:"name"`
-	Unit        string  `json:"unit"`
-	Quantity    float64 `json:"quantity"`
+	SeasoningID   int64   `json:"seasoningId"`
+	Name          string  `json:"name"`
+	Unit          string  `json:"unit"`
+	Quantity      float64 `json:"quantity"`
+	FixedQuantity bool    `json:"fixedQuantity"`
 }
 
 type recipeResponse struct {
@@ -129,19 +135,21 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 	ingredients := make([]recipeIngredientResponse, 0, len(detail.Ingredients))
 	for _, ing := range detail.Ingredients {
 		ingredients = append(ingredients, recipeIngredientResponse{
-			IngredientID: ing.IngredientID,
-			Name:         ing.Name,
-			Unit:         ing.Unit,
-			Quantity:     ing.Quantity,
+			IngredientID:  ing.IngredientID,
+			Name:          ing.Name,
+			Unit:          ing.Unit,
+			Quantity:      ing.Quantity,
+			FixedQuantity: ing.FixedQuantity,
 		})
 	}
 	seasonings := make([]recipeSeasoningResponse, 0, len(detail.Seasonings))
 	for _, s := range detail.Seasonings {
 		seasonings = append(seasonings, recipeSeasoningResponse{
-			SeasoningID: s.SeasoningID,
-			Name:        s.Name,
-			Unit:        "mL",
-			Quantity:    s.Quantity,
+			SeasoningID:   s.SeasoningID,
+			Name:          s.Name,
+			Unit:          "mL",
+			Quantity:      s.Quantity,
+			FixedQuantity: s.FixedQuantity,
 		})
 	}
 	steps := detail.Steps

@@ -101,7 +101,7 @@ async function onIngredientSelectChange(select) {
   }
 }
 
-function addIngredientRow(ingredientId, quantity) {
+function addIngredientRow(ingredientId, quantity, fixedQuantity) {
   const row = document.createElement('div');
   row.className = 'ingredient-row';
 
@@ -118,6 +118,15 @@ function addIngredientRow(ingredientId, quantity) {
   quantityInput.placeholder = '数量';
   if (quantity !== undefined) quantityInput.value = quantity;
 
+  const fixedLabel = document.createElement('label');
+  fixedLabel.className = 'fixed-quantity-label';
+  const fixedCheckbox = document.createElement('input');
+  fixedCheckbox.type = 'checkbox';
+  fixedCheckbox.className = 'ingredient-fixed';
+  fixedCheckbox.checked = !!fixedQuantity;
+  fixedLabel.appendChild(fixedCheckbox);
+  fixedLabel.appendChild(document.createTextNode('人数に比例させない'));
+
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
   removeButton.textContent = '削除';
@@ -125,6 +134,7 @@ function addIngredientRow(ingredientId, quantity) {
 
   row.appendChild(select);
   row.appendChild(quantityInput);
+  row.appendChild(fixedLabel);
   row.appendChild(removeButton);
   ingredientRowsEl.appendChild(row);
 }
@@ -134,6 +144,7 @@ function collectIngredientRows() {
   return Array.from(rows).map(row => ({
     ingredientId: Number(row.querySelector('.ingredient-select').value),
     quantity: Number(row.querySelector('.ingredient-quantity').value),
+    fixedQuantity: row.querySelector('.ingredient-fixed').checked,
   }));
 }
 
@@ -179,7 +190,7 @@ async function onSeasoningSelectChange(select) {
   }
 }
 
-function addSeasoningRow(seasoningId, quantity) {
+function addSeasoningRow(seasoningId, quantity, fixedQuantity) {
   const row = document.createElement('div');
   row.className = 'seasoning-row';
 
@@ -196,6 +207,15 @@ function addSeasoningRow(seasoningId, quantity) {
   quantityInput.placeholder = '数量(mL)';
   if (quantity !== undefined) quantityInput.value = quantity;
 
+  const fixedLabel = document.createElement('label');
+  fixedLabel.className = 'fixed-quantity-label';
+  const fixedCheckbox = document.createElement('input');
+  fixedCheckbox.type = 'checkbox';
+  fixedCheckbox.className = 'seasoning-fixed';
+  fixedCheckbox.checked = !!fixedQuantity;
+  fixedLabel.appendChild(fixedCheckbox);
+  fixedLabel.appendChild(document.createTextNode('人数に比例させない'));
+
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
   removeButton.textContent = '削除';
@@ -203,6 +223,7 @@ function addSeasoningRow(seasoningId, quantity) {
 
   row.appendChild(select);
   row.appendChild(quantityInput);
+  row.appendChild(fixedLabel);
   row.appendChild(removeButton);
   seasoningRowsEl.appendChild(row);
 }
@@ -212,6 +233,7 @@ function collectSeasoningRows() {
   return Array.from(rows).map(row => ({
     seasoningId: Number(row.querySelector('.seasoning-select').value),
     quantity: Number(row.querySelector('.seasoning-quantity').value),
+    fixedQuantity: row.querySelector('.seasoning-fixed').checked,
   }));
 }
 
@@ -365,10 +387,10 @@ function showRecipeEdit(recipe) {
     recipeServingsField.value = recipe.servings;
     recipeUrlField.value = recipe.url;
     for (const ing of recipe.ingredients) {
-      addIngredientRow(ing.ingredientId, ing.quantity);
+      addIngredientRow(ing.ingredientId, ing.quantity, ing.fixedQuantity);
     }
     for (const s of recipe.seasonings) {
-      addSeasoningRow(s.seasoningId, s.quantity);
+      addSeasoningRow(s.seasoningId, s.quantity, s.fixedQuantity);
     }
     for (const step of recipe.steps) {
       addStepRow(step);
