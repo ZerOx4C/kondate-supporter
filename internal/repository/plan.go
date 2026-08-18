@@ -22,6 +22,7 @@ type PlanDetail struct {
 	MealTime            string
 	Note                string
 	IngredientOverrides []PlanIngredientOverride
+	SeasoningOverrides  []PlanSeasoningOverride
 }
 
 // PlanIngredientOverride は献立ごとに上書きされた食材必要量1件分。
@@ -29,6 +30,13 @@ type PlanDetail struct {
 type PlanIngredientOverride struct {
 	IngredientID int64
 	Quantity     float64
+}
+
+// PlanSeasoningOverride は献立ごとに上書きされた調味料必要量1件分。
+// 読み書き両方で同じ形を使う。
+type PlanSeasoningOverride struct {
+	SeasoningID int64
+	Quantity    float64
 }
 
 // PlanRepository は model.Plan のDBアクセスを提供する。
@@ -131,8 +139,13 @@ func (r *PlanRepository) queryPlans(ctx context.Context, query string, args ...a
 	if err != nil {
 		return nil, err
 	}
+	seasoningOverridesByPlan, err := queryPlanSeasoningOverrides(ctx, r.db, ids)
+	if err != nil {
+		return nil, err
+	}
 	for i := range plans {
 		plans[i].IngredientOverrides = overridesByPlan[plans[i].ID]
+		plans[i].SeasoningOverrides = seasoningOverridesByPlan[plans[i].ID]
 	}
 	return plans, nil
 }
@@ -168,6 +181,12 @@ func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) 
 		return PlanDetail{}, err
 	}
 	p.IngredientOverrides = overridesByPlan[id]
+
+	seasoningOverridesByPlan, err := queryPlanSeasoningOverrides(ctx, r.db, []int64{id})
+	if err != nil {
+		return PlanDetail{}, err
+	}
+	p.SeasoningOverrides = seasoningOverridesByPlan[id]
 	return p, nil
 }
 
@@ -201,6 +220,46 @@ func queryPlanIngredientOverrides(ctx context.Context, db *sql.DB, planIDs []int
 		var planID int64
 		var o PlanIngredientOverride
 		if err := rows.Scan(&planID, &o.IngredientID, &o.Quantity); err != nil {
+			return nil, err
+		}
+		result[planID] = append(result[planID], o)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// queryPlanSeasoningOverrides は指定された献立IDすべてについて、
+// 調味料必要量の上書きをまとめて取得する(N+1を避けるため2クエリ構成)。
+func queryPlanSeasoningOverrides(ctx context.Context, db *sql.DB, planIDs []int64) (map[int64][]PlanSeasoningOverride, error) {
+	if len(planIDs) == 0 {
+		return map[int64][]PlanSeasoningOverride{}, nil
+	}
+	placeholders := make([]string, len(planIDs))
+	args := make([]any, len(planIDs))
+	for i, id := range planIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	query := fmt.Sprintf(`
+		SELECT plan_id, seasoning_id, quantity
+		FROM plan_seasoning_overrides
+		WHERE plan_id IN (%s)
+		ORDER BY plan_id, seasoning_id
+	`, strings.Join(placeholders, ","))
+
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[int64][]PlanSeasoningOverride)
+	for rows.Next() {
+		var planID int64
+		var o PlanSeasoningOverride
+		if err := rows.Scan(&planID, &o.SeasoningID, &o.Quantity); err != nil {
 			return nil, err
 		}
 		result[planID] = append(result[planID], o)
@@ -268,7 +327,7 @@ func (r *PlanRepository) Create(ctx context.Context, date *string, recipeID *int
 	return r.Get(ctx, id)
 }
 
-func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride) (PlanDetail, error) {
+func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride, seasoningOverrides []PlanSeasoningOverride) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -286,6 +345,15 @@ func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, rec
 			ids[i] = o.IngredientID
 		}
 		if err := validateIngredientsExist(ctx, tx, ids); err != nil {
+			return PlanDetail{}, err
+		}
+	}
+	if len(seasoningOverrides) > 0 {
+		ids := make([]int64, len(seasoningOverrides))
+		for i, o := range seasoningOverrides {
+			ids[i] = o.SeasoningID
+		}
+		if err := validateSeasoningsExist(ctx, tx, ids); err != nil {
 			return PlanDetail{}, err
 		}
 	}
@@ -317,13 +385,25 @@ func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, rec
 		}
 	}
 
+	if _, err := tx.ExecContext(ctx, "DELETE FROM plan_seasoning_overrides WHERE plan_id = ?", id); err != nil {
+		return PlanDetail{}, classifySQLiteError(err)
+	}
+	for _, o := range seasoningOverrides {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO plan_seasoning_overrides (plan_id, seasoning_id, quantity) VALUES (?, ?, ?)",
+			id, o.SeasoningID, o.Quantity,
+		); err != nil {
+			return PlanDetail{}, classifySQLiteError(err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return PlanDetail{}, err
 	}
 	return r.Get(ctx, id)
 }
 
-// Delete は献立と、それに紐づく食材必要量の上書きを同一トランザクションで削除する。
+// Delete は献立と、それに紐づく食材・調味料必要量の上書きを同一トランザクションで削除する。
 func (r *PlanRepository) Delete(ctx context.Context, id int64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -332,6 +412,9 @@ func (r *PlanRepository) Delete(ctx context.Context, id int64) error {
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM plan_ingredient_overrides WHERE plan_id = ?", id); err != nil {
+		return classifySQLiteError(err)
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM plan_seasoning_overrides WHERE plan_id = ?", id); err != nil {
 		return classifySQLiteError(err)
 	}
 

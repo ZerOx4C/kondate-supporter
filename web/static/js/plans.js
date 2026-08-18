@@ -14,6 +14,7 @@ const planNoteFieldsEl = document.getElementById('plan-note-fields');
 const planNoteField = document.getElementById('plan-note');
 const planRecipeNameEl = document.getElementById('plan-recipe-name');
 const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
+const planSeasoningRequirementsListEl = document.getElementById('plan-seasoning-requirements-list');
 
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -27,6 +28,7 @@ let dragState = null;
 let planDialogMode = 'recipe';
 let planRecipeDetail = null;
 let planIngredientOverrides = new Map();
+let planSeasoningOverrides = new Map();
 
 function computeIngredientRequirement(ing) {
   const servings = Number(planServingsField.value) || 0;
@@ -81,6 +83,59 @@ function renderPlanIngredientRequirements() {
   }
 }
 
+function computeSeasoningRequirement(s) {
+  const servings = Number(planServingsField.value) || 0;
+  return s.quantity * (servings / planRecipeDetail.servings);
+}
+
+function renderPlanSeasoningRequirements() {
+  planSeasoningRequirementsListEl.innerHTML = '';
+  if (!planRecipeDetail) return;
+  for (const s of planRecipeDetail.seasonings) {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.textContent = s.name;
+    tr.appendChild(nameTd);
+
+    const valueTd = document.createElement('td');
+    const overridden = planSeasoningOverrides.has(s.seasoningId);
+    if (overridden) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = 'any';
+      input.min = '0';
+      input.className = 'plan-ingredient-requirement-input';
+      input.value = planSeasoningOverrides.get(s.seasoningId);
+      input.addEventListener('input', () => {
+        planSeasoningOverrides.set(s.seasoningId, Number(input.value) || 0);
+      });
+      valueTd.appendChild(input);
+      valueTd.appendChild(document.createTextNode(s.unit));
+    } else {
+      valueTd.textContent = `${computeSeasoningRequirement(s)}${s.unit}`;
+    }
+    tr.appendChild(valueTd);
+
+    const adjustTd = document.createElement('td');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = overridden;
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        planSeasoningOverrides.set(s.seasoningId, computeSeasoningRequirement(s));
+      } else {
+        planSeasoningOverrides.delete(s.seasoningId);
+      }
+      renderPlanSeasoningRequirements();
+    });
+    adjustTd.appendChild(checkbox);
+    tr.appendChild(adjustTd);
+
+    planSeasoningRequirementsListEl.appendChild(tr);
+  }
+}
+
 async function loadPlanIngredientRequirements(recipeId) {
   planErrorEl.textContent = '';
   try {
@@ -89,6 +144,7 @@ async function loadPlanIngredientRequirements(recipeId) {
     planErrorEl.textContent = err.message;
   }
   renderPlanIngredientRequirements();
+  renderPlanSeasoningRequirements();
 }
 
 function resetPlanForm() {
@@ -98,7 +154,9 @@ function resetPlanForm() {
   planRecipeNameEl.textContent = '';
   planRecipeDetail = null;
   planIngredientOverrides = new Map();
+  planSeasoningOverrides = new Map();
   renderPlanIngredientRequirements();
+  renderPlanSeasoningRequirements();
 }
 
 function closePlanDialog() {
@@ -148,6 +206,7 @@ function openPlanDialog(plan, defaultDate, mode) {
       planRecipeField.value = plan.recipeId;
       planRecipeNameEl.textContent = plan.recipeName;
       planIngredientOverrides = new Map((plan.ingredientOverrides || []).map((o) => [o.ingredientId, o.quantity]));
+      planSeasoningOverrides = new Map((plan.seasoningOverrides || []).map((o) => [o.seasoningId, o.quantity]));
       loadPlanIngredientRequirements(plan.recipeId);
     } else {
       planNoteField.value = plan.note;
@@ -190,7 +249,7 @@ async function onDropPlan(planId, newDate) {
   if (!plan || plan.date === newDate) return;
   planErrorEl.textContent = '';
   try {
-    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note, plan.ingredientOverrides);
+    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note, plan.ingredientOverrides, plan.seasoningOverrides);
     await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
@@ -417,7 +476,10 @@ document.addEventListener('daterangechange', refresh);
 
 planDialogCancelButton.addEventListener('click', closePlanDialog);
 
-planServingsField.addEventListener('input', renderPlanIngredientRequirements);
+planServingsField.addEventListener('input', () => {
+  renderPlanIngredientRequirements();
+  renderPlanSeasoningRequirements();
+});
 
 planDialog.addEventListener('click', (e) => {
   if (isDialogBackdropClick(planDialog, e)) closePlanDialog();
@@ -437,8 +499,9 @@ planForm.addEventListener('submit', async (e) => {
       const recipeId = Number(planRecipeField.value);
       const servings = Number(planServingsField.value);
       const ingredientOverrides = Array.from(planIngredientOverrides.entries()).map(([ingredientId, quantity]) => ({ ingredientId, quantity }));
+      const seasoningOverrides = Array.from(planSeasoningOverrides.entries()).map(([seasoningId, quantity]) => ({ seasoningId, quantity }));
       if (planIdField.value) {
-        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides);
+        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides, seasoningOverrides);
       } else {
         await createPlan(date, recipeId, servings, mealTime, '');
       }
