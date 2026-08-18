@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>マスタ管理 - kondate-supporter</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
+</head>
+<body>
+  <header>
+    <h1>kondate-supporter</h1>
+    <div class="date-range-row">
+      <fieldset class="inline-form date-range" aria-label="検討期間">
+        <i class="ti ti-calendar-week" aria-hidden="true"></i>
+        <input type="date" id="range-from" aria-label="開始日">
+        <span>～</span>
+        <input type="date" id="range-to" aria-label="終了日">
+      </fieldset>
+      <button type="button" id="summary-toggle" class="summary-toggle-button" aria-label="材料集計を表示">
+        <i class="ti ti-report-search" aria-hidden="true"></i>
+      </button>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">トップ</a></li>
+        <li><a href="/masters.html" aria-current="page">マスタ管理</a></li>
+        <li><a href="/stocks.html">在庫</a></li>
+        <li><a href="/recipes.html">レシピ</a></li>
+        <li><a href="/plans.html">献立</a></li>
+        <li><a href="/shoppinglist.html">買い物リスト</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <h2>マスタ管理</h2>
+
+    <div class="tabs">
+      <button type="button" class="tab-button active" data-tab="ingredient">食材</button>
+      <button type="button" class="tab-button" data-tab="seasoning">調味料</button>
+    </div>
+
+    <div id="ingredient-tab" class="tab-content active">
+      <button type="button" id="ingredient-add-button" class="primary">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        新規追加
+      </button>
+      <table id="ingredient-table">
+        <thead>
+          <tr>
+            <th>名前</th>
+            <th>単位</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ingredient-list"></tbody>
+      </table>
+      <p class="error" id="ingredient-error"></p>
+    </div>
+
+    <div id="seasoning-tab" class="tab-content">
+      <p>調味料は在庫管理の対象外で、数量は常にmL単位で扱います。</p>
+      <button type="button" id="seasoning-add-button" class="primary">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        新規追加
+      </button>
+      <table id="seasoning-table">
+        <thead>
+          <tr>
+            <th>名前</th>
+            <th>単位</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="seasoning-list"></tbody>
+      </table>
+      <p class="error" id="seasoning-error"></p>
+    </div>
+  </main>
+
+  <dialog id="master-dialog" class="master-dialog">
+    <h3 id="master-dialog-title"></h3>
+    <form id="master-form">
+      <input type="hidden" id="master-id">
+      <input type="hidden" id="master-type">
+      <label>
+        名前
+        <input type="text" id="master-name" required>
+      </label>
+      <label id="master-unit-label" hidden>
+        単位
+        <input type="text" id="master-unit" placeholder="g, 本, 個 など">
+      </label>
+      <p class="error" id="master-error"></p>
+      <div class="dialog-actions">
+        <button type="button" id="master-delete-button" class="danger" hidden>削除</button>
+        <button type="button" id="master-cancel-button">キャンセル</button>
+        <button type="submit" id="master-submit-button">追加</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="summary-dialog" class="summary-dialog">
+    <h3>材料集計</h3>
+    <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
+    <table id="summary-table">
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>必要量</th>
+          <th>残り</th>
+        </tr>
+      </thead>
+      <tbody id="summary-list"></tbody>
+    </table>
+    <p id="summary-empty" hidden>表示できる食材がありません。</p>
+    <p class="error" id="summary-error"></p>
+    <div class="dialog-actions">
+      <button type="button" id="summary-dialog-close">閉じる</button>
+    </div>
+  </dialog>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/daterange.js"></script>
+  <script src="/js/dialog.js"></script>
+  <script src="/js/summary.js"></script>
+  <script src="/js/masters.js"></script>
+</body>
+</html>

@@ -844,3 +844,54 @@ form .field-row label {
   box-shadow: var(--shadow-card-hover);
   font-size: var(--font-size-sm);
 }
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab-button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  transition: color 0.15s ease, border-bottom-color 0.15s ease;
+}
+
+.tab-button:hover {
+  color: var(--color-text);
+}
+
+.tab-button.active {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.master-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.8rem 1rem;
+  width: 28rem;
+  max-width: 95vw;
+}
+
+.master-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.master-dialog h3 {
+  margin-top: 0;
+}
