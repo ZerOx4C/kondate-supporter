@@ -29,33 +29,39 @@ type recipeIngredientRequest struct {
 	Quantity     float64 `json:"quantity"`
 }
 
+type recipeSeasoningRequest struct {
+	SeasoningID int64   `json:"seasoningId"`
+	Quantity    float64 `json:"quantity"`
+}
+
 type recipeRequest struct {
 	Name        string                    `json:"name"`
 	URL         string                    `json:"url"`
 	Servings    int                       `json:"servings"`
 	Ingredients []recipeIngredientRequest `json:"ingredients"`
+	Seasonings  []recipeSeasoningRequest  `json:"seasonings"`
 	Steps       []string                  `json:"steps"`
 }
 
-func (req recipeRequest) validate() (name, url string, servings int, items []repository.RecipeIngredientInput, steps []string, err error) {
+func (req recipeRequest) validate() (name, url string, servings int, items []repository.RecipeIngredientInput, seasoningItems []repository.RecipeSeasoningInput, steps []string, err error) {
 	name = strings.TrimSpace(req.Name)
 	if name == "" {
-		return "", "", 0, nil, nil, errors.New("nameは必須です")
+		return "", "", 0, nil, nil, nil, errors.New("nameは必須です")
 	}
 	url = strings.TrimSpace(req.URL)
 
 	if req.Servings <= 0 {
-		return "", "", 0, nil, nil, errors.New("servingsは1以上である必要があります")
+		return "", "", 0, nil, nil, nil, errors.New("servingsは1以上である必要があります")
 	}
 
 	seen := make(map[int64]struct{}, len(req.Ingredients))
 	items = make([]repository.RecipeIngredientInput, 0, len(req.Ingredients))
 	for _, ing := range req.Ingredients {
 		if ing.Quantity <= 0 {
-			return "", "", 0, nil, nil, errors.New("ingredientsのquantityは正の数である必要があります")
+			return "", "", 0, nil, nil, nil, errors.New("ingredientsのquantityは正の数である必要があります")
 		}
 		if _, dup := seen[ing.IngredientID]; dup {
-			return "", "", 0, nil, nil, errors.New("ingredientsに同じingredientIdが重複しています")
+			return "", "", 0, nil, nil, nil, errors.New("ingredientsに同じingredientIdが重複しています")
 		}
 		seen[ing.IngredientID] = struct{}{}
 		items = append(items, repository.RecipeIngredientInput{
@@ -64,16 +70,32 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 		})
 	}
 
+	seenSeasonings := make(map[int64]struct{}, len(req.Seasonings))
+	seasoningItems = make([]repository.RecipeSeasoningInput, 0, len(req.Seasonings))
+	for _, s := range req.Seasonings {
+		if s.Quantity <= 0 {
+			return "", "", 0, nil, nil, nil, errors.New("seasoningsのquantityは正の数である必要があります")
+		}
+		if _, dup := seenSeasonings[s.SeasoningID]; dup {
+			return "", "", 0, nil, nil, nil, errors.New("seasoningsに同じseasoningIdが重複しています")
+		}
+		seenSeasonings[s.SeasoningID] = struct{}{}
+		seasoningItems = append(seasoningItems, repository.RecipeSeasoningInput{
+			SeasoningID: s.SeasoningID,
+			Quantity:    s.Quantity,
+		})
+	}
+
 	steps = make([]string, 0, len(req.Steps))
 	for _, s := range req.Steps {
 		text := strings.TrimSpace(s)
 		if text == "" {
-			return "", "", 0, nil, nil, errors.New("stepsは空文字を含められません")
+			return "", "", 0, nil, nil, nil, errors.New("stepsは空文字を含められません")
 		}
 		steps = append(steps, text)
 	}
 
-	return name, url, req.Servings, items, steps, nil
+	return name, url, req.Servings, items, seasoningItems, steps, nil
 }
 
 type recipeIngredientResponse struct {
@@ -83,12 +105,22 @@ type recipeIngredientResponse struct {
 	Quantity     float64 `json:"quantity"`
 }
 
+// recipeSeasoningResponse のUnitは常に"mL"固定(seasoningsテーブルにunitカラムは
+// 持たせていないため、recipeIngredientResponseと表示コードを共通化する目的でここに固定値を持たせる)。
+type recipeSeasoningResponse struct {
+	SeasoningID int64   `json:"seasoningId"`
+	Name        string  `json:"name"`
+	Unit        string  `json:"unit"`
+	Quantity    float64 `json:"quantity"`
+}
+
 type recipeResponse struct {
 	ID          int64                      `json:"id"`
 	Name        string                     `json:"name"`
 	URL         string                     `json:"url"`
 	Servings    int                        `json:"servings"`
 	Ingredients []recipeIngredientResponse `json:"ingredients"`
+	Seasonings  []recipeSeasoningResponse  `json:"seasonings"`
 	Steps       []string                   `json:"steps"`
 	HasImage    bool                       `json:"hasImage"`
 }
@@ -103,6 +135,15 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 			Quantity:     ing.Quantity,
 		})
 	}
+	seasonings := make([]recipeSeasoningResponse, 0, len(detail.Seasonings))
+	for _, s := range detail.Seasonings {
+		seasonings = append(seasonings, recipeSeasoningResponse{
+			SeasoningID: s.SeasoningID,
+			Name:        s.Name,
+			Unit:        "mL",
+			Quantity:    s.Quantity,
+		})
+	}
 	steps := detail.Steps
 	if steps == nil {
 		steps = []string{}
@@ -113,6 +154,7 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 		URL:         detail.Recipe.URL,
 		Servings:    detail.Recipe.Servings,
 		Ingredients: ingredients,
+		Seasonings:  seasonings,
 		Steps:       steps,
 		HasImage:    detail.Recipe.ImageExt != "",
 	}
@@ -137,13 +179,13 @@ func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	name, url, servings, items, steps, err := req.validate()
+	name, url, servings, items, seasoningItems, steps, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	detail, err := h.repo.Create(r.Context(), name, url, servings, items, steps)
+	detail, err := h.repo.Create(r.Context(), name, url, servings, items, seasoningItems, steps)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -176,13 +218,13 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	name, url, servings, items, steps, err := req.validate()
+	name, url, servings, items, seasoningItems, steps, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	detail, err := h.repo.Update(r.Context(), id, name, url, servings, items, steps)
+	detail, err := h.repo.Update(r.Context(), id, name, url, servings, items, seasoningItems, steps)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -287,6 +329,8 @@ func (h *RecipeHandler) handleError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "レシピが見つかりません")
 	case errors.Is(err, repository.ErrIngredientNotFound):
 		writeError(w, http.StatusBadRequest, "存在しない食材が指定されています")
+	case errors.Is(err, repository.ErrSeasoningNotFound):
+		writeError(w, http.StatusBadRequest, "存在しない調味料が指定されています")
 	case errors.Is(err, repository.ErrInUse):
 		writeError(w, http.StatusConflict, "献立で使用中のレシピは削除できません")
 	default:

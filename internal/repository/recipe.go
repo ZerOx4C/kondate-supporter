@@ -25,10 +25,24 @@ type RecipeIngredientDetail struct {
 	Quantity     float64
 }
 
-// RecipeDetail はレシピ本体・材料リスト・手順リストをまとめた結果。
+// RecipeSeasoningInput はレシピ作成・更新時に指定する調味料1件分の入力。
+type RecipeSeasoningInput struct {
+	SeasoningID int64
+	Quantity    float64
+}
+
+// RecipeSeasoningDetail は調味料と調味料マスタ情報をJOINした結果。
+type RecipeSeasoningDetail struct {
+	SeasoningID int64
+	Name        string
+	Quantity    float64
+}
+
+// RecipeDetail はレシピ本体・材料リスト・調味料リスト・手順リストをまとめた結果。
 type RecipeDetail struct {
 	Recipe      model.Recipe
 	Ingredients []RecipeIngredientDetail
+	Seasonings  []RecipeSeasoningDetail
 	Steps       []string
 }
 
@@ -75,6 +89,10 @@ func (r *RecipeRepository) ListWithIngredients(ctx context.Context) ([]RecipeDet
 	if err != nil {
 		return nil, err
 	}
+	seasoningsByRecipe, err := queryAllRecipeSeasonings(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
 	stepsByRecipe, err := queryAllRecipeSteps(ctx, r.db)
 	if err != nil {
 		return nil, err
@@ -84,6 +102,7 @@ func (r *RecipeRepository) ListWithIngredients(ctx context.Context) ([]RecipeDet
 		details = append(details, RecipeDetail{
 			Recipe:      rec,
 			Ingredients: ingredientsByRecipe[rec.ID],
+			Seasonings:  seasoningsByRecipe[rec.ID],
 			Steps:       stepsByRecipe[rec.ID],
 		})
 	}
@@ -145,6 +164,34 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 	return result, nil
 }
 
+// queryAllRecipeSeasonings は全recipe_seasoningsをJOIN取得し、recipe_idごとにグルーピングする。
+func queryAllRecipeSeasonings(ctx context.Context, db *sql.DB) (map[int64][]RecipeSeasoningDetail, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT rs.recipe_id, s.id, s.name, rs.quantity
+		FROM recipe_seasonings rs
+		JOIN seasonings s ON s.id = rs.seasoning_id
+		ORDER BY rs.recipe_id, rs.id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[int64][]RecipeSeasoningDetail)
+	for rows.Next() {
+		var recipeID int64
+		var d RecipeSeasoningDetail
+		if err := rows.Scan(&recipeID, &d.SeasoningID, &d.Name, &d.Quantity); err != nil {
+			return nil, err
+		}
+		result[recipeID] = append(result[recipeID], d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, error) {
 	var rec model.Recipe
 	err := r.db.QueryRowContext(ctx,
@@ -161,11 +208,15 @@ func (r *RecipeRepository) Get(ctx context.Context, id int64) (RecipeDetail, err
 	if err != nil {
 		return RecipeDetail{}, err
 	}
+	seasonings, err := queryRecipeSeasonings(ctx, r.db, id)
+	if err != nil {
+		return RecipeDetail{}, err
+	}
 	steps, err := queryRecipeSteps(ctx, r.db, id)
 	if err != nil {
 		return RecipeDetail{}, err
 	}
-	return RecipeDetail{Recipe: rec, Ingredients: ingredients, Steps: steps}, nil
+	return RecipeDetail{Recipe: rec, Ingredients: ingredients, Seasonings: seasonings, Steps: steps}, nil
 }
 
 // queryRecipeIngredients は*sql.DB/*sql.Txどちらでも呼べるよう
@@ -189,6 +240,37 @@ func queryRecipeIngredients(ctx context.Context, q interface {
 	for rows.Next() {
 		var d RecipeIngredientDetail
 		if err := rows.Scan(&d.IngredientID, &d.Name, &d.Unit, &d.Quantity); err != nil {
+			return nil, err
+		}
+		details = append(details, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return details, nil
+}
+
+// queryRecipeSeasonings は*sql.DB/*sql.Txどちらでも呼べるよう
+// 必要最小限のインターフェースを受け取る。
+func queryRecipeSeasonings(ctx context.Context, q interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, recipeID int64) ([]RecipeSeasoningDetail, error) {
+	rows, err := q.QueryContext(ctx, `
+		SELECT s.id, s.name, rs.quantity
+		FROM recipe_seasonings rs
+		JOIN seasonings s ON s.id = rs.seasoning_id
+		WHERE rs.recipe_id = ?
+		ORDER BY rs.id
+	`, recipeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	details := []RecipeSeasoningDetail{}
+	for rows.Next() {
+		var d RecipeSeasoningDetail
+		if err := rows.Scan(&d.SeasoningID, &d.Name, &d.Quantity); err != nil {
 			return nil, err
 		}
 		details = append(details, d)
@@ -267,8 +349,44 @@ func validateIngredientsExist(ctx context.Context, tx *sql.Tx, ingredientIDs []i
 	return nil
 }
 
-// Create はレシピ本体・材料リスト・手順リストを同一トランザクションで作成する。
-func (r *RecipeRepository) Create(ctx context.Context, name, url string, servings int, items []RecipeIngredientInput, steps []string) (RecipeDetail, error) {
+// recipeSeasoningInputIDs は RecipeSeasoningInput のスライスから調味料IDのみを取り出す。
+func recipeSeasoningInputIDs(items []RecipeSeasoningInput) []int64 {
+	ids := make([]int64, len(items))
+	for i, item := range items {
+		ids[i] = item.SeasoningID
+	}
+	return ids
+}
+
+// validateSeasoningsExist は指定された調味料IDがすべて存在するか検証する。
+// 存在しないIDが1つでもあればErrSeasoningNotFoundを返す。
+func validateSeasoningsExist(ctx context.Context, tx *sql.Tx, seasoningIDs []int64) error {
+	if len(seasoningIDs) == 0 {
+		return nil
+	}
+	idSet := make(map[int64]struct{}, len(seasoningIDs))
+	for _, id := range seasoningIDs {
+		idSet[id] = struct{}{}
+	}
+	placeholders := make([]string, 0, len(idSet))
+	args := make([]any, 0, len(idSet))
+	for id := range idSet {
+		placeholders = append(placeholders, "?")
+		args = append(args, id)
+	}
+	query := fmt.Sprintf("SELECT COUNT(*) FROM seasonings WHERE id IN (%s)", strings.Join(placeholders, ","))
+	var count int
+	if err := tx.QueryRowContext(ctx, query, args...).Scan(&count); err != nil {
+		return err
+	}
+	if count != len(idSet) {
+		return ErrSeasoningNotFound
+	}
+	return nil
+}
+
+// Create はレシピ本体・材料リスト・調味料リスト・手順リストを同一トランザクションで作成する。
+func (r *RecipeRepository) Create(ctx context.Context, name, url string, servings int, items []RecipeIngredientInput, seasoningItems []RecipeSeasoningInput, steps []string) (RecipeDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return RecipeDetail{}, err
@@ -276,6 +394,9 @@ func (r *RecipeRepository) Create(ctx context.Context, name, url string, serving
 	defer tx.Rollback()
 
 	if err := validateIngredientsExist(ctx, tx, recipeIngredientInputIDs(items)); err != nil {
+		return RecipeDetail{}, err
+	}
+	if err := validateSeasoningsExist(ctx, tx, recipeSeasoningInputIDs(seasoningItems)); err != nil {
 		return RecipeDetail{}, err
 	}
 
@@ -300,6 +421,15 @@ func (r *RecipeRepository) Create(ctx context.Context, name, url string, serving
 		}
 	}
 
+	for _, item := range seasoningItems {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity) VALUES (?, ?, ?)",
+			id, item.SeasoningID, item.Quantity,
+		); err != nil {
+			return RecipeDetail{}, classifySQLiteError(err)
+		}
+	}
+
 	for i, text := range steps {
 		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO recipe_steps (recipe_id, step_no, text) VALUES (?, ?, ?)",
@@ -315,9 +445,9 @@ func (r *RecipeRepository) Create(ctx context.Context, name, url string, serving
 	return r.Get(ctx, id)
 }
 
-// Update はレシピ本体を更新し、材料リスト・手順リストをそれぞれ全削除→
+// Update はレシピ本体を更新し、材料リスト・調味料リスト・手順リストをそれぞれ全削除→
 // 再INSERTする(delete-then-insert。個人利用規模では差分更新より単純さを優先)。
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url string, servings int, items []RecipeIngredientInput, steps []string) (RecipeDetail, error) {
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url string, servings int, items []RecipeIngredientInput, seasoningItems []RecipeSeasoningInput, steps []string) (RecipeDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return RecipeDetail{}, err
@@ -342,6 +472,9 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url strin
 	if err := validateIngredientsExist(ctx, tx, recipeIngredientInputIDs(items)); err != nil {
 		return RecipeDetail{}, err
 	}
+	if err := validateSeasoningsExist(ctx, tx, recipeSeasoningInputIDs(seasoningItems)); err != nil {
+		return RecipeDetail{}, err
+	}
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_ingredients WHERE recipe_id = ?", id); err != nil {
 		return RecipeDetail{}, classifySQLiteError(err)
@@ -350,6 +483,18 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url strin
 		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)",
 			id, item.IngredientID, item.Quantity,
+		); err != nil {
+			return RecipeDetail{}, classifySQLiteError(err)
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_seasonings WHERE recipe_id = ?", id); err != nil {
+		return RecipeDetail{}, classifySQLiteError(err)
+	}
+	for _, item := range seasoningItems {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity) VALUES (?, ?, ?)",
+			id, item.SeasoningID, item.Quantity,
 		); err != nil {
 			return RecipeDetail{}, classifySQLiteError(err)
 		}
@@ -399,6 +544,9 @@ func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_ingredients WHERE recipe_id = ?", id); err != nil {
+		return classifySQLiteError(err)
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_seasonings WHERE recipe_id = ?", id); err != nil {
 		return classifySQLiteError(err)
 	}
 	if _, err := tx.ExecContext(ctx, "DELETE FROM recipe_steps WHERE recipe_id = ?", id); err != nil {

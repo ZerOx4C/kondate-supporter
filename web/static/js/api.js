@@ -46,6 +46,28 @@ function deleteIngredient(id) {
   return apiRequest(`/api/ingredients/${id}`, { method: 'DELETE' });
 }
 
+function listSeasonings() {
+  return apiRequest('/api/seasonings');
+}
+
+function createSeasoning(name) {
+  return apiRequest('/api/seasonings', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+function updateSeasoning(id, name) {
+  return apiRequest(`/api/seasonings/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+}
+
+function deleteSeasoning(id) {
+  return apiRequest(`/api/seasonings/${id}`, { method: 'DELETE' });
+}
+
 function listStocks() {
   return apiRequest('/api/stocks');
 }
@@ -65,17 +87,17 @@ function getRecipe(id) {
   return apiRequest(`/api/recipes/${id}`);
 }
 
-function createRecipe(name, url, servings, ingredients, steps) {
+function createRecipe(name, url, servings, ingredients, seasonings, steps) {
   return apiRequest('/api/recipes', {
     method: 'POST',
-    body: JSON.stringify({ name, url, servings, ingredients, steps }),
+    body: JSON.stringify({ name, url, servings, ingredients, seasonings, steps }),
   });
 }
 
-function updateRecipe(id, name, url, servings, ingredients, steps) {
+function updateRecipe(id, name, url, servings, ingredients, seasonings, steps) {
   return apiRequest(`/api/recipes/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ name, url, servings, ingredients, steps }),
+    body: JSON.stringify({ name, url, servings, ingredients, seasonings, steps }),
   });
 }
 

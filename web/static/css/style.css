@@ -182,19 +182,22 @@ button.danger {
   font-size: 0.9rem;
 }
 
-.ingredient-row {
+.ingredient-row,
+.seasoning-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.4rem;
 }
 
-.ingredient-row select {
+.ingredient-row select,
+.seasoning-row select {
   flex: 1;
   max-width: 16rem;
 }
 
-.ingredient-row input[type="number"] {
+.ingredient-row input[type="number"],
+.seasoning-row input[type="number"] {
   width: 6rem;
 }
 

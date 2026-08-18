@@ -19,6 +19,7 @@ const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
 const recipeViewImageEl = document.getElementById('recipe-view-image');
 const recipeViewUrlEl = document.getElementById('recipe-view-url');
 const recipeViewIngredientsEl = document.getElementById('recipe-view-ingredients');
+const recipeViewSeasoningsEl = document.getElementById('recipe-view-seasonings');
 const recipeViewStepsEl = document.getElementById('recipe-view-steps');
 const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty');
 const recipeViewEditButton = document.getElementById('recipe-view-edit');
@@ -36,6 +37,8 @@ const recipeImagePreview = document.getElementById('recipe-image-preview');
 const recipeImageRemoveButton = document.getElementById('recipe-image-remove');
 const ingredientRowsEl = document.getElementById('ingredient-rows');
 const addIngredientRowButton = document.getElementById('add-ingredient-row');
+const seasoningRowsEl = document.getElementById('seasoning-rows');
+const addSeasoningRowButton = document.getElementById('add-seasoning-row');
 const stepRowsEl = document.getElementById('step-rows');
 const addStepRowButton = document.getElementById('add-step-row');
 const recipeSubmitButton = document.getElementById('recipe-submit');
@@ -45,6 +48,7 @@ let recipeImageFile = null;
 let recipeImageRemoveRequested = false;
 
 let ingredientMaster = [];
+let seasoningMaster = [];
 let currentRecipes = [];
 let filterableIngredients = [];
 let selectedIngredientFilterIds = new Set();
@@ -130,6 +134,84 @@ function collectIngredientRows() {
   return Array.from(rows).map(row => ({
     ingredientId: Number(row.querySelector('.ingredient-select').value),
     quantity: Number(row.querySelector('.ingredient-quantity').value),
+  }));
+}
+
+const NEW_SEASONING_OPTION_VALUE = '__new__';
+
+function fillSeasoningOptions(select, selectedId) {
+  select.innerHTML = '';
+  for (const seasoning of seasoningMaster) {
+    const option = document.createElement('option');
+    option.value = seasoning.id;
+    option.textContent = `${seasoning.name} (mL)`;
+    select.appendChild(option);
+  }
+  const newOption = document.createElement('option');
+  newOption.value = NEW_SEASONING_OPTION_VALUE;
+  newOption.textContent = '+ 新しい調味料を追加...';
+  select.appendChild(newOption);
+  if (selectedId !== undefined) select.value = selectedId;
+  select.dataset.prevValue = select.value;
+}
+
+async function onSeasoningSelectChange(select) {
+  if (select.value !== NEW_SEASONING_OPTION_VALUE) {
+    select.dataset.prevValue = select.value;
+    return;
+  }
+  const name = (window.prompt('新しい調味料の名前を入力してください') || '').trim();
+  if (!name) {
+    select.value = select.dataset.prevValue;
+    return;
+  }
+  recipeErrorEl.textContent = '';
+  try {
+    const seasoning = await createSeasoning(name);
+    seasoningMaster.push(seasoning);
+    for (const s of seasoningRowsEl.querySelectorAll('.seasoning-select')) {
+      const selectedId = s === select ? seasoning.id : Number(s.dataset.prevValue);
+      fillSeasoningOptions(s, selectedId);
+    }
+  } catch (err) {
+    recipeErrorEl.textContent = err.message;
+    select.value = select.dataset.prevValue;
+  }
+}
+
+function addSeasoningRow(seasoningId, quantity) {
+  const row = document.createElement('div');
+  row.className = 'seasoning-row';
+
+  const select = document.createElement('select');
+  select.className = 'seasoning-select';
+  fillSeasoningOptions(select, seasoningId);
+  select.addEventListener('change', () => onSeasoningSelectChange(select));
+
+  const quantityInput = document.createElement('input');
+  quantityInput.type = 'number';
+  quantityInput.className = 'seasoning-quantity';
+  quantityInput.step = 'any';
+  quantityInput.min = '0.01';
+  quantityInput.placeholder = '数量(mL)';
+  if (quantity !== undefined) quantityInput.value = quantity;
+
+  const removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.textContent = '削除';
+  removeButton.addEventListener('click', () => row.remove());
+
+  row.appendChild(select);
+  row.appendChild(quantityInput);
+  row.appendChild(removeButton);
+  seasoningRowsEl.appendChild(row);
+}
+
+function collectSeasoningRows() {
+  const rows = seasoningRowsEl.querySelectorAll('.seasoning-row');
+  return Array.from(rows).map(row => ({
+    seasoningId: Number(row.querySelector('.seasoning-select').value),
+    quantity: Number(row.querySelector('.seasoning-quantity').value),
   }));
 }
 
@@ -237,6 +319,13 @@ function renderRecipeView(recipe) {
     recipeViewIngredientsEl.appendChild(li);
   }
 
+  recipeViewSeasoningsEl.innerHTML = '';
+  for (const s of recipe.seasonings) {
+    const li = document.createElement('li');
+    li.textContent = `${s.name} ${s.quantity}${s.unit}`;
+    recipeViewSeasoningsEl.appendChild(li);
+  }
+
   recipeViewStepsEl.innerHTML = '';
   recipeViewStepsEmptyEl.hidden = recipe.steps.length > 0;
   for (const step of recipe.steps) {
@@ -257,6 +346,7 @@ function resetRecipeFormFields() {
   recipeForm.reset();
   recipeIdField.value = '';
   ingredientRowsEl.innerHTML = '';
+  seasoningRowsEl.innerHTML = '';
   stepRowsEl.innerHTML = '';
   recipeImageFile = null;
   recipeImageRemoveRequested = false;
@@ -276,6 +366,9 @@ function showRecipeEdit(recipe) {
     recipeUrlField.value = recipe.url;
     for (const ing of recipe.ingredients) {
       addIngredientRow(ing.ingredientId, ing.quantity);
+    }
+    for (const s of recipe.seasonings) {
+      addSeasoningRow(s.seasoningId, s.quantity);
     }
     for (const step of recipe.steps) {
       addStepRow(step);
@@ -661,6 +754,7 @@ document.addEventListener('paste', (e) => {
 });
 
 addIngredientRowButton.addEventListener('click', () => addIngredientRow());
+addSeasoningRowButton.addEventListener('click', () => addSeasoningRow());
 addStepRowButton.addEventListener('click', () => addStepRow());
 recipeDialogCancelButton.addEventListener('click', () => {
   if (recipeDialogTarget) {
@@ -681,11 +775,12 @@ recipeForm.addEventListener('submit', async (e) => {
   const url = recipeUrlField.value.trim();
   const servings = Number(recipeServingsField.value);
   const ingredients = collectIngredientRows();
+  const seasonings = collectSeasoningRows();
   const steps = collectStepRows();
   try {
     const saved = recipeIdField.value
-      ? await updateRecipe(recipeIdField.value, name, url, servings, ingredients, steps)
-      : await createRecipe(name, url, servings, ingredients, steps);
+      ? await updateRecipe(recipeIdField.value, name, url, servings, ingredients, seasonings, steps)
+      : await createRecipe(name, url, servings, ingredients, seasonings, steps);
     if (recipeImageFile) {
       await uploadRecipeImage(saved.id, recipeImageFile);
       saved.hasImage = true;
@@ -705,7 +800,7 @@ document.addEventListener('daterangechange', loadIngredientRemaining);
 async function init() {
   recipeListErrorEl.textContent = '';
   try {
-    ingredientMaster = await listIngredients();
+    [ingredientMaster, seasoningMaster] = await Promise.all([listIngredients(), listSeasonings()]);
   } catch (err) {
     recipeListErrorEl.textContent = err.message;
   }

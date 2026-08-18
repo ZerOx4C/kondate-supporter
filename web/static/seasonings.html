@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>在庫 - kondate-supporter</title>
+  <title>調味料マスタ - kondate-supporter</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
 </head>
@@ -25,8 +25,8 @@
       <ul>
         <li><a href="/">トップ</a></li>
         <li><a href="/ingredients.html">食材マスタ</a></li>
-        <li><a href="/seasonings.html">調味料マスタ</a></li>
-        <li><a href="/stocks.html" aria-current="page">在庫</a></li>
+        <li><a href="/seasonings.html" aria-current="page">調味料マスタ</a></li>
+        <li><a href="/stocks.html">在庫</a></li>
         <li><a href="/recipes.html">レシピ</a></li>
         <li><a href="/plans.html">献立</a></li>
         <li><a href="/shoppinglist.html">買い物リスト</a></li>
@@ -34,28 +34,30 @@
     </nav>
   </header>
   <main>
-    <h2>在庫</h2>
+    <h2>調味料マスタ</h2>
+    <p>調味料は在庫管理の対象外で、数量は常にmL単位で扱います。</p>
 
-    <div class="search-field">
-      <i class="ti ti-search" aria-hidden="true"></i>
-      <input type="text" id="stock-search" placeholder="食材名で検索" aria-label="食材を検索">
-      <button type="button" id="new-ingredient-button" class="icon-button" aria-label="新規食材を追加" hidden>
-        <i class="ti ti-plus" aria-hidden="true"></i>
-      </button>
-    </div>
-
-    <table id="stock-table">
+    <table id="seasoning-table">
       <thead>
         <tr>
           <th>名前</th>
-          <th>数量</th>
-          <th>更新日時</th>
+          <th>単位</th>
           <th></th>
         </tr>
       </thead>
-      <tbody id="stock-list"></tbody>
+      <tbody id="seasoning-list"></tbody>
     </table>
-    <p class="error" id="stock-error"></p>
+
+    <form id="seasoning-form" class="inline-form">
+      <input type="hidden" id="seasoning-id">
+      <label>
+        名前
+        <input type="text" id="seasoning-name" required>
+      </label>
+      <button type="submit" id="seasoning-submit">追加</button>
+      <button type="button" id="seasoning-cancel" hidden>キャンセル</button>
+    </form>
+    <p class="error" id="seasoning-error"></p>
   </main>
 
   <dialog id="summary-dialog" class="summary-dialog">
@@ -82,6 +84,6 @@
   <script src="/js/daterange.js"></script>
   <script src="/js/dialog.js"></script>
   <script src="/js/summary.js"></script>
-  <script src="/js/stocks.js"></script>
+  <script src="/js/seasonings.js"></script>
 </body>
 </html>

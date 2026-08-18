@@ -25,6 +25,7 @@
       <ul>
         <li><a href="/">トップ</a></li>
         <li><a href="/ingredients.html">食材マスタ</a></li>
+        <li><a href="/seasonings.html">調味料マスタ</a></li>
         <li><a href="/stocks.html">在庫</a></li>
         <li><a href="/recipes.html" aria-current="page">レシピ</a></li>
         <li><a href="/plans.html">献立</a></li>
@@ -64,6 +65,8 @@
         <p id="recipe-view-url" class="recipe-view-url"></p>
         <h4>材料</h4>
         <ul id="recipe-view-ingredients"></ul>
+        <h4>調味料</h4>
+        <ul id="recipe-view-seasonings"></ul>
         <h4>手順</h4>
         <ol id="recipe-view-steps"></ol>
         <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
@@ -106,6 +109,10 @@
         <h4>材料</h4>
         <div id="ingredient-rows"></div>
         <button type="button" id="add-ingredient-row">材料を追加</button>
+
+        <h4>調味料</h4>
+        <div id="seasoning-rows"></div>
+        <button type="button" id="add-seasoning-row">調味料を追加</button>
 
         <h4>手順</h4>
         <div id="step-rows"></div>

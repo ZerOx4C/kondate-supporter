@@ -8,6 +8,12 @@ type Ingredient struct {
 	Unit string `json:"unit"`
 }
 
+// Seasoning は調味料マスタ。在庫管理の対象外で、数量は常にmL単位。
+type Seasoning struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 // Stock は食材ごとの現在の在庫数量。
 type Stock struct {
 	ID           int64   `json:"id"`

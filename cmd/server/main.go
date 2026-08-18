@@ -34,6 +34,7 @@ func main() {
 	}
 
 	ingredientRepo := repository.NewIngredientRepository(conn)
+	seasoningRepo := repository.NewSeasoningRepository(conn)
 	stockRepo := repository.NewStockRepository(conn)
 	recipeRepo := repository.NewRecipeRepository(conn)
 	planRepo := repository.NewPlanRepository(conn)
@@ -41,6 +42,7 @@ func main() {
 	imageStore := imagestore.New(cfg.ImageDir)
 
 	ingredientHandler := handler.NewIngredientHandler(ingredientRepo)
+	seasoningHandler := handler.NewSeasoningHandler(seasoningRepo)
 	stockHandler := handler.NewStockHandler(stockRepo)
 	recipeHandler := handler.NewRecipeHandler(recipeRepo, imageStore)
 
@@ -48,7 +50,7 @@ func main() {
 	planHandler := handler.NewPlanHandler(planRepo, shoppingListService)
 	shoppingListHandler := handler.NewShoppingListHandler(shoppingListService)
 
-	router := handler.NewRouter(staticFS, ingredientHandler, stockHandler, recipeHandler, planHandler, shoppingListHandler)
+	router := handler.NewRouter(staticFS, ingredientHandler, seasoningHandler, stockHandler, recipeHandler, planHandler, shoppingListHandler)
 
 	log.Printf("listening on %s (dev mode: %v)", cfg.Addr, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
