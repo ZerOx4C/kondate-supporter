@@ -7,4 +7,3 @@
 - マスタ管理画面の食材・調味料タブにインクリメンタルサーチを追加: recipes.htmlの.search-fieldパターンを踏襲し、新規追加ボタンを角丸デザインに変更
 - レシピ画面の検索・食材絞り込みフィールドをグリッド列数に連動させるレイアウト: 2列以上は横並び、1列は縦並び
 - マスタ管理・買い物リストの表デザインを刷新: web/static/css/style.cssの table/th/td 共通スタイルを罫線ありの表からボーダーレス＋ゼブラストライプ＋行ホバーハイライトに変更（案A）。masters.htmlの食材・調味料一覧、shoppinglist.htmlの不足食材一覧の両方に適用。あわせてweb/static/js/masters.jsの編集ボタンをテキスト「編集」からアイコンボタン（ti-pencil、aria-label="編集"）に変更する。
-- 献立画面の.plan-timelineのmax-width制限を解除: bodyのmax-width(64rem)まで幅を広げる
