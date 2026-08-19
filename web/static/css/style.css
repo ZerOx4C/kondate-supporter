@@ -533,7 +533,6 @@ form .field-row label {
   display: flex;
   flex-direction: column;
   margin-bottom: var(--space-lg);
-  max-width: 46rem;
 }
 
 .plan-day {
