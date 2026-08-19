@@ -40,26 +40,39 @@ data/                     # SQLiteファイルの実行時生成先(Git管理外
 変更不可の技術制約、実装規約、注意事項は [docs/development.md](docs/development.md) を参照。
 外部パッケージの追加検討時、アーキテクチャ判断時、実装規約を確認したい時に読むこと。
 
-## 開発フロー
+## 作業フロー
 
-- 改修予定は `ROADMAP.md`(CLAUDE.mdと同じディレクトリに設置)に簡潔な箇条書きで記載する
-- 改修を進める際は、ROADMAP.mdの内容からスムーズに実施できる順序を検討して提案する
-- 実装前に [docs/architecture.md](docs/architecture.md) を読み、現状のDB構造・API・画面構成・既知の設計判断を把握してから着手する
-- ROADMAP.mdやdocs/architecture.mdの更新など、ドキュメント編集にとどまらない実際のコード実装(仕様検討・設計判断を伴う変更)に着手する際は、プランモードに切り替えてから進める
-- DB・API・画面構成に変更が入る機能改修をコミットした直後、[docs/architecture.md](docs/architecture.md) の該当箇所を更新する
-- 自動モードで機能改修を実施しコミットした後は、プランモードに戻る
+### メッセージ内容に応じて対応を振り分ける
 
-### 軽量タスクの委譲
+- 改修内容が書かれている場合はROADMAP更新を開始する
+- 作業開始指示である場合は実装作業を開始する
+- これらに該当しない場合は適宜対応する (CLAUDE.mdに関する相談など)
 
-以下の定型作業は、設計判断を伴わないため `docs-editor` / `commit-message-writer` サブエージェント(Haiku)にAgentツールで委譲する。
+### ROADMAP更新
 
-- ROADMAP.mdへの項目追加・完了項目のクリア → `docs-editor`
-- docs/architecture.mdの機械的な更新(表への追記など) → `docs-editor`
-- コミットメッセージ案の作成(コミット自体はメインで実行) → `commit-message-writer`
+1. 改修内容に不明瞭な点があればヒアリングを行う
+2. 明瞭化された改修内容を適切な粒度に分解する
+3. 分解した改修内容を [ROADMAP.md](ROADMAP.md) に箇条書きで記載する (サブエージェント`docs-editor`へ委譲)
 
-### 動作検証時の注意
+### 実装作業
+
+1. 必ずプランモードに切り替える
+2. [ROADMAP.md](ROADMAP.md) と [docs/architecture.md](docs/architecture.md) を読み、どの項目から着手すると良いか検討して提案する
+3. ヒアリング結果に応じた実装作業と [docs/architecture.md](docs/architecture.md) の更新を行う (サブエージェント`programmer`へ委譲)
+4. コミットメッセージを検討する (サブエージェント`commit-message-writer`へ委譲)
+5. 実装内容をコミットする
+6. [ROADMAP.md](ROADMAP.md) から完了項目を削除し、必要ならコミットもする
+7. プランモードへ戻る
+
+## 動作検証時の注意
 
 ユーザーが手動起動する開発サーバー(`make run`, `:8080`, `data/kondate.db`)とは別に、Claude Codeがpreview系ツールで動作検証を行う際は `.claude/launch.json` の設定により自動的に `:8081` / `data/kondate-preview.db` を使う(ポート・DBとも分離済み)。
+
+## サブエージェント情報
+
+- `programmer`: Sonnet
+- `docs-editor`: Haiku
+- `commit-message-writer`: Haiku
 
 ## デプロイ
 
