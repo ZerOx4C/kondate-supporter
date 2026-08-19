@@ -61,7 +61,7 @@ data/                     # SQLiteファイルの実行時生成先(Git管理外
 3. ヒアリング結果に応じた実装作業と [docs/architecture.md](docs/architecture.md) の更新を行う (サブエージェント`programmer`へ委譲)
 4. コミットメッセージを検討する (サブエージェント`commit-message-writer`へ委譲)
 5. 実装内容をコミットする
-6. [ROADMAP.md](ROADMAP.md) から完了項目を削除し、必要ならコミットもする
+6. [ROADMAP.md](ROADMAP.md) から完了項目を削除し (サブエージェント`docs-editor`へ委譲)、必要ならコミットする
 7. プランモードへ戻る
 
 ## 動作検証時の注意
