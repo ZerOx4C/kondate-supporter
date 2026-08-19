@@ -18,6 +18,7 @@
 
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12);
   --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.16);
+  --shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.22);
 
   --space-xs: 0.3rem;
   --space-sm: 0.6rem;
@@ -259,16 +260,20 @@ button.primary:hover {
 
 .ingredient-row,
 .seasoning-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
   gap: 0.5rem;
   align-items: center;
+  background: var(--color-bg-sunken);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
   margin-bottom: 0.4rem;
 }
 
 .ingredient-row select,
 .seasoning-row select {
-  flex: 1;
-  max-width: 16rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .ingredient-row input[type="number"],
@@ -276,12 +281,53 @@ button.primary:hover {
   width: 6rem;
 }
 
-.fixed-quantity-label {
+.qty-field {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  font-size: 0.8rem;
+  gap: 0.3rem;
+}
+
+.qty-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.pin-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  padding: 0.3rem;
+}
+
+.pin-toggle:hover {
+  background: var(--color-bg-hover);
+}
+
+.pin-toggle.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.ingredient-row .icon-button,
+.seasoning-row .icon-button,
+.step-row .icon-button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.ingredient-row .icon-button:hover,
+.seasoning-row .icon-button:hover,
+.step-row .icon-button:hover {
+  background: var(--color-bg-hover);
 }
 
 .step-row {
@@ -420,6 +466,11 @@ form .field-row label {
   justify-content: flex-end;
 }
 
+/* display:flexの指定がhidden属性のUA既定スタイルより詳細度で勝ってしまうため、明示的に上書きする */
+.dialog-actions[hidden] {
+  display: none;
+}
+
 .filter-field {
   display: inline-flex;
   align-items: center;
@@ -470,7 +521,9 @@ form .field-row label {
 
 .recipe-dialog {
   border: 1px solid light-dark(#ccc, #555);
-  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
+  padding: 0;
   width: 34rem;
   max-width: 95vw;
 }
@@ -479,12 +532,143 @@ form .field-row label {
   background: rgba(0, 0, 0, 0.4);
 }
 
-.recipe-dialog h3 {
-  margin-top: 0;
+.recipe-dialog-head {
+  padding: 0.8rem 1rem 0;
+}
+
+.recipe-dialog-head h3 {
+  margin: 0;
+}
+
+.recipe-dialog-body {
+  padding: 0.6rem 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.recipe-dialog-foot {
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.recipe-dialog-foot .dialog-actions {
+  margin: 0;
 }
 
 .recipe-view-url {
   margin: 0 0 0.6rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-title .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  font-size: 1rem;
+}
+
+.ghost-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.ghost-add:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+#recipe-submit {
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: light-dark(#fff, #16223f);
+}
+
+#recipe-submit:hover {
+  opacity: 0.9;
+}
+
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 8rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.image-dropzone:hover {
+  border-color: var(--color-border-strong);
+}
+
+.image-dropzone.drag-over {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.image-dropzone-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--font-size-sm);
+}
+
+.image-dropzone-placeholder i {
+  font-size: 1.6rem;
+}
+
+.image-dropzone .recipe-image-preview {
+  margin-bottom: 0;
+}
+
+#recipe-image-current {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.6rem;
 }
 
 main {
@@ -833,6 +1017,11 @@ main {
   padding: 0.3rem;
   font-size: 1rem;
   color: var(--color-text-muted);
+}
+
+/* display:inline-flexの指定がhidden属性のUA既定スタイルより詳細度で勝ってしまうため、明示的に上書きする */
+.icon-button[hidden] {
+  display: none;
 }
 
 .icon-button:hover {

@@ -25,6 +25,8 @@ const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty'
 const recipeViewEditButton = document.getElementById('recipe-view-edit');
 const recipeViewDeleteButton = document.getElementById('recipe-view-delete');
 const recipeViewCloseButton = document.getElementById('recipe-view-close');
+const recipeViewActionsEl = document.getElementById('recipe-view-actions');
+const recipeEditActionsEl = document.getElementById('recipe-edit-actions');
 
 const recipeForm = document.getElementById('recipe-form');
 const recipeDialogCancelButton = document.getElementById('recipe-dialog-cancel');
@@ -32,8 +34,10 @@ const recipeIdField = document.getElementById('recipe-id');
 const recipeNameField = document.getElementById('recipe-name');
 const recipeServingsField = document.getElementById('recipe-servings');
 const recipeUrlField = document.getElementById('recipe-url');
+const recipeImageDropzone = document.getElementById('recipe-image-dropzone');
 const recipeImageInput = document.getElementById('recipe-image-input');
 const recipeImagePreview = document.getElementById('recipe-image-preview');
+const recipeImagePlaceholder = document.getElementById('recipe-image-placeholder');
 const recipeImageRemoveButton = document.getElementById('recipe-image-remove');
 const ingredientRowsEl = document.getElementById('ingredient-rows');
 const addIngredientRowButton = document.getElementById('add-ingredient-row');
@@ -101,6 +105,22 @@ async function onIngredientSelectChange(select) {
   }
 }
 
+// ピン留めトグルの見た目(色・アイコン・aria-pressed)を状態に合わせて更新する
+function updatePinToggleState(button, active) {
+  button.classList.toggle('active', active);
+  button.setAttribute('aria-pressed', String(active));
+  button.innerHTML = active
+    ? '<i class="ti ti-pinned" aria-hidden="true"></i>'
+    : '<i class="ti ti-pin" aria-hidden="true"></i>';
+}
+
+// 食材選択に応じて数量入力の隣に単位を表示する
+function updateIngredientRowUnit(row, ingredientId) {
+  const unitEl = row.querySelector('.qty-unit');
+  const ingredient = ingredientMaster.find((i) => i.id === Number(ingredientId));
+  unitEl.textContent = ingredient ? ingredient.unit : '';
+}
+
 function addIngredientRow(ingredientId, quantity, fixedQuantity) {
   const row = document.createElement('div');
   row.className = 'ingredient-row';
@@ -108,8 +128,13 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity) {
   const select = document.createElement('select');
   select.className = 'ingredient-select';
   fillIngredientOptions(select, ingredientId);
-  select.addEventListener('change', () => onIngredientSelectChange(select));
+  select.addEventListener('change', async () => {
+    await onIngredientSelectChange(select);
+    updateIngredientRowUnit(row, select.value);
+  });
 
+  const qtyField = document.createElement('span');
+  qtyField.className = 'qty-field';
   const quantityInput = document.createElement('input');
   quantityInput.type = 'number';
   quantityInput.className = 'ingredient-quantity';
@@ -117,26 +142,42 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity) {
   quantityInput.min = '0.01';
   quantityInput.placeholder = '数量';
   if (quantity !== undefined) quantityInput.value = quantity;
+  const unitEl = document.createElement('span');
+  unitEl.className = 'qty-unit';
+  qtyField.appendChild(quantityInput);
+  qtyField.appendChild(unitEl);
 
-  const fixedLabel = document.createElement('label');
-  fixedLabel.className = 'fixed-quantity-label';
   const fixedCheckbox = document.createElement('input');
   fixedCheckbox.type = 'checkbox';
   fixedCheckbox.className = 'ingredient-fixed';
+  fixedCheckbox.hidden = true;
   fixedCheckbox.checked = !!fixedQuantity;
-  fixedLabel.appendChild(fixedCheckbox);
-  fixedLabel.appendChild(document.createTextNode('人数に比例させない'));
+
+  const pinButton = document.createElement('button');
+  pinButton.type = 'button';
+  pinButton.className = 'pin-toggle';
+  pinButton.setAttribute('aria-label', '人数に比例させない');
+  pinButton.addEventListener('click', () => {
+    fixedCheckbox.checked = !fixedCheckbox.checked;
+    updatePinToggleState(pinButton, fixedCheckbox.checked);
+  });
 
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
-  removeButton.textContent = '削除';
+  removeButton.className = 'icon-button danger';
+  removeButton.setAttribute('aria-label', '削除');
+  removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
   row.appendChild(select);
-  row.appendChild(quantityInput);
-  row.appendChild(fixedLabel);
+  row.appendChild(qtyField);
+  row.appendChild(pinButton);
   row.appendChild(removeButton);
+  row.appendChild(fixedCheckbox);
   ingredientRowsEl.appendChild(row);
+
+  updatePinToggleState(pinButton, fixedCheckbox.checked);
+  updateIngredientRowUnit(row, select.value);
 }
 
 function collectIngredientRows() {
@@ -190,6 +231,11 @@ async function onSeasoningSelectChange(select) {
   }
 }
 
+// 調味料の数量は常にmL固定のため、選択内容によらず固定文字列を表示する
+function updateSeasoningRowUnit(row) {
+  row.querySelector('.qty-unit').textContent = 'mL';
+}
+
 function addSeasoningRow(seasoningId, quantity, fixedQuantity) {
   const row = document.createElement('div');
   row.className = 'seasoning-row';
@@ -197,35 +243,56 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity) {
   const select = document.createElement('select');
   select.className = 'seasoning-select';
   fillSeasoningOptions(select, seasoningId);
-  select.addEventListener('change', () => onSeasoningSelectChange(select));
+  select.addEventListener('change', async () => {
+    await onSeasoningSelectChange(select);
+    updateSeasoningRowUnit(row);
+  });
 
+  const qtyField = document.createElement('span');
+  qtyField.className = 'qty-field';
   const quantityInput = document.createElement('input');
   quantityInput.type = 'number';
   quantityInput.className = 'seasoning-quantity';
   quantityInput.step = 'any';
   quantityInput.min = '0.01';
-  quantityInput.placeholder = '数量(mL)';
+  quantityInput.placeholder = '数量';
   if (quantity !== undefined) quantityInput.value = quantity;
+  const unitEl = document.createElement('span');
+  unitEl.className = 'qty-unit';
+  qtyField.appendChild(quantityInput);
+  qtyField.appendChild(unitEl);
 
-  const fixedLabel = document.createElement('label');
-  fixedLabel.className = 'fixed-quantity-label';
   const fixedCheckbox = document.createElement('input');
   fixedCheckbox.type = 'checkbox';
   fixedCheckbox.className = 'seasoning-fixed';
+  fixedCheckbox.hidden = true;
   fixedCheckbox.checked = !!fixedQuantity;
-  fixedLabel.appendChild(fixedCheckbox);
-  fixedLabel.appendChild(document.createTextNode('人数に比例させない'));
+
+  const pinButton = document.createElement('button');
+  pinButton.type = 'button';
+  pinButton.className = 'pin-toggle';
+  pinButton.setAttribute('aria-label', '人数に比例させない');
+  pinButton.addEventListener('click', () => {
+    fixedCheckbox.checked = !fixedCheckbox.checked;
+    updatePinToggleState(pinButton, fixedCheckbox.checked);
+  });
 
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
-  removeButton.textContent = '削除';
+  removeButton.className = 'icon-button danger';
+  removeButton.setAttribute('aria-label', '削除');
+  removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
   row.appendChild(select);
-  row.appendChild(quantityInput);
-  row.appendChild(fixedLabel);
+  row.appendChild(qtyField);
+  row.appendChild(pinButton);
   row.appendChild(removeButton);
+  row.appendChild(fixedCheckbox);
   seasoningRowsEl.appendChild(row);
+
+  updatePinToggleState(pinButton, fixedCheckbox.checked);
+  updateSeasoningRowUnit(row);
 }
 
 function collectSeasoningRows() {
@@ -292,7 +359,9 @@ function addStepRow(text) {
 
   const removeButton = document.createElement('button');
   removeButton.type = 'button';
-  removeButton.textContent = '削除';
+  removeButton.className = 'icon-button danger';
+  removeButton.setAttribute('aria-label', '削除');
+  removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => {
     row.remove();
     renumberStepRows();
@@ -314,6 +383,8 @@ function collectStepRows() {
 function applyRecipeDialogMode(mode) {
   recipeViewFieldsEl.hidden = mode !== 'view';
   recipeForm.hidden = mode !== 'edit';
+  recipeViewActionsEl.hidden = mode !== 'view';
+  recipeEditActionsEl.hidden = mode !== 'edit';
 }
 
 function renderRecipeView(recipe) {
@@ -364,6 +435,13 @@ function showRecipeView(recipe) {
   applyRecipeDialogMode('view');
 }
 
+// 画像プレビューの表示/非表示に合わせてドロップゾーンの案内テキストと削除ボタンを連動させる
+function setRecipeImagePreviewVisible(visible) {
+  recipeImagePreview.hidden = !visible;
+  recipeImagePlaceholder.hidden = visible;
+  recipeImageRemoveButton.hidden = !visible;
+}
+
 function resetRecipeFormFields() {
   recipeForm.reset();
   recipeIdField.value = '';
@@ -373,8 +451,7 @@ function resetRecipeFormFields() {
   recipeImageFile = null;
   recipeImageRemoveRequested = false;
   recipeImageInput.value = '';
-  recipeImagePreview.hidden = true;
-  recipeImageRemoveButton.hidden = true;
+  setRecipeImagePreviewVisible(false);
 }
 
 function showRecipeEdit(recipe) {
@@ -397,8 +474,7 @@ function showRecipeEdit(recipe) {
     }
     if (recipe.hasImage) {
       recipeImagePreview.src = `/api/recipes/${recipe.id}/image`;
-      recipeImagePreview.hidden = false;
-      recipeImageRemoveButton.hidden = false;
+      setRecipeImagePreviewVisible(true);
     }
   } else {
     recipeDialogTitle.textContent = 'レシピを作成';
@@ -743,8 +819,7 @@ function setRecipeImageFile(file) {
   recipeImageFile = file;
   recipeImageRemoveRequested = false;
   recipeImagePreview.src = URL.createObjectURL(file);
-  recipeImagePreview.hidden = false;
-  recipeImageRemoveButton.hidden = false;
+  setRecipeImagePreviewVisible(true);
 }
 
 recipeImageInput.addEventListener('change', () => {
@@ -756,8 +831,23 @@ recipeImageRemoveButton.addEventListener('click', () => {
   recipeImageFile = null;
   recipeImageRemoveRequested = true;
   recipeImageInput.value = '';
-  recipeImagePreview.hidden = true;
-  recipeImageRemoveButton.hidden = true;
+  setRecipeImagePreviewVisible(false);
+});
+
+recipeImageDropzone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  recipeImageDropzone.classList.add('drag-over');
+});
+
+recipeImageDropzone.addEventListener('dragleave', () => {
+  recipeImageDropzone.classList.remove('drag-over');
+});
+
+recipeImageDropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  recipeImageDropzone.classList.remove('drag-over');
+  const file = e.dataTransfer && e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) setRecipeImageFile(file);
 });
 
 document.addEventListener('paste', (e) => {

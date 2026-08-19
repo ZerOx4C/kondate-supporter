@@ -63,72 +63,80 @@
     <p class="error" id="recipe-list-error"></p>
 
     <dialog id="recipe-dialog" class="recipe-dialog">
-      <h3 id="recipe-dialog-title"></h3>
-      <p class="error" id="recipe-error"></p>
+      <div class="recipe-dialog-head"><h3 id="recipe-dialog-title"></h3></div>
+      <div class="recipe-dialog-body">
+        <p class="error" id="recipe-error"></p>
 
-      <div id="recipe-view-fields">
-        <img id="recipe-view-image" class="recipe-view-image" hidden>
-        <p id="recipe-view-url" class="recipe-view-url"></p>
-        <h4>材料</h4>
-        <ul id="recipe-view-ingredients"></ul>
-        <h4>調味料</h4>
-        <ul id="recipe-view-seasonings"></ul>
-        <h4>手順</h4>
-        <ol id="recipe-view-steps"></ol>
-        <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
-        <div class="dialog-actions">
+        <div id="recipe-view-fields">
+          <img id="recipe-view-image" class="recipe-view-image" hidden>
+          <p id="recipe-view-url" class="recipe-view-url"></p>
+          <h4>材料</h4>
+          <ul id="recipe-view-ingredients"></ul>
+          <h4>調味料</h4>
+          <ul id="recipe-view-seasonings"></ul>
+          <h4>手順</h4>
+          <ol id="recipe-view-steps"></ol>
+          <p id="recipe-view-steps-empty" hidden>手順は登録されていません。</p>
+        </div>
+
+        <form id="recipe-form">
+          <input type="hidden" id="recipe-id">
+          <div class="field-row">
+            <label>
+              名前
+              <input type="text" id="recipe-name" required>
+            </label>
+            <label>
+              人数
+              <input type="number" id="recipe-servings" min="1" step="1" required>
+            </label>
+          </div>
+          <div class="field-row">
+            <label>
+              参考URL
+              <input type="url" id="recipe-url" placeholder="https://...">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="image-dropzone" id="recipe-image-dropzone">
+              <input type="file" id="recipe-image-input" accept="image/*" class="visually-hidden-input">
+              <img id="recipe-image-preview" class="recipe-image-preview" hidden>
+              <span id="recipe-image-placeholder" class="image-dropzone-placeholder">
+                <i class="ti ti-photo-plus" aria-hidden="true"></i>
+                <span>画像をドラッグ&amp;ドロップ<br>クリックして選択、またはコピペでも貼り付け可</span>
+              </span>
+            </label>
+          </div>
+          <div id="recipe-image-current">
+            <button type="button" id="recipe-image-remove" hidden class="icon-button danger" aria-label="画像を削除">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <h4 class="section-title"><span class="icon"><i class="ti ti-carrot" aria-hidden="true"></i></span>材料</h4>
+          <div id="ingredient-rows"></div>
+          <button type="button" id="add-ingredient-row" class="ghost-add"><i class="ti ti-plus" aria-hidden="true"></i>材料を追加</button>
+
+          <h4 class="section-title"><span class="icon"><i class="ti ti-salt" aria-hidden="true"></i></span>調味料</h4>
+          <div id="seasoning-rows"></div>
+          <button type="button" id="add-seasoning-row" class="ghost-add"><i class="ti ti-plus" aria-hidden="true"></i>調味料を追加</button>
+
+          <h4 class="section-title"><span class="icon"><i class="ti ti-list-numbers" aria-hidden="true"></i></span>手順</h4>
+          <div id="step-rows"></div>
+          <button type="button" id="add-step-row" class="ghost-add"><i class="ti ti-plus" aria-hidden="true"></i>手順を追加</button>
+        </form>
+      </div>
+      <div class="recipe-dialog-foot">
+        <div id="recipe-view-actions" class="dialog-actions">
           <button type="button" id="recipe-view-edit">編集</button>
           <button type="button" id="recipe-view-delete" class="danger">削除</button>
           <button type="button" id="recipe-view-close">閉じる</button>
         </div>
-      </div>
-
-      <form id="recipe-form">
-        <input type="hidden" id="recipe-id">
-        <div class="field-row">
-          <label>
-            名前
-            <input type="text" id="recipe-name" required>
-          </label>
-          <label>
-            人数
-            <input type="number" id="recipe-servings" min="1" step="1" required>
-          </label>
-        </div>
-        <div class="field-row">
-          <label>
-            参考URL
-            <input type="url" id="recipe-url" placeholder="https://...">
-          </label>
-        </div>
-        <div class="field-row">
-          <label>
-            画像
-            <input type="file" id="recipe-image-input" accept="image/*">
-          </label>
-        </div>
-        <div id="recipe-image-current">
-          <img id="recipe-image-preview" class="recipe-image-preview" hidden>
-          <button type="button" id="recipe-image-remove" hidden>画像を削除</button>
-        </div>
-
-        <h4>材料</h4>
-        <div id="ingredient-rows"></div>
-        <button type="button" id="add-ingredient-row">材料を追加</button>
-
-        <h4>調味料</h4>
-        <div id="seasoning-rows"></div>
-        <button type="button" id="add-seasoning-row">調味料を追加</button>
-
-        <h4>手順</h4>
-        <div id="step-rows"></div>
-        <button type="button" id="add-step-row">手順を追加</button>
-
-        <div class="dialog-actions">
+        <div id="recipe-edit-actions" class="dialog-actions" hidden>
           <button type="button" id="recipe-dialog-cancel">キャンセル</button>
-          <button type="submit" id="recipe-submit">保存</button>
+          <button type="submit" form="recipe-form" id="recipe-submit">保存</button>
         </div>
-      </form>
+      </div>
     </dialog>
 
     <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
