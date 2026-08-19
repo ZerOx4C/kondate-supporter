@@ -413,6 +413,31 @@ form .field-row label {
   margin: 0 0 0.6rem;
 }
 
+main {
+  /* 子孫要素(.recipe-toolbar等)がグリッドの実効幅と連動できるよう自身をクエリコンテナにする */
+  container-type: inline-size;
+}
+
+.recipe-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.recipe-toolbar .search-field,
+.recipe-toolbar .filter-field {
+  /* 親のgapで間隔を統一するため個別のmargin-bottomは打ち消す */
+  margin-bottom: 0;
+}
+
+/* .recipe-gridが2列以上になる幅(20rem*2 + gap 1rem = 41rem)に合わせて横並びに切り替える */
+@container (min-width: 41rem) {
+  .recipe-toolbar {
+    flex-direction: row;
+  }
+}
+
 .recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
