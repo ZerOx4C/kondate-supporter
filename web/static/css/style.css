@@ -78,6 +78,25 @@ th, td {
   text-align: left;
 }
 
+table.table-plain {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.table-plain th,
+table.table-plain td {
+  border: none;
+  padding: 0.4rem 0.6rem;
+}
+
+table.table-plain tbody tr:nth-child(odd) {
+  background: var(--color-bg-sunken);
+}
+
+table.table-plain tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
 .inline-form {
   display: flex;
   flex-wrap: wrap;

@@ -119,7 +119,9 @@ function renderIngredients(ingredients) {
 
     const editButton = document.createElement('button');
     editButton.type = 'button';
-    editButton.textContent = '編集';
+    editButton.className = 'icon-button';
+    editButton.setAttribute('aria-label', '編集');
+    editButton.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
     editButton.addEventListener('click', () => openEditDialog(ingredient, 'ingredient'));
     actionTd.appendChild(editButton);
 
@@ -146,7 +148,9 @@ function renderSeasonings(seasonings) {
 
     const editButton = document.createElement('button');
     editButton.type = 'button';
-    editButton.textContent = '編集';
+    editButton.className = 'icon-button';
+    editButton.setAttribute('aria-label', '編集');
+    editButton.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
     editButton.addEventListener('click', () => openEditDialog(seasoning, 'seasoning'));
     actionTd.appendChild(editButton);
 
