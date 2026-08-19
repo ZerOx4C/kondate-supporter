@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>マスタ管理 - kondate-supporter</title>
+  <title>管理 - kondate-supporter</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
 </head>
@@ -30,24 +30,28 @@
     </div>
     <nav>
       <ul>
-        <li><a href="/">トップ</a></li>
-        <li><a href="/masters.html" aria-current="page">マスタ管理</a></li>
         <li><a href="/stocks.html">在庫</a></li>
         <li><a href="/recipes.html">レシピ</a></li>
         <li><a href="/plans.html">献立</a></li>
         <li><a href="/shoppinglist.html">買い物リスト</a></li>
+        <li><a href="/admin.html" aria-current="page">管理</a></li>
       </ul>
     </nav>
   </header>
   <main>
-    <h2>マスタ管理</h2>
+    <h2>管理</h2>
 
     <div class="tabs">
-      <button type="button" class="tab-button active" data-tab="ingredient">食材</button>
-      <button type="button" class="tab-button" data-tab="seasoning">調味料</button>
+      <button type="button" class="tab-button active" data-tab="monitor">監視</button>
+      <button type="button" class="tab-button" data-tab="ingredient">食材マスタ</button>
+      <button type="button" class="tab-button" data-tab="seasoning">調味料マスタ</button>
     </div>
 
-    <div id="ingredient-tab" class="tab-content active">
+    <div id="monitor-tab" class="tab-content active">
+      <p>サーバー状態: <span id="status">確認中...</span></p>
+    </div>
+
+    <div id="ingredient-tab" class="tab-content">
       <div class="search-field">
         <i class="ti ti-search" aria-hidden="true"></i>
         <input type="text" id="ingredient-search-field" placeholder="食材名で検索" autocomplete="off" aria-label="食材名で検索">
@@ -145,6 +149,6 @@
   <script src="/js/daterange.js"></script>
   <script src="/js/dialog.js"></script>
   <script src="/js/summary.js"></script>
-  <script src="/js/masters.js"></script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>

@@ -1,8 +1,10 @@
 // DOM要素参照
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
+const monitorTab = document.getElementById('monitor-tab');
 const ingredientTab = document.getElementById('ingredient-tab');
 const seasoningTab = document.getElementById('seasoning-tab');
+const statusField = document.getElementById('status');
 const ingredientList = document.getElementById('ingredient-list');
 const seasoningList = document.getElementById('seasoning-list');
 const ingredientSearchField = document.getElementById('ingredient-search-field');
@@ -27,7 +29,7 @@ const masterCancelButton = document.getElementById('master-cancel-button');
 const masterSubmitButton = document.getElementById('master-submit-button');
 
 // 状態管理
-let currentTab = 'ingredient';
+let currentTab = 'monitor';
 let currentMode = 'add'; // 'add' or 'edit'
 let currentMasterType = 'ingredient'; // 'ingredient' or 'seasoning'
 let currentIngredients = [];
@@ -39,7 +41,9 @@ function switchTab(tab) {
   tabContents.forEach(el => el.classList.remove('active'));
   tabButtons.forEach(el => el.classList.remove('active'));
 
-  if (tab === 'ingredient') {
+  if (tab === 'monitor') {
+    monitorTab.classList.add('active');
+  } else if (tab === 'ingredient') {
     ingredientTab.classList.add('active');
   } else {
     seasoningTab.classList.add('active');
@@ -212,6 +216,12 @@ async function loadAll() {
   await loadSeasonings();
 }
 
+// サーバー死活確認
+async function loadServerStatus() {
+  const ok = await checkHealth();
+  statusField.textContent = ok ? '稼働中' : '応答なし';
+}
+
 // フォーム送信
 masterForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -310,4 +320,5 @@ seasoningSearchClearButton.addEventListener('click', () => {
 });
 
 // 初期ロード
+loadServerStatus();
 loadAll();
