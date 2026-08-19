@@ -603,6 +603,11 @@ main {
   transition: outline-color 0.1s ease;
 }
 
+.plan-cell:empty {
+  /* .plan-panelの実測高さ(66px)と揃え、ドラッグ&ドロップのドロップ判定エリアを確保する */
+  min-height: 4.125rem;
+}
+
 .plan-cell:empty::before {
   content: '予定なし';
   display: block;
