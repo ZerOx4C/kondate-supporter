@@ -163,6 +163,10 @@ button.danger {
   color: light-dark(#a00, #f66);
 }
 
+button.primary {
+  border-radius: var(--radius-pill);
+}
+
 .error {
   color: light-dark(#a00, #f66);
   min-height: 1.2em;

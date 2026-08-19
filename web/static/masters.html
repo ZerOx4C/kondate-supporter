@@ -41,6 +41,13 @@
     </div>
 
     <div id="ingredient-tab" class="tab-content active">
+      <div class="search-field">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" id="ingredient-search-field" placeholder="食材名で検索" autocomplete="off" aria-label="食材名で検索">
+        <button type="button" id="ingredient-search-clear" class="icon-button" aria-label="検索をクリア">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
       <button type="button" id="ingredient-add-button" class="primary">
         <i class="ti ti-plus" aria-hidden="true"></i>
         新規追加
@@ -60,6 +67,13 @@
 
     <div id="seasoning-tab" class="tab-content">
       <p>調味料は在庫管理の対象外で、数量は常にmL単位で扱います。</p>
+      <div class="search-field">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" id="seasoning-search-field" placeholder="調味料名で検索" autocomplete="off" aria-label="調味料名で検索">
+        <button type="button" id="seasoning-search-clear" class="icon-button" aria-label="検索をクリア">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
       <button type="button" id="seasoning-add-button" class="primary">
         <i class="ti ti-plus" aria-hidden="true"></i>
         新規追加

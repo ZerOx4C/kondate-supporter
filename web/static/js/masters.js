@@ -5,6 +5,10 @@ const ingredientTab = document.getElementById('ingredient-tab');
 const seasoningTab = document.getElementById('seasoning-tab');
 const ingredientList = document.getElementById('ingredient-list');
 const seasoningList = document.getElementById('seasoning-list');
+const ingredientSearchField = document.getElementById('ingredient-search-field');
+const ingredientSearchClearButton = document.getElementById('ingredient-search-clear');
+const seasoningSearchField = document.getElementById('seasoning-search-field');
+const seasoningSearchClearButton = document.getElementById('seasoning-search-clear');
 const ingredientAddButton = document.getElementById('ingredient-add-button');
 const seasoningAddButton = document.getElementById('seasoning-add-button');
 const ingredientError = document.getElementById('ingredient-error');
@@ -26,6 +30,8 @@ const masterSubmitButton = document.getElementById('master-submit-button');
 let currentTab = 'ingredient';
 let currentMode = 'add'; // 'add' or 'edit'
 let currentMasterType = 'ingredient'; // 'ingredient' or 'seasoning'
+let currentIngredients = [];
+let currentSeasonings = [];
 
 // タブ切り替え
 function switchTab(tab) {
@@ -159,12 +165,33 @@ function renderSeasonings(seasonings) {
   }
 }
 
+// 検索語による絞り込み
+function getFilteredIngredients() {
+  const query = ingredientSearchField.value.trim().toLowerCase();
+  if (!query) return currentIngredients;
+  return currentIngredients.filter((ingredient) => ingredient.name.toLowerCase().includes(query));
+}
+
+function getFilteredSeasonings() {
+  const query = seasoningSearchField.value.trim().toLowerCase();
+  if (!query) return currentSeasonings;
+  return currentSeasonings.filter((seasoning) => seasoning.name.toLowerCase().includes(query));
+}
+
+function onIngredientSearchInput() {
+  renderIngredients(getFilteredIngredients());
+}
+
+function onSeasoningSearchInput() {
+  renderSeasonings(getFilteredSeasonings());
+}
+
 // データ取得・再表示
 async function loadIngredients() {
   ingredientError.textContent = '';
   try {
-    const ingredients = await listIngredients();
-    renderIngredients(ingredients);
+    currentIngredients = await listIngredients();
+    renderIngredients(getFilteredIngredients());
   } catch (err) {
     ingredientError.textContent = err.message;
   }
@@ -173,8 +200,8 @@ async function loadIngredients() {
 async function loadSeasonings() {
   seasoningError.textContent = '';
   try {
-    const seasonings = await listSeasonings();
-    renderSeasonings(seasonings);
+    currentSeasonings = await listSeasonings();
+    renderSeasonings(getFilteredSeasonings());
   } catch (err) {
     seasoningError.textContent = err.message;
   }
@@ -266,6 +293,21 @@ tabButtons.forEach(button => {
 // 新規追加ボタン
 ingredientAddButton.addEventListener('click', () => openAddDialog('ingredient'));
 seasoningAddButton.addEventListener('click', () => openAddDialog('seasoning'));
+
+// 検索フィールド
+ingredientSearchField.addEventListener('input', onIngredientSearchInput);
+ingredientSearchClearButton.addEventListener('click', () => {
+  ingredientSearchField.value = '';
+  ingredientSearchField.focus();
+  onIngredientSearchInput();
+});
+
+seasoningSearchField.addEventListener('input', onSeasoningSearchInput);
+seasoningSearchClearButton.addEventListener('click', () => {
+  seasoningSearchField.value = '';
+  seasoningSearchField.focus();
+  onSeasoningSearchInput();
+});
 
 // 初期ロード
 loadAll();
