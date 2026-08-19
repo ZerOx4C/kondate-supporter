@@ -59,3 +59,17 @@ function onDateRangeFieldChange() {
 
 rangeFromField.addEventListener('change', onDateRangeFieldChange);
 rangeDaysField.addEventListener('change', onDateRangeFieldChange);
+
+const rangeShiftPrevButton = document.getElementById('range-shift-prev');
+const rangeShiftNextButton = document.getElementById('range-shift-next');
+
+// 現在設定中の検討期間の日数分だけ開始日を前後にずらす
+function shiftDateRange(direction) {
+  const days = sanitizeDays(rangeDaysField.value);
+  const base = rangeFromField.value || toDateInputValue(new Date());
+  rangeFromField.value = addDays(base, direction * days);
+  onDateRangeFieldChange();
+}
+
+rangeShiftPrevButton.addEventListener('click', () => shiftDateRange(-1));
+rangeShiftNextButton.addEventListener('click', () => shiftDateRange(1));
