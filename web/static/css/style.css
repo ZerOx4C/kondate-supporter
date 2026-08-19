@@ -118,8 +118,13 @@ header fieldset.inline-form {
   padding: 0 0.8rem;
   margin: 0;
   height: 2.6rem;
-  max-width: 24rem;
+  max-width: 28rem;
   align-items: center;
+  white-space: nowrap;
+}
+
+header fieldset.inline-form #range-days {
+  width: 3.5rem;
 }
 
 header fieldset.inline-form .ti-calendar-week {

@@ -177,7 +177,8 @@ function applyPlanDialogMode(mode) {
 }
 
 function renderPlanDateOptions() {
-  const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
+  const dateRange = getDateRange();
+  const dates = enumerateDateRange(dateRange.from, dateRange.to);
   planDateField.innerHTML = '';
   const unscheduledOption = document.createElement('option');
   unscheduledOption.value = '';
@@ -448,7 +449,8 @@ function renderPlans(scheduledPlans, unscheduledPlans) {
     onAddNote: () => openPlanDialog(null, '', 'note'),
   }));
 
-  const dates = enumerateDateRange(rangeFromField.value, rangeToField.value);
+  const dateRange = getDateRange();
+  const dates = enumerateDateRange(dateRange.from, dateRange.to);
   for (const date of dates) {
     planListBody.appendChild(createPlanAreaEl(formatDateLabel(date), plansByDate.get(date) || [], {
       date,
@@ -460,8 +462,9 @@ function renderPlans(scheduledPlans, unscheduledPlans) {
 async function loadPlans() {
   planErrorEl.textContent = '';
   try {
+    const dateRange = getDateRange();
     const [scheduledPlans, unscheduledPlans] = await Promise.all([
-      listPlans(rangeFromField.value, rangeToField.value),
+      listPlans(dateRange.from, dateRange.to),
       listUnscheduledPlans(),
     ]);
     renderPlans(scheduledPlans, unscheduledPlans);

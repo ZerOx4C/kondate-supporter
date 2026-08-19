@@ -134,7 +134,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 
 ## 3. 画面一覧
 
-すべての画面はヘッダー共通の「検討期間(from/to)」を持ち、`daterange.js` により localStorage `kondate-supporter:date-range` で画面遷移をまたいで値を保持・同期する(`daterangechange` イベントで各画面が再取得)。また共通の「材料集計」ダイアログ(`summary.js`)を全画面から開ける。
+すべての画面はヘッダー共通の「検討期間(開始日+日数)」を持ち、`daterange.js` により localStorage `kondate-supporter:date-range` で画面遷移をまたいで値を保持・同期する(`daterangechange` イベントで各画面が再取得)。入力は開始日(`range-from`)と日数(`range-days`、開始日を含めてN日間)で、`daterange.js` の `getDateRange()` が開始日+日数から `{from, to}` 形式(to = from + (日数-1))に変換し、各画面・APIへ渡す。また共通の「材料集計」ダイアログ(`summary.js`)を全画面から開ける。
 
 | 画面 | 内容 | 状態 |
 |---|---|---|

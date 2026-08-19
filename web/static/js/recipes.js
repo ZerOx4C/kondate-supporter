@@ -460,7 +460,8 @@ function buildFilterableIngredients(recipes) {
 
 async function loadIngredientRemaining() {
   try {
-    const items = await getPlanSummary(rangeFromField.value, rangeToField.value);
+    const dateRange = getDateRange();
+    const items = await getPlanSummary(dateRange.from, dateRange.to);
     ingredientRemainingById = new Map(items.map((item) => [item.ingredientId, item.remaining]));
   } catch {
     ingredientRemainingById = new Map();

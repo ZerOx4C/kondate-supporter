@@ -32,7 +32,8 @@ function renderShortages(items) {
 async function loadShoppingList() {
   errorEl.textContent = '';
   try {
-    const shortages = await getShoppingList(rangeFromField.value, rangeToField.value);
+    const dateRange = getDateRange();
+    const shortages = await getShoppingList(dateRange.from, dateRange.to);
     renderShortages(shortages);
   } catch (err) {
     errorEl.textContent = err.message;

@@ -34,7 +34,8 @@ function renderSummary(items) {
 async function loadSummary() {
   summaryErrorEl.textContent = '';
   try {
-    const items = await getPlanSummary(rangeFromField.value, rangeToField.value);
+    const dateRange = getDateRange();
+    const items = await getPlanSummary(dateRange.from, dateRange.to);
     renderSummary(items);
   } catch (err) {
     summaryErrorEl.textContent = err.message;
