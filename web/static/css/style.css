@@ -55,9 +55,11 @@ header {
   position: sticky;
   top: 0;
   z-index: 1500;
+  margin: 0 calc(var(--space-md) * -1);   /* bodyの左右paddingを打ち消す */
+  padding: 0 var(--space-md);             /* 打ち消した分を内側に戻し中身の見た目を維持 */
+  padding-top: 2rem;
   background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
-  padding-top: 2rem;
 }
 
 header h1 {
@@ -526,7 +528,7 @@ form .field-row label {
   border-color: var(--color-accent);
 }
 
-.recipe-dialog {
+.recipe-dialog[open] {
   display: flex;
   flex-direction: column;
   /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる */
@@ -855,12 +857,14 @@ main {
 .plan-day-header {
   display: flex;
   /* 日付ラベルとメモ追加ボタンを縦並びにし、スマートフォンでの横並び崩れを防ぐ。
-     横並び前提だった固定width(6rem)は撤去し、内容(日付ラベル)に応じて自動幅にする */
+     横並び前提だった固定width(6rem)は撤去し、内容(日付ラベル)に応じて自動幅にする。
+     ただし列の境目がずれるため日付ラベルが折り返さない最小限のmin-widthのみ追加する */
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-xs);
   flex-shrink: 0;
   padding-top: 0.2rem;
+  min-width: 2.5rem;
 }
 
 .plan-day-date {
@@ -876,8 +880,8 @@ main {
 }
 
 .plan-cell:empty {
-  /* .plan-panelの実測高さ(66px)と揃え、ドラッグ&ドロップのドロップ判定エリアを確保する */
-  min-height: 4.125rem;
+  /* .plan-panelの実測高さ(69px)と揃え、ドラッグ&ドロップのドロップ判定エリアを確保する */
+  min-height: 4.3125rem;
 }
 
 .plan-cell:empty::before {
@@ -898,7 +902,6 @@ main {
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
-  height: 4rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
@@ -996,12 +999,28 @@ main {
   opacity: 0.5;
 }
 
-.plan-panel-text {
+.plan-panel-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 0.3rem 0.5rem;
+}
+
+.plan-panel-text {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan-panel-meta {
   display: flex;
   align-items: center;
-  min-width: 0;
-  padding: 0.3rem 0;
+  gap: 0.3rem;
 }
 
 .plan-panel-servings {
@@ -1009,7 +1028,6 @@ main {
   align-items: center;
   gap: 0.3rem;
   flex-shrink: 0;
-  padding: 0.3rem 0;
   color: var(--color-text-muted);
 }
 
@@ -1018,7 +1036,7 @@ main {
   align-items: center;
   gap: 0.3rem;
   flex-shrink: 0;
-  padding: 0 0.5rem;
+  margin-left: auto;
 }
 
 .icon-button {

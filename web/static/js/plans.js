@@ -360,16 +360,22 @@ function createPlanPanel(plan) {
   }
   panel.appendChild(media);
 
+  const main = document.createElement('div');
+  main.className = 'plan-panel-main';
+
   const text = document.createElement('span');
   text.className = 'plan-panel-text';
   text.textContent = plan.recipeId ? plan.recipeName : plan.note;
-  panel.appendChild(text);
+  main.appendChild(text);
+
+  const meta = document.createElement('div');
+  meta.className = 'plan-panel-meta';
 
   if (plan.recipeId) {
     const servings = document.createElement('span');
     servings.className = 'plan-panel-servings';
     servings.innerHTML = `<i class="ti ti-users" aria-hidden="true"></i> ${plan.servings}`;
-    panel.appendChild(servings);
+    meta.appendChild(servings);
   }
 
   const actions = document.createElement('span');
@@ -391,7 +397,9 @@ function createPlanPanel(plan) {
   deleteButton.addEventListener('click', () => onDeletePlan(plan));
   actions.appendChild(deleteButton);
 
-  panel.appendChild(actions);
+  meta.appendChild(actions);
+  main.appendChild(meta);
+  panel.appendChild(main);
   return panel;
 }
 
