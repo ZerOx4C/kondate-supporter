@@ -531,8 +531,9 @@ form .field-row label {
 .recipe-dialog[open] {
   display: flex;
   flex-direction: column;
-  /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる */
-  max-height: 90vh;
+  /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる。
+     vhはスマホでアドレスバーの表示/非表示により実際の表示可能高さと乖離するためdvhを使う */
+  max-height: 90dvh;
   border: 1px solid light-dark(#ccc, #555);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
@@ -857,14 +858,14 @@ main {
 .plan-day-header {
   display: flex;
   /* 日付ラベルとメモ追加ボタンを縦並びにし、スマートフォンでの横並び崩れを防ぐ。
-     横並び前提だった固定width(6rem)は撤去し、内容(日付ラベル)に応じて自動幅にする。
-     ただし列の境目がずれるため日付ラベルが折り返さない最小限のmin-widthのみ追加する */
+     日付ラベルの文字数(1桁/2桁月日、未定など)によって列幅が行ごとにばれないよう、
+     最長ラベル(2桁月/2桁日+曜日、例:12/31(木))が折り返さない固定width指定で全行の列幅を統一する */
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-xs);
   flex-shrink: 0;
   padding-top: 0.2rem;
-  min-width: 2.5rem;
+  width: 4.2rem;
 }
 
 .plan-day-date {
