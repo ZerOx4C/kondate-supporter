@@ -41,8 +41,14 @@
 body {
   font-family: system-ui, sans-serif;
   max-width: 64rem;
-  margin: 2rem auto;
+  /* 上マージンをheaderのpadding-topへ移し、sticky headerとスクロール時の余白のずれを防ぐ */
+  margin: 0 auto 2rem;
   padding: 0 var(--space-md);
+}
+
+/* dialog表示中はbody側のスクロールを止める(dialog.jsがopen属性の変化に応じてこのクラスを付け外しする) */
+body.body-scroll-locked {
+  overflow: hidden;
 }
 
 header {
@@ -51,6 +57,7 @@ header {
   z-index: 1500;
   background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
+  padding-top: 2rem;
 }
 
 header h1 {
@@ -520,6 +527,10 @@ form .field-row label {
 }
 
 .recipe-dialog {
+  display: flex;
+  flex-direction: column;
+  /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる */
+  max-height: 90vh;
   border: 1px solid light-dark(#ccc, #555);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
@@ -533,6 +544,7 @@ form .field-row label {
 }
 
 .recipe-dialog-head {
+  flex-shrink: 0;
   padding: 0.8rem 1rem 0;
 }
 
@@ -541,12 +553,14 @@ form .field-row label {
 }
 
 .recipe-dialog-body {
+  flex: 1;
+  min-height: 0;
   padding: 0.6rem 1rem;
-  max-height: 70vh;
   overflow-y: auto;
 }
 
 .recipe-dialog-foot {
+  flex-shrink: 0;
   padding: 0.6rem 1rem 0.8rem;
   border-top: 1px solid var(--color-border);
 }
@@ -840,11 +854,12 @@ main {
 
 .plan-day-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  /* 日付ラベルとメモ追加ボタンを縦並びにし、スマートフォンでの横並び崩れを防ぐ。
+     横並び前提だった固定width(6rem)は撤去し、内容(日付ラベル)に応じて自動幅にする */
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-xs);
   flex-shrink: 0;
-  width: 6rem;
   padding-top: 0.2rem;
 }
 
@@ -1187,4 +1202,13 @@ main {
 
 .master-dialog h3 {
   margin-top: 0;
+}
+
+/* label(font-size: 0.85rem)配下のinput/select/textareaは`font: inherit`により
+   縮小フォントを継承してしまい、iOSでフォーカス時に自動ズームインが発生する(16px未満が条件)。
+   ファイル末尾に置いて`button, input, select`/`form textarea`と同等以上の詳細度・後勝ちで
+   確実に1rem(16px)を強制し、継承を断つ。 */
+input, select, textarea,
+form input, form select, form textarea {
+  font-size: 1rem;
 }
