@@ -62,6 +62,12 @@ header {
   border-bottom: 1px solid var(--color-border);
 }
 
+@media (max-width: 600px) {
+  header {
+    padding-top: 1rem;
+  }
+}
+
 header h1 {
   font-size: 1.5rem;
 }
@@ -532,7 +538,11 @@ form .field-row label {
   display: flex;
   flex-direction: column;
   /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる。
-     vhはスマホでアドレスバーの表示/非表示により実際の表示可能高さと乖離するためdvhを使う */
+     vhはスマホでアドレスバーの表示/非表示により実際の表示可能高さと乖離するためdvhを使う。
+     heightを明示指定しないとflex:1のbodyが「残りスペース」を計算できずコンテンツ量に
+     フォールバックしてしまう(材料等が少ないレシピでダイアログが縦に短くなる不具合の原因)ため、
+     コンテンツ量に関わらず常に高さを固定する */
+  height: 90dvh;
   max-height: 90dvh;
   border: 1px solid light-dark(#ccc, #555);
   border-radius: var(--radius-md);
