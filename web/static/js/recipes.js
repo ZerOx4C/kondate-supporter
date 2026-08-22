@@ -140,25 +140,14 @@ function selectMaterial(id) {
 
 async function onMaterialPickerCreateNew() {
   const { type } = materialPickerTarget;
-  const name = (window.prompt(type === 'ingredient' ? '新しい食材の名前を入力してください' : '新しい調味料の名前を入力してください') || '').trim();
-  if (!name) return;
-  let unit = '';
+  const item = await openMaterialCreateDialog(type);
+  if (!item) return;
   if (type === 'ingredient') {
-    unit = (window.prompt('単位を入力してください(例: g, 本, 個)') || '').trim();
-    if (!unit) return;
+    ingredientMaster.push(item);
+  } else {
+    seasoningMaster.push(item);
   }
-  recipeErrorEl.textContent = '';
-  try {
-    const item = type === 'ingredient' ? await createIngredient(name, unit) : await createSeasoning(name);
-    if (type === 'ingredient') {
-      ingredientMaster.push(item);
-    } else {
-      seasoningMaster.push(item);
-    }
-    selectMaterial(item.id);
-  } catch (err) {
-    recipeErrorEl.textContent = err.message;
-  }
+  selectMaterial(item.id);
 }
 
 materialPickerSearchField.addEventListener('input', () => renderMaterialPickerList(materialPickerSearchField.value));

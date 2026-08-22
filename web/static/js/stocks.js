@@ -86,15 +86,10 @@ stockSearchField.addEventListener('input', render);
 
 newIngredientButton.addEventListener('click', async () => {
   const name = stockSearchField.value.trim();
-  const unit = (window.prompt(`「${name}」の単位を入力してください(例: g, 本, 個)`) || '').trim();
-  if (!unit) return;
+  const item = await openMaterialCreateDialog('ingredient', name);
+  if (!item) return;
   stockErrorEl.textContent = '';
-  try {
-    await createIngredient(name, unit);
-    await loadStocks();
-  } catch (err) {
-    stockErrorEl.textContent = err.message;
-  }
+  await loadStocks();
 });
 
 async function onUpdate(stock, quantityInput) {

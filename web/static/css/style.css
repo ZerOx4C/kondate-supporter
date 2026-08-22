@@ -1312,6 +1312,23 @@ main {
   margin-top: 0;
 }
 
+/* 食材/調味料の新規作成専用ダイアログ。.master-dialogと同じ見た目にするが、
+   admin.html側のスタイルに影響しないよう独立したクラスとして定義する。 */
+.material-create-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  padding: 0.8rem 1rem;
+  width: 28rem;
+  max-width: 95vw;
+}
+
+.material-create-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.material-create-dialog h3 {
+  margin-top: 0;
+}
+
 /* label(font-size: 0.85rem)配下のinput/select/textareaは`font: inherit`により
    縮小フォントを継承してしまい、iOSでフォーカス時に自動ズームインが発生する(16px未満が条件)。
    ファイル末尾に置いて`button, input, select`/`form textarea`と同等以上の詳細度・後勝ちで
