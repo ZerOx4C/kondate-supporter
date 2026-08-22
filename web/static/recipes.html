@@ -150,6 +150,17 @@
         <button type="button" id="recipe-ingredient-filter-close">決定</button>
       </div>
     </dialog>
+
+    <dialog id="material-picker-dialog" class="ingredient-filter-dialog">
+      <div class="search-field">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" id="material-picker-search-field" placeholder="名前で検索" autocomplete="off" aria-label="名前で検索">
+        <button type="button" id="material-picker-search-clear" class="icon-button" aria-label="検索をクリア">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div id="material-picker-list" class="ingredient-filter-list"></div>
+    </dialog>
   </main>
 
   <dialog id="summary-dialog" class="summary-dialog">

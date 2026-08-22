@@ -11,6 +11,11 @@ const recipeIngredientSearchClearButton = document.getElementById('recipe-ingred
 const recipeIngredientFilterListEl = document.getElementById('recipe-ingredient-filter-list');
 const recipeSelectedIngredientsEl = document.getElementById('recipe-selected-ingredients');
 
+const materialPickerDialog = document.getElementById('material-picker-dialog');
+const materialPickerSearchField = document.getElementById('material-picker-search-field');
+const materialPickerSearchClearButton = document.getElementById('material-picker-search-clear');
+const materialPickerListEl = document.getElementById('material-picker-list');
+
 const recipeDialog = document.getElementById('recipe-dialog');
 const recipeDialogTitle = document.getElementById('recipe-dialog-title');
 const recipeErrorEl = document.getElementById('recipe-error');
@@ -59,52 +64,112 @@ let filterableIngredients = [];
 let selectedIngredientFilterIds = new Set();
 let ingredientRemainingById = new Map();
 
-const NEW_INGREDIENT_OPTION_VALUE = '__new__';
+// 材料・調味料選択ピッカーが現在どの行(食材/調味料の別)に対して開かれているかを保持する
+let materialPickerTarget = null;
 
-function fillIngredientOptions(select, selectedId) {
-  select.innerHTML = '';
-  for (const ingredient of ingredientMaster) {
-    const option = document.createElement('option');
-    option.value = ingredient.id;
-    option.textContent = `${ingredient.name} (${ingredient.unit})`;
-    select.appendChild(option);
-  }
-  const newOption = document.createElement('option');
-  newOption.value = NEW_INGREDIENT_OPTION_VALUE;
-  newOption.textContent = '+ 新しい食材を追加...';
-  select.appendChild(newOption);
-  if (selectedId !== undefined) select.value = selectedId;
-  select.dataset.prevValue = select.value;
+function openMaterialPicker(type, row) {
+  materialPickerTarget = { type, row };
+  materialPickerSearchField.value = '';
+  materialPickerDialog.showModal();
+  renderMaterialPickerList('');
+  materialPickerSearchField.focus();
 }
 
-async function onIngredientSelectChange(select) {
-  if (select.value !== NEW_INGREDIENT_OPTION_VALUE) {
-    select.dataset.prevValue = select.value;
-    return;
+function createMaterialPickerTag(item) {
+  const { type, row } = materialPickerTarget;
+  const button = row.querySelector(type === 'ingredient' ? '.ingredient-picker-button' : '.seasoning-picker-button');
+  const currentId = button ? Number(button.dataset[type === 'ingredient' ? 'ingredientId' : 'seasoningId']) : NaN;
+  const tag = document.createElement('button');
+  tag.type = 'button';
+  tag.className = 'ingredient-filter-tag';
+  tag.textContent = type === 'ingredient' ? `${item.name} (${item.unit})` : `${item.name} (mL)`;
+  tag.classList.toggle('selected', currentId === item.id);
+  tag.addEventListener('click', () => selectMaterial(item.id));
+  return tag;
+}
+
+function renderMaterialPickerList(query) {
+  const master = materialPickerTarget.type === 'ingredient' ? ingredientMaster : seasoningMaster;
+  const normalizedQuery = query.toLowerCase();
+  const items = master
+    .filter((item) => item.name.toLowerCase().includes(normalizedQuery))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+  materialPickerListEl.innerHTML = '';
+  const tagEls = [];
+  for (const item of items) {
+    const tag = createMaterialPickerTag(item);
+    materialPickerListEl.appendChild(tag);
+    tagEls.push(tag);
   }
-  const name = (window.prompt('新しい食材の名前を入力してください') || '').trim();
-  if (!name) {
-    select.value = select.dataset.prevValue;
-    return;
+
+  const createButton = document.createElement('button');
+  createButton.type = 'button';
+  createButton.className = 'ingredient-filter-tag';
+  createButton.textContent = materialPickerTarget.type === 'ingredient' ? '+ 新しい食材を追加...' : '+ 新しい調味料を追加...';
+  createButton.addEventListener('click', onMaterialPickerCreateNew);
+  materialPickerListEl.appendChild(createButton);
+
+  // オーバーレイの高さを超える分は表示しない(既存の食材フィルタダイアログと同様、末尾の追加ボタンは残す)
+  if (materialPickerDialog.open) {
+    while (
+      tagEls.length > 0 &&
+      materialPickerListEl.scrollHeight > materialPickerListEl.clientHeight
+    ) {
+      tagEls.pop().remove();
+    }
   }
-  const unit = (window.prompt('単位を入力してください(例: g, 本, 個)') || '').trim();
-  if (!unit) {
-    select.value = select.dataset.prevValue;
-    return;
+}
+
+function selectMaterial(id) {
+  const { type, row } = materialPickerTarget;
+  const master = type === 'ingredient' ? ingredientMaster : seasoningMaster;
+  const item = master.find((i) => i.id === id);
+  if (!item) return;
+  const button = row.querySelector(type === 'ingredient' ? '.ingredient-picker-button' : '.seasoning-picker-button');
+  button.textContent = type === 'ingredient' ? `${item.name} (${item.unit})` : `${item.name} (mL)`;
+  if (type === 'ingredient') {
+    button.dataset.ingredientId = id;
+    updateIngredientRowUnit(row, id);
+  } else {
+    button.dataset.seasoningId = id;
+    updateSeasoningRowUnit(row);
+  }
+  materialPickerDialog.close();
+}
+
+async function onMaterialPickerCreateNew() {
+  const { type } = materialPickerTarget;
+  const name = (window.prompt(type === 'ingredient' ? '新しい食材の名前を入力してください' : '新しい調味料の名前を入力してください') || '').trim();
+  if (!name) return;
+  let unit = '';
+  if (type === 'ingredient') {
+    unit = (window.prompt('単位を入力してください(例: g, 本, 個)') || '').trim();
+    if (!unit) return;
   }
   recipeErrorEl.textContent = '';
   try {
-    const ingredient = await createIngredient(name, unit);
-    ingredientMaster.push(ingredient);
-    for (const s of ingredientRowsEl.querySelectorAll('.ingredient-select')) {
-      const selectedId = s === select ? ingredient.id : Number(s.dataset.prevValue);
-      fillIngredientOptions(s, selectedId);
+    const item = type === 'ingredient' ? await createIngredient(name, unit) : await createSeasoning(name);
+    if (type === 'ingredient') {
+      ingredientMaster.push(item);
+    } else {
+      seasoningMaster.push(item);
     }
+    selectMaterial(item.id);
   } catch (err) {
     recipeErrorEl.textContent = err.message;
-    select.value = select.dataset.prevValue;
   }
 }
+
+materialPickerSearchField.addEventListener('input', () => renderMaterialPickerList(materialPickerSearchField.value));
+materialPickerSearchClearButton.addEventListener('click', () => {
+  materialPickerSearchField.value = '';
+  materialPickerSearchField.focus();
+  renderMaterialPickerList('');
+});
+materialPickerDialog.addEventListener('click', (e) => {
+  if (isDialogBackdropClick(materialPickerDialog, e)) materialPickerDialog.close();
+});
 
 // ピン留めトグルの見た目(色・アイコン・aria-pressed)を状態に合わせて更新する
 function updatePinToggleState(button, active) {
@@ -126,13 +191,20 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   const row = document.createElement('div');
   row.className = 'ingredient-row';
 
-  const select = document.createElement('select');
-  select.className = 'ingredient-select';
-  fillIngredientOptions(select, ingredientId);
-  select.addEventListener('change', async () => {
-    await onIngredientSelectChange(select);
-    updateIngredientRowUnit(row, select.value);
-  });
+  // 未指定の場合は名前順で最初の食材を初期選択とする(既存のselectデフォルト選択挙動を踏襲)
+  const resolvedId = ingredientId !== undefined
+    ? ingredientId
+    : (ingredientMaster.length > 0
+        ? [...ingredientMaster].sort((a, b) => a.name.localeCompare(b.name, 'ja'))[0].id
+        : undefined);
+  const resolvedIngredient = ingredientMaster.find((i) => i.id === resolvedId);
+
+  const pickerButton = document.createElement('button');
+  pickerButton.type = 'button';
+  pickerButton.className = 'ingredient-picker-button';
+  if (resolvedId !== undefined) pickerButton.dataset.ingredientId = resolvedId;
+  pickerButton.textContent = resolvedIngredient ? `${resolvedIngredient.name} (${resolvedIngredient.unit})` : '';
+  pickerButton.addEventListener('click', () => openMaterialPicker('ingredient', row));
 
   const qtyField = document.createElement('span');
   qtyField.className = 'qty-field';
@@ -177,7 +249,7 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   if (note !== undefined) noteInput.value = note;
 
   row.appendChild(noteInput);
-  row.appendChild(select);
+  row.appendChild(pickerButton);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
@@ -185,59 +257,17 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   ingredientRowsEl.appendChild(row);
 
   updatePinToggleState(pinButton, fixedCheckbox.checked);
-  updateIngredientRowUnit(row, select.value);
+  updateIngredientRowUnit(row, resolvedId);
 }
 
 function collectIngredientRows() {
   const rows = ingredientRowsEl.querySelectorAll('.ingredient-row');
   return Array.from(rows).map(row => ({
-    ingredientId: Number(row.querySelector('.ingredient-select').value),
+    ingredientId: Number(row.querySelector('.ingredient-picker-button').dataset.ingredientId),
     quantity: Number(row.querySelector('.ingredient-quantity').value),
     fixedQuantity: row.querySelector('.ingredient-fixed').checked,
     note: row.querySelector('.ingredient-note').value.trim(),
   }));
-}
-
-const NEW_SEASONING_OPTION_VALUE = '__new__';
-
-function fillSeasoningOptions(select, selectedId) {
-  select.innerHTML = '';
-  for (const seasoning of seasoningMaster) {
-    const option = document.createElement('option');
-    option.value = seasoning.id;
-    option.textContent = `${seasoning.name} (mL)`;
-    select.appendChild(option);
-  }
-  const newOption = document.createElement('option');
-  newOption.value = NEW_SEASONING_OPTION_VALUE;
-  newOption.textContent = '+ 新しい調味料を追加...';
-  select.appendChild(newOption);
-  if (selectedId !== undefined) select.value = selectedId;
-  select.dataset.prevValue = select.value;
-}
-
-async function onSeasoningSelectChange(select) {
-  if (select.value !== NEW_SEASONING_OPTION_VALUE) {
-    select.dataset.prevValue = select.value;
-    return;
-  }
-  const name = (window.prompt('新しい調味料の名前を入力してください') || '').trim();
-  if (!name) {
-    select.value = select.dataset.prevValue;
-    return;
-  }
-  recipeErrorEl.textContent = '';
-  try {
-    const seasoning = await createSeasoning(name);
-    seasoningMaster.push(seasoning);
-    for (const s of seasoningRowsEl.querySelectorAll('.seasoning-select')) {
-      const selectedId = s === select ? seasoning.id : Number(s.dataset.prevValue);
-      fillSeasoningOptions(s, selectedId);
-    }
-  } catch (err) {
-    recipeErrorEl.textContent = err.message;
-    select.value = select.dataset.prevValue;
-  }
 }
 
 // 調味料の数量は常にmL固定のため、選択内容によらず固定文字列を表示する
@@ -249,13 +279,20 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   const row = document.createElement('div');
   row.className = 'seasoning-row';
 
-  const select = document.createElement('select');
-  select.className = 'seasoning-select';
-  fillSeasoningOptions(select, seasoningId);
-  select.addEventListener('change', async () => {
-    await onSeasoningSelectChange(select);
-    updateSeasoningRowUnit(row);
-  });
+  // 未指定の場合は名前順で最初の調味料を初期選択とする(既存のselectデフォルト選択挙動を踏襲)
+  const resolvedId = seasoningId !== undefined
+    ? seasoningId
+    : (seasoningMaster.length > 0
+        ? [...seasoningMaster].sort((a, b) => a.name.localeCompare(b.name, 'ja'))[0].id
+        : undefined);
+  const resolvedSeasoning = seasoningMaster.find((s) => s.id === resolvedId);
+
+  const pickerButton = document.createElement('button');
+  pickerButton.type = 'button';
+  pickerButton.className = 'seasoning-picker-button';
+  if (resolvedId !== undefined) pickerButton.dataset.seasoningId = resolvedId;
+  pickerButton.textContent = resolvedSeasoning ? `${resolvedSeasoning.name} (mL)` : '';
+  pickerButton.addEventListener('click', () => openMaterialPicker('seasoning', row));
 
   const qtyField = document.createElement('span');
   qtyField.className = 'qty-field';
@@ -300,7 +337,7 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   if (note !== undefined) noteInput.value = note;
 
   row.appendChild(noteInput);
-  row.appendChild(select);
+  row.appendChild(pickerButton);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
@@ -314,7 +351,7 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
 function collectSeasoningRows() {
   const rows = seasoningRowsEl.querySelectorAll('.seasoning-row');
   return Array.from(rows).map(row => ({
-    seasoningId: Number(row.querySelector('.seasoning-select').value),
+    seasoningId: Number(row.querySelector('.seasoning-picker-button').dataset.seasoningId),
     quantity: Number(row.querySelector('.seasoning-quantity').value),
     fixedQuantity: row.querySelector('.seasoning-fixed').checked,
     note: row.querySelector('.seasoning-note').value.trim(),
