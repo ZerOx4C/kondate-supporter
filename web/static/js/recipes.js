@@ -121,7 +121,7 @@ function updateIngredientRowUnit(row, ingredientId) {
   unitEl.textContent = ingredient ? ingredient.unit : '';
 }
 
-function addIngredientRow(ingredientId, quantity, fixedQuantity) {
+function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   const row = document.createElement('div');
   row.className = 'ingredient-row';
 
@@ -169,10 +169,17 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity) {
   removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
+  const noteInput = document.createElement('input');
+  noteInput.type = 'text';
+  noteInput.className = 'ingredient-note';
+  noteInput.placeholder = '補足(任意)';
+  if (note !== undefined) noteInput.value = note;
+
   row.appendChild(select);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
+  row.appendChild(noteInput);
   row.appendChild(fixedCheckbox);
   ingredientRowsEl.appendChild(row);
 
@@ -186,6 +193,7 @@ function collectIngredientRows() {
     ingredientId: Number(row.querySelector('.ingredient-select').value),
     quantity: Number(row.querySelector('.ingredient-quantity').value),
     fixedQuantity: row.querySelector('.ingredient-fixed').checked,
+    note: row.querySelector('.ingredient-note').value.trim(),
   }));
 }
 
@@ -236,7 +244,7 @@ function updateSeasoningRowUnit(row) {
   row.querySelector('.qty-unit').textContent = 'mL';
 }
 
-function addSeasoningRow(seasoningId, quantity, fixedQuantity) {
+function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   const row = document.createElement('div');
   row.className = 'seasoning-row';
 
@@ -284,10 +292,17 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity) {
   removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
+  const noteInput = document.createElement('input');
+  noteInput.type = 'text';
+  noteInput.className = 'seasoning-note';
+  noteInput.placeholder = '補足(任意)';
+  if (note !== undefined) noteInput.value = note;
+
   row.appendChild(select);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
+  row.appendChild(noteInput);
   row.appendChild(fixedCheckbox);
   seasoningRowsEl.appendChild(row);
 
@@ -301,6 +316,7 @@ function collectSeasoningRows() {
     seasoningId: Number(row.querySelector('.seasoning-select').value),
     quantity: Number(row.querySelector('.seasoning-quantity').value),
     fixedQuantity: row.querySelector('.seasoning-fixed').checked,
+    note: row.querySelector('.seasoning-note').value.trim(),
   }));
 }
 
@@ -410,14 +426,18 @@ function renderRecipeView(recipe) {
   recipeViewIngredientsEl.innerHTML = '';
   for (const ing of recipe.ingredients) {
     const li = document.createElement('li');
-    li.textContent = `${ing.name} ${ing.quantity}${ing.unit}`;
+    li.textContent = ing.note
+      ? `${ing.name} ${ing.quantity}${ing.unit}(${ing.note})`
+      : `${ing.name} ${ing.quantity}${ing.unit}`;
     recipeViewIngredientsEl.appendChild(li);
   }
 
   recipeViewSeasoningsEl.innerHTML = '';
   for (const s of recipe.seasonings) {
     const li = document.createElement('li');
-    li.textContent = `${s.name} ${s.quantity}${s.unit}`;
+    li.textContent = s.note
+      ? `${s.name} ${s.quantity}${s.unit}(${s.note})`
+      : `${s.name} ${s.quantity}${s.unit}`;
     recipeViewSeasoningsEl.appendChild(li);
   }
 
@@ -465,10 +485,10 @@ function showRecipeEdit(recipe) {
     recipeServingsField.value = recipe.servings;
     recipeUrlField.value = recipe.url;
     for (const ing of recipe.ingredients) {
-      addIngredientRow(ing.ingredientId, ing.quantity, ing.fixedQuantity);
+      addIngredientRow(ing.ingredientId, ing.quantity, ing.fixedQuantity, ing.note);
     }
     for (const s of recipe.seasonings) {
-      addSeasoningRow(s.seasoningId, s.quantity, s.fixedQuantity);
+      addSeasoningRow(s.seasoningId, s.quantity, s.fixedQuantity, s.note);
     }
     for (const step of recipe.steps) {
       addStepRow(step);

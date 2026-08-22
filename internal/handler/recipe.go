@@ -28,12 +28,14 @@ type recipeIngredientRequest struct {
 	IngredientID  int64   `json:"ingredientId"`
 	Quantity      float64 `json:"quantity"`
 	FixedQuantity bool    `json:"fixedQuantity"`
+	Note          string  `json:"note"`
 }
 
 type recipeSeasoningRequest struct {
 	SeasoningID   int64   `json:"seasoningId"`
 	Quantity      float64 `json:"quantity"`
 	FixedQuantity bool    `json:"fixedQuantity"`
+	Note          string  `json:"note"`
 }
 
 type recipeRequest struct {
@@ -70,6 +72,7 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 			IngredientID:  ing.IngredientID,
 			Quantity:      ing.Quantity,
 			FixedQuantity: ing.FixedQuantity,
+			Note:          strings.TrimSpace(ing.Note),
 		})
 	}
 
@@ -87,6 +90,7 @@ func (req recipeRequest) validate() (name, url string, servings int, items []rep
 			SeasoningID:   s.SeasoningID,
 			Quantity:      s.Quantity,
 			FixedQuantity: s.FixedQuantity,
+			Note:          strings.TrimSpace(s.Note),
 		})
 	}
 
@@ -108,6 +112,7 @@ type recipeIngredientResponse struct {
 	Unit          string  `json:"unit"`
 	Quantity      float64 `json:"quantity"`
 	FixedQuantity bool    `json:"fixedQuantity"`
+	Note          string  `json:"note"`
 }
 
 // recipeSeasoningResponse のUnitは常に"mL"固定(seasoningsテーブルにunitカラムは
@@ -118,6 +123,7 @@ type recipeSeasoningResponse struct {
 	Unit          string  `json:"unit"`
 	Quantity      float64 `json:"quantity"`
 	FixedQuantity bool    `json:"fixedQuantity"`
+	Note          string  `json:"note"`
 }
 
 type recipeResponse struct {
@@ -140,6 +146,7 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 			Unit:          ing.Unit,
 			Quantity:      ing.Quantity,
 			FixedQuantity: ing.FixedQuantity,
+			Note:          ing.Note,
 		})
 	}
 	seasonings := make([]recipeSeasoningResponse, 0, len(detail.Seasonings))
@@ -150,6 +157,7 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 			Unit:          "mL",
 			Quantity:      s.Quantity,
 			FixedQuantity: s.FixedQuantity,
+			Note:          s.Note,
 		})
 	}
 	steps := detail.Steps

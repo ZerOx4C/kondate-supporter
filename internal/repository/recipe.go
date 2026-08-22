@@ -16,6 +16,7 @@ type RecipeIngredientInput struct {
 	IngredientID  int64
 	Quantity      float64
 	FixedQuantity bool
+	Note          string
 }
 
 // RecipeIngredientDetail は材料と食材情報をJOINした結果。repository層は
@@ -26,6 +27,7 @@ type RecipeIngredientDetail struct {
 	Unit          string
 	Quantity      float64
 	FixedQuantity bool
+	Note          string
 }
 
 // RecipeSeasoningInput はレシピ作成・更新時に指定する調味料1件分の入力。
@@ -34,6 +36,7 @@ type RecipeSeasoningInput struct {
 	SeasoningID   int64
 	Quantity      float64
 	FixedQuantity bool
+	Note          string
 }
 
 // RecipeSeasoningDetail は調味料と調味料マスタ情報をJOINした結果。
@@ -42,6 +45,7 @@ type RecipeSeasoningDetail struct {
 	Name          string
 	Quantity      float64
 	FixedQuantity bool
+	Note          string
 }
 
 // RecipeDetail はレシピ本体・材料リスト・調味料リスト・手順リストをまとめた結果。
@@ -145,7 +149,7 @@ func queryAllRecipeSteps(ctx context.Context, db *sql.DB) (map[int64][]string, e
 // queryAllRecipeIngredients は全recipe_ingredientsをJOIN取得し、recipe_idごとにグルーピングする。
 func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]RecipeIngredientDetail, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT ri.recipe_id, i.id, i.name, i.unit, ri.quantity, ri.is_fixed_quantity
+		SELECT ri.recipe_id, i.id, i.name, i.unit, ri.quantity, ri.is_fixed_quantity, ri.note
 		FROM recipe_ingredients ri
 		JOIN ingredients i ON i.id = ri.ingredient_id
 		ORDER BY ri.recipe_id, ri.id
@@ -159,7 +163,7 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 	for rows.Next() {
 		var recipeID int64
 		var d RecipeIngredientDetail
-		if err := rows.Scan(&recipeID, &d.IngredientID, &d.Name, &d.Unit, &d.Quantity, &d.FixedQuantity); err != nil {
+		if err := rows.Scan(&recipeID, &d.IngredientID, &d.Name, &d.Unit, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		result[recipeID] = append(result[recipeID], d)
@@ -173,7 +177,7 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 // queryAllRecipeSeasonings は全recipe_seasoningsをJOIN取得し、recipe_idごとにグルーピングする。
 func queryAllRecipeSeasonings(ctx context.Context, db *sql.DB) (map[int64][]RecipeSeasoningDetail, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT rs.recipe_id, s.id, s.name, rs.quantity, rs.is_fixed_quantity
+		SELECT rs.recipe_id, s.id, s.name, rs.quantity, rs.is_fixed_quantity, rs.note
 		FROM recipe_seasonings rs
 		JOIN seasonings s ON s.id = rs.seasoning_id
 		ORDER BY rs.recipe_id, rs.id
@@ -187,7 +191,7 @@ func queryAllRecipeSeasonings(ctx context.Context, db *sql.DB) (map[int64][]Reci
 	for rows.Next() {
 		var recipeID int64
 		var d RecipeSeasoningDetail
-		if err := rows.Scan(&recipeID, &d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity); err != nil {
+		if err := rows.Scan(&recipeID, &d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		result[recipeID] = append(result[recipeID], d)
@@ -231,7 +235,7 @@ func queryRecipeIngredients(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, recipeID int64) ([]RecipeIngredientDetail, error) {
 	rows, err := q.QueryContext(ctx, `
-		SELECT i.id, i.name, i.unit, ri.quantity, ri.is_fixed_quantity
+		SELECT i.id, i.name, i.unit, ri.quantity, ri.is_fixed_quantity, ri.note
 		FROM recipe_ingredients ri
 		JOIN ingredients i ON i.id = ri.ingredient_id
 		WHERE ri.recipe_id = ?
@@ -245,7 +249,7 @@ func queryRecipeIngredients(ctx context.Context, q interface {
 	details := []RecipeIngredientDetail{}
 	for rows.Next() {
 		var d RecipeIngredientDetail
-		if err := rows.Scan(&d.IngredientID, &d.Name, &d.Unit, &d.Quantity, &d.FixedQuantity); err != nil {
+		if err := rows.Scan(&d.IngredientID, &d.Name, &d.Unit, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		details = append(details, d)
@@ -262,7 +266,7 @@ func queryRecipeSeasonings(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, recipeID int64) ([]RecipeSeasoningDetail, error) {
 	rows, err := q.QueryContext(ctx, `
-		SELECT s.id, s.name, rs.quantity, rs.is_fixed_quantity
+		SELECT s.id, s.name, rs.quantity, rs.is_fixed_quantity, rs.note
 		FROM recipe_seasonings rs
 		JOIN seasonings s ON s.id = rs.seasoning_id
 		WHERE rs.recipe_id = ?
@@ -276,7 +280,7 @@ func queryRecipeSeasonings(ctx context.Context, q interface {
 	details := []RecipeSeasoningDetail{}
 	for rows.Next() {
 		var d RecipeSeasoningDetail
-		if err := rows.Scan(&d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity); err != nil {
+		if err := rows.Scan(&d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		details = append(details, d)
@@ -420,8 +424,8 @@ func (r *RecipeRepository) Create(ctx context.Context, name, url string, serving
 
 	for _, item := range items {
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, is_fixed_quantity) VALUES (?, ?, ?, ?)",
-			id, item.IngredientID, item.Quantity, item.FixedQuantity,
+			"INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, is_fixed_quantity, note) VALUES (?, ?, ?, ?, ?)",
+			id, item.IngredientID, item.Quantity, item.FixedQuantity, item.Note,
 		); err != nil {
 			return RecipeDetail{}, classifySQLiteError(err)
 		}
@@ -429,8 +433,8 @@ func (r *RecipeRepository) Create(ctx context.Context, name, url string, serving
 
 	for _, item := range seasoningItems {
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity, is_fixed_quantity) VALUES (?, ?, ?, ?)",
-			id, item.SeasoningID, item.Quantity, item.FixedQuantity,
+			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity, is_fixed_quantity, note) VALUES (?, ?, ?, ?, ?)",
+			id, item.SeasoningID, item.Quantity, item.FixedQuantity, item.Note,
 		); err != nil {
 			return RecipeDetail{}, classifySQLiteError(err)
 		}
@@ -487,8 +491,8 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url strin
 	}
 	for _, item := range items {
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, is_fixed_quantity) VALUES (?, ?, ?, ?)",
-			id, item.IngredientID, item.Quantity, item.FixedQuantity,
+			"INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, is_fixed_quantity, note) VALUES (?, ?, ?, ?, ?)",
+			id, item.IngredientID, item.Quantity, item.FixedQuantity, item.Note,
 		); err != nil {
 			return RecipeDetail{}, classifySQLiteError(err)
 		}
@@ -499,8 +503,8 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, url strin
 	}
 	for _, item := range seasoningItems {
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity, is_fixed_quantity) VALUES (?, ?, ?, ?)",
-			id, item.SeasoningID, item.Quantity, item.FixedQuantity,
+			"INSERT INTO recipe_seasonings (recipe_id, seasoning_id, quantity, is_fixed_quantity, note) VALUES (?, ?, ?, ?, ?)",
+			id, item.SeasoningID, item.Quantity, item.FixedQuantity, item.Note,
 		); err != nil {
 			return RecipeDetail{}, classifySQLiteError(err)
 		}

@@ -45,6 +45,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | ingredient_id | INTEGER NOT NULL REFERENCES ingredients(id) |
 | quantity | REAL NOT NULL |
 | is_fixed_quantity | INTEGER NOT NULL DEFAULT 0(1=人数に比例させない) |
+| note | TEXT NOT NULL DEFAULT ''(自由記述の補足。例:「小さめのもの」「あれば」) |
 
 インデックス: `idx_recipe_ingredients_recipe_id`
 
@@ -56,6 +57,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | seasoning_id | INTEGER NOT NULL REFERENCES seasonings(id) |
 | quantity | REAL NOT NULL |
 | is_fixed_quantity | INTEGER NOT NULL DEFAULT 0 |
+| note | TEXT NOT NULL DEFAULT ''(自由記述の補足) |
 
 インデックス: `idx_recipe_seasonings_recipe_id`
 

@@ -296,6 +296,12 @@ button.primary:hover {
   width: 6rem;
 }
 
+.ingredient-row .ingredient-note,
+.seasoning-row .seasoning-note {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
 .qty-field {
   display: inline-flex;
   align-items: center;
