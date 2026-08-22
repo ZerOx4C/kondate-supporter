@@ -64,7 +64,13 @@
     <dialog id="recipe-dialog" class="recipe-dialog">
       <div class="recipe-dialog-head">
         <h3 id="recipe-dialog-title"></h3>
-        <input type="text" id="recipe-name" class="recipe-name-title" form="recipe-form" placeholder="レシピ名" required hidden>
+        <div id="recipe-name-row" class="recipe-name-row" hidden>
+          <input type="text" id="recipe-name" class="recipe-name-title" form="recipe-form" placeholder="レシピ名" required>
+          <label class="icon-field">
+            <i class="ti ti-users" aria-hidden="true"></i>
+            <input type="number" id="recipe-servings" form="recipe-form" min="1" step="1" required aria-label="人数">
+          </label>
+        </div>
       </div>
       <div class="recipe-dialog-body">
         <p class="error" id="recipe-error"></p>
@@ -83,12 +89,6 @@
 
         <form id="recipe-form">
           <input type="hidden" id="recipe-id">
-          <div class="field-row">
-            <label class="icon-field">
-              <i class="ti ti-users" aria-hidden="true"></i>
-              <input type="number" id="recipe-servings" min="1" step="1" required aria-label="人数">
-            </label>
-          </div>
           <div class="field-row">
             <label class="icon-field">
               <i class="ti ti-link" aria-hidden="true"></i>

@@ -31,6 +31,7 @@ const recipeEditActionsEl = document.getElementById('recipe-edit-actions');
 const recipeForm = document.getElementById('recipe-form');
 const recipeDialogCancelButton = document.getElementById('recipe-dialog-cancel');
 const recipeIdField = document.getElementById('recipe-id');
+const recipeNameRowEl = document.getElementById('recipe-name-row');
 const recipeNameField = document.getElementById('recipe-name');
 const recipeServingsField = document.getElementById('recipe-servings');
 const recipeUrlField = document.getElementById('recipe-url');
@@ -402,7 +403,7 @@ function applyRecipeDialogMode(mode) {
   recipeViewActionsEl.hidden = mode !== 'view';
   recipeEditActionsEl.hidden = mode !== 'edit';
   recipeDialogTitle.hidden = mode !== 'view';
-  recipeNameField.hidden = mode !== 'edit';
+  recipeNameRowEl.hidden = mode !== 'edit';
 }
 
 function renderRecipeView(recipe) {
