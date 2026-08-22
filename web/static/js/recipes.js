@@ -176,11 +176,11 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   noteInput.placeholder = '補足(任意)';
   if (note !== undefined) noteInput.value = note;
 
+  row.appendChild(noteInput);
   row.appendChild(select);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
-  row.appendChild(noteInput);
   row.appendChild(fixedCheckbox);
   ingredientRowsEl.appendChild(row);
 
@@ -299,11 +299,11 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   noteInput.placeholder = '補足(任意)';
   if (note !== undefined) noteInput.value = note;
 
+  row.appendChild(noteInput);
   row.appendChild(select);
   row.appendChild(qtyField);
   row.appendChild(pinButton);
   row.appendChild(removeButton);
-  row.appendChild(noteInput);
   row.appendChild(fixedCheckbox);
   seasoningRowsEl.appendChild(row);
 

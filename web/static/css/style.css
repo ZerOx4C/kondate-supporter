@@ -238,6 +238,10 @@ button.primary:hover {
   min-height: 1.2em;
 }
 
+.error:empty {
+  min-height: 0;
+}
+
 .search-field {
   display: inline-flex;
   align-items: center;
@@ -276,7 +280,7 @@ button.primary:hover {
 .ingredient-row,
 .seasoning-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto;
   gap: 0.5rem;
   align-items: center;
   background: var(--color-bg-sunken);
@@ -298,8 +302,7 @@ button.primary:hover {
 
 .ingredient-row .ingredient-note,
 .seasoning-row .seasoning-note {
-  grid-column: 1 / -1;
-  width: 100%;
+  width: 3.5rem;
 }
 
 .qty-field {
@@ -312,6 +315,9 @@ button.primary:hover {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   white-space: nowrap;
+  width: 2em;
+  text-align: left;
+  flex-shrink: 0;
 }
 
 .pin-toggle {
@@ -588,6 +594,10 @@ form .field-row label.icon-field > i,
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.recipe-name-row input[type="number"] {
+  width: 3rem;
 }
 
 /* JSがhidden属性で表示切替するため、display: flexとの詳細度競合を防ぐ */
@@ -1293,4 +1303,22 @@ main {
 input, select, textarea,
 form input, form select, form textarea {
   font-size: 1rem;
+}
+
+/* スマートフォン幅ではselect列(1fr)が潰れて選択肢が読めなくなるため、
+   補足フィールドを2行目・全幅に折り返して4列(select, qty, pin, remove)に戻す。
+   通常の`.ingredient-row, .seasoning-row`定義より後(ファイル末尾)に置くことで、
+   同じ詳細度でもソース順で確実に上書きする。 */
+@media (max-width: 600px) {
+  .ingredient-row,
+  .seasoning-row {
+    grid-template-columns: 1fr auto auto auto;
+  }
+
+  .ingredient-row .ingredient-note,
+  .seasoning-row .seasoning-note {
+    grid-column: 1 / -1;
+    width: 100%;
+    order: 1;
+  }
 }
