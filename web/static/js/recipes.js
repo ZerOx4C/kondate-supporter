@@ -385,6 +385,8 @@ function applyRecipeDialogMode(mode) {
   recipeForm.hidden = mode !== 'edit';
   recipeViewActionsEl.hidden = mode !== 'view';
   recipeEditActionsEl.hidden = mode !== 'edit';
+  recipeDialogTitle.hidden = mode !== 'view';
+  recipeNameField.hidden = mode !== 'edit';
 }
 
 function renderRecipeView(recipe) {
@@ -458,7 +460,6 @@ function showRecipeEdit(recipe) {
   recipeErrorEl.textContent = '';
   resetRecipeFormFields();
   if (recipe) {
-    recipeDialogTitle.textContent = 'レシピを編集';
     recipeIdField.value = recipe.id;
     recipeNameField.value = recipe.name;
     recipeServingsField.value = recipe.servings;
@@ -477,7 +478,6 @@ function showRecipeEdit(recipe) {
       setRecipeImagePreviewVisible(true);
     }
   } else {
-    recipeDialogTitle.textContent = 'レシピを作成';
     recipeNameField.value = recipeSearchField.value.trim();
   }
   applyRecipeDialogMode('edit');
