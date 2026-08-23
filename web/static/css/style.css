@@ -152,6 +152,19 @@ header fieldset.inline-form #range-days {
   width: 3.5rem;
 }
 
+header fieldset.inline-form input[type="date"],
+header fieldset.inline-form input[type="number"] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+}
+
+header fieldset.inline-form input[type="date"]:focus,
+header fieldset.inline-form input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 header fieldset.inline-form .ti-calendar-week {
   color: var(--color-text-muted);
 }
