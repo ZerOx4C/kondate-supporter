@@ -478,6 +478,8 @@ form .field-row label.icon-field > i,
   padding: 0.8rem 1rem;
   width: 20rem;
   max-width: 90vw;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
 }
 
 .ingredient-filter-dialog::backdrop {
