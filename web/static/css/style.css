@@ -1349,6 +1349,17 @@ main {
   flex: 1;
   min-width: 0;
 }
+.material-create-dialog .field-row input[type="text"],
+.master-dialog .field-row input[type="text"] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}
+.material-create-dialog .field-row input[type="text"]:focus,
+.master-dialog .field-row input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
 .material-create-dialog #material-create-unit,
 .master-dialog #master-unit {
   width: 3.5em;
