@@ -1250,6 +1250,8 @@ main {
   padding: 0.8rem 1rem;
   width: 30rem;
   max-width: 95vw;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
 }
 
 .summary-dialog::backdrop {
