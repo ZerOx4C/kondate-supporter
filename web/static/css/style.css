@@ -334,6 +334,27 @@ button.primary:hover {
   width: 3.5rem;
 }
 
+#recipe-servings,
+#recipe-url,
+.ingredient-row input[type="number"],
+.seasoning-row input[type="number"],
+.ingredient-row .ingredient-note,
+.seasoning-row .seasoning-note {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+}
+
+#recipe-servings:focus,
+#recipe-url:focus,
+.ingredient-row input[type="number"]:focus,
+.seasoning-row input[type="number"]:focus,
+.ingredient-row .ingredient-note:focus,
+.seasoning-row .seasoning-note:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 .qty-field {
   display: inline-flex;
   align-items: center;
@@ -697,6 +718,21 @@ form .field-row label.icon-field > i,
   background: var(--color-accent-bg);
   color: var(--color-accent);
   font-size: 1rem;
+}
+
+#recipe-view-edit,
+#recipe-view-close,
+#recipe-dialog-cancel,
+#recipe-ingredient-filter-close {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+#recipe-view-delete {
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
 }
 
 .ghost-add {
