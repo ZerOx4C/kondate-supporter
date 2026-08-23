@@ -56,6 +56,8 @@ materialCreateForm.addEventListener('submit', async (e) => {
       pendingResolve = null;
     }
     materialCreateDialog.close();
+    const label = materialCreateType === 'ingredient' ? '食材' : '調味料';
+    showToast(`${label}「${name}」を追加しました`);
   } catch (err) {
     materialCreateError.textContent = err.message;
   }

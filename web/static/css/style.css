@@ -1299,6 +1299,8 @@ main {
 
 .master-dialog {
   border: 1px solid light-dark(#ccc, #555);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
   width: 28rem;
   max-width: 95vw;
@@ -1316,6 +1318,8 @@ main {
    admin.html側のスタイルに影響しないよう独立したクラスとして定義する。 */
 .material-create-dialog {
   border: 1px solid light-dark(#ccc, #555);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
   width: 28rem;
   max-width: 95vw;
