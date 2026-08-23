@@ -1302,7 +1302,7 @@ main {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
-  width: 28rem;
+  width: 18rem;
   max-width: 95vw;
 }
 
@@ -1321,7 +1321,7 @@ main {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
-  width: 28rem;
+  width: 18rem;
   max-width: 95vw;
 }
 
@@ -1331,6 +1331,44 @@ main {
 
 .material-create-dialog h3 {
   margin-top: 0;
+}
+
+/* form .field-row labelのdisplay:flexがhidden属性のUA既定スタイルより詳細度で勝ってしまうため、明示的に上書きする */
+.material-create-dialog .field-row label[hidden],
+.master-dialog .field-row label[hidden] {
+  display: none;
+}
+
+.material-create-dialog .field-row label.icon-field,
+.master-dialog .field-row label.icon-field {
+  flex: 1;
+  min-width: 0;
+}
+.material-create-dialog .field-row label.icon-field input,
+.master-dialog .field-row label.icon-field input {
+  flex: 1;
+  min-width: 0;
+}
+.material-create-dialog #material-create-unit,
+.master-dialog #master-unit {
+  width: 3.5em;
+}
+
+.material-create-dialog #material-create-submit-button,
+.master-dialog #master-submit-button {
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: light-dark(#fff, #16223f);
+}
+.material-create-dialog #material-create-submit-button:hover,
+.master-dialog #master-submit-button:hover {
+  opacity: 0.9;
+}
+
+.material-create-dialog .dialog-actions,
+.master-dialog .dialog-actions {
+  gap: 0.5rem;
 }
 
 /* label(font-size: 0.85rem)配下のinput/select/textareaは`font: inherit`により

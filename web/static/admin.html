@@ -108,18 +108,19 @@
     <form id="master-form">
       <input type="hidden" id="master-id">
       <input type="hidden" id="master-type">
-      <label>
-        名前
-        <input type="text" id="master-name" required>
-      </label>
-      <label id="master-unit-label" hidden>
-        単位
-        <input type="text" id="master-unit" placeholder="g, 本, 個 など">
-      </label>
+      <div class="field-row">
+        <label class="icon-field">
+          <i class="ti ti-carrot" aria-hidden="true" id="master-name-icon"></i>
+          <input type="text" id="master-name" placeholder="名前" aria-label="名前" required>
+        </label>
+        <label id="master-unit-label" hidden>
+          <input type="text" id="master-unit" placeholder="単位" aria-label="単位">
+        </label>
+      </div>
       <p class="error" id="master-error"></p>
       <div class="dialog-actions">
         <button type="button" id="master-delete-button" class="danger" hidden>削除</button>
-        <button type="button" id="master-cancel-button">キャンセル</button>
+        <button type="button" id="master-cancel-button" class="primary">キャンセル</button>
         <button type="submit" id="master-submit-button">追加</button>
       </div>
     </form>

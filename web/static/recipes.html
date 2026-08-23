@@ -165,17 +165,18 @@
     <dialog id="material-create-dialog" class="material-create-dialog">
       <h3 id="material-create-dialog-title"></h3>
       <form id="material-create-form">
-        <label>
-          名前
-          <input type="text" id="material-create-name" required>
-        </label>
-        <label id="material-create-unit-label" hidden>
-          単位
-          <input type="text" id="material-create-unit" placeholder="g, 本, 個 など">
-        </label>
+        <div class="field-row">
+          <label class="icon-field">
+            <i class="ti ti-carrot" aria-hidden="true" id="material-create-name-icon"></i>
+            <input type="text" id="material-create-name" placeholder="名前" aria-label="名前" required>
+          </label>
+          <label id="material-create-unit-label" hidden>
+            <input type="text" id="material-create-unit" placeholder="単位" aria-label="単位">
+          </label>
+        </div>
         <p class="error" id="material-create-error"></p>
         <div class="dialog-actions">
-          <button type="button" id="material-create-cancel-button">キャンセル</button>
+          <button type="button" id="material-create-cancel-button" class="primary">キャンセル</button>
           <button type="submit" id="material-create-submit-button">追加</button>
         </div>
       </form>

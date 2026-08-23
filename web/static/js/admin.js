@@ -21,6 +21,7 @@ const masterForm = document.getElementById('master-form');
 const masterIdField = document.getElementById('master-id');
 const masterTypeField = document.getElementById('master-type');
 const masterNameField = document.getElementById('master-name');
+const masterNameIcon = document.getElementById('master-name-icon');
 const masterUnitField = document.getElementById('master-unit');
 const masterUnitLabel = document.getElementById('master-unit-label');
 const masterError = document.getElementById('master-error');
@@ -67,10 +68,12 @@ function openAddDialog(type) {
 
   if (type === 'ingredient') {
     masterDialogTitle.textContent = '新しい食材を追加';
+    masterNameIcon.className = 'ti ti-carrot';
     masterUnitLabel.hidden = false;
     masterUnitField.required = true;
   } else {
     masterDialogTitle.textContent = '新しい調味料を追加';
+    masterNameIcon.className = 'ti ti-salt';
     masterUnitLabel.hidden = true;
     masterUnitField.required = false;
   }
@@ -93,11 +96,13 @@ function openEditDialog(item, type) {
 
   if (type === 'ingredient') {
     masterDialogTitle.textContent = '食材を編集';
+    masterNameIcon.className = 'ti ti-carrot';
     masterUnitLabel.hidden = false;
     masterUnitField.value = item.unit || '';
     masterUnitField.required = true;
   } else {
     masterDialogTitle.textContent = '調味料を編集';
+    masterNameIcon.className = 'ti ti-salt';
     masterUnitLabel.hidden = true;
     masterUnitField.required = false;
   }

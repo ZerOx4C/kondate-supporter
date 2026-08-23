@@ -5,6 +5,7 @@ const materialCreateDialog = document.getElementById('material-create-dialog');
 const materialCreateDialogTitle = document.getElementById('material-create-dialog-title');
 const materialCreateForm = document.getElementById('material-create-form');
 const materialCreateNameField = document.getElementById('material-create-name');
+const materialCreateNameIcon = document.getElementById('material-create-name-icon');
 const materialCreateUnitLabel = document.getElementById('material-create-unit-label');
 const materialCreateUnitField = document.getElementById('material-create-unit');
 const materialCreateError = document.getElementById('material-create-error');
@@ -24,10 +25,12 @@ function openMaterialCreateDialog(type, initialName = '') {
 
   if (type === 'ingredient') {
     materialCreateDialogTitle.textContent = '新しい食材を追加';
+    materialCreateNameIcon.className = 'ti ti-carrot';
     materialCreateUnitLabel.hidden = false;
     materialCreateUnitField.required = true;
   } else {
     materialCreateDialogTitle.textContent = '新しい調味料を追加';
+    materialCreateNameIcon.className = 'ti ti-salt';
     materialCreateUnitLabel.hidden = true;
     materialCreateUnitField.required = false;
   }
