@@ -63,6 +63,7 @@ function render() {
     const actionTd = document.createElement('td');
     const updateButton = document.createElement('button');
     updateButton.type = 'button';
+    updateButton.className = 'primary';
     updateButton.textContent = '更新';
     updateButton.addEventListener('click', () => onUpdate(stock, quantityInput));
     actionTd.appendChild(updateButton);

@@ -455,6 +455,14 @@ button.primary:hover {
 
 .quantity-input {
   width: 6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+}
+
+.quantity-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
 }
 
 .quantity-unit {
