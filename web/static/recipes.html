@@ -61,14 +61,14 @@
     <div id="recipe-list" class="recipe-grid"></div>
     <p class="error" id="recipe-list-error"></p>
 
-    <dialog id="recipe-dialog" class="recipe-dialog">
+    <dialog id="recipe-dialog" class="app-dialog recipe-dialog">
       <div class="recipe-dialog-head">
         <h3 id="recipe-dialog-title"></h3>
         <div id="recipe-name-row" class="recipe-name-row" hidden>
           <input type="text" id="recipe-name" class="recipe-name-title" form="recipe-form" placeholder="レシピ名" required>
           <label class="icon-field">
             <i class="ti ti-users" aria-hidden="true"></i>
-            <input type="number" id="recipe-servings" form="recipe-form" min="1" step="1" required aria-label="人数">
+            <input type="number" id="recipe-servings" class="text-input" form="recipe-form" min="1" step="1" required aria-label="人数">
           </label>
         </div>
       </div>
@@ -92,7 +92,7 @@
           <div class="field-row">
             <label class="icon-field">
               <i class="ti ti-link" aria-hidden="true"></i>
-              <input type="url" id="recipe-url" placeholder="https://..." aria-label="参考URL">
+              <input type="url" id="recipe-url" class="text-input" placeholder="https://..." aria-label="参考URL">
             </label>
           </div>
           <div class="field-row">
@@ -126,18 +126,18 @@
       </div>
       <div class="recipe-dialog-foot">
         <div id="recipe-view-actions" class="dialog-actions">
-          <button type="button" id="recipe-view-delete" class="danger">削除</button>
-          <button type="button" id="recipe-view-edit">編集</button>
-          <button type="button" id="recipe-view-close">閉じる</button>
+          <button type="button" id="recipe-view-delete" class="danger btn-danger-outline">削除</button>
+          <button type="button" id="recipe-view-edit" class="primary">編集</button>
+          <button type="button" id="recipe-view-close" class="primary">閉じる</button>
         </div>
         <div id="recipe-edit-actions" class="dialog-actions" hidden>
-          <button type="button" id="recipe-dialog-cancel">キャンセル</button>
-          <button type="submit" form="recipe-form" id="recipe-submit">保存</button>
+          <button type="button" id="recipe-dialog-cancel" class="primary">キャンセル</button>
+          <button type="submit" form="recipe-form" id="recipe-submit" class="btn-accent">保存</button>
         </div>
       </div>
     </dialog>
 
-    <dialog id="recipe-ingredient-filter-dialog" class="ingredient-filter-dialog">
+    <dialog id="recipe-ingredient-filter-dialog" class="app-dialog ingredient-filter-dialog">
       <div class="search-field">
         <i class="ti ti-search" aria-hidden="true"></i>
         <input type="text" id="recipe-ingredient-search-field" placeholder="食材名で検索" autocomplete="off" aria-label="食材名で検索">
@@ -147,11 +147,11 @@
       </div>
       <div id="recipe-ingredient-filter-list" class="ingredient-filter-list"></div>
       <div class="dialog-actions">
-        <button type="button" id="recipe-ingredient-filter-close">決定</button>
+        <button type="button" id="recipe-ingredient-filter-close" class="primary">決定</button>
       </div>
     </dialog>
 
-    <dialog id="material-picker-dialog" class="ingredient-filter-dialog">
+    <dialog id="material-picker-dialog" class="app-dialog ingredient-filter-dialog">
       <div class="search-field">
         <i class="ti ti-search" aria-hidden="true"></i>
         <input type="text" id="material-picker-search-field" placeholder="名前で検索" autocomplete="off" aria-label="名前で検索">
@@ -162,28 +162,28 @@
       <div id="material-picker-list" class="ingredient-filter-list"></div>
     </dialog>
 
-    <dialog id="material-create-dialog" class="material-create-dialog">
+    <dialog id="material-create-dialog" class="app-dialog material-create-dialog">
       <h3 id="material-create-dialog-title"></h3>
       <form id="material-create-form">
         <div class="field-row">
           <label class="icon-field">
             <i class="ti ti-carrot" aria-hidden="true" id="material-create-name-icon"></i>
-            <input type="text" id="material-create-name" placeholder="名前" aria-label="名前" required>
+            <input type="text" id="material-create-name" class="text-input" placeholder="名前" aria-label="名前" required>
           </label>
           <label id="material-create-unit-label" hidden>
-            <input type="text" id="material-create-unit" placeholder="単位" aria-label="単位">
+            <input type="text" id="material-create-unit" class="text-input" placeholder="単位" aria-label="単位">
           </label>
         </div>
         <p class="error" id="material-create-error"></p>
         <div class="dialog-actions">
           <button type="button" id="material-create-cancel-button" class="primary">キャンセル</button>
-          <button type="submit" id="material-create-submit-button">追加</button>
+          <button type="submit" id="material-create-submit-button" class="btn-accent">追加</button>
         </div>
       </form>
     </dialog>
   </main>
 
-  <dialog id="summary-dialog" class="summary-dialog">
+  <dialog id="summary-dialog" class="app-dialog summary-dialog">
     <h3>材料集計</h3>
     <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
     <table id="summary-table">
@@ -199,7 +199,7 @@
     <p id="summary-empty" hidden>表示できる食材がありません。</p>
     <p class="error" id="summary-error"></p>
     <div class="dialog-actions">
-      <button type="button" id="summary-dialog-close">閉じる</button>
+      <button type="button" id="summary-dialog-close" class="primary">閉じる</button>
     </div>
   </dialog>
 

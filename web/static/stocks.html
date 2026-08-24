@@ -63,27 +63,27 @@
     <p class="error" id="stock-error"></p>
   </main>
 
-  <dialog id="material-create-dialog" class="material-create-dialog">
+  <dialog id="material-create-dialog" class="app-dialog material-create-dialog">
     <h3 id="material-create-dialog-title"></h3>
     <form id="material-create-form">
       <div class="field-row">
         <label class="icon-field">
           <i class="ti ti-carrot" aria-hidden="true" id="material-create-name-icon"></i>
-          <input type="text" id="material-create-name" placeholder="名前" aria-label="名前" required>
+          <input type="text" id="material-create-name" class="text-input" placeholder="名前" aria-label="名前" required>
         </label>
         <label id="material-create-unit-label" hidden>
-          <input type="text" id="material-create-unit" placeholder="単位" aria-label="単位">
+          <input type="text" id="material-create-unit" class="text-input" placeholder="単位" aria-label="単位">
         </label>
       </div>
       <p class="error" id="material-create-error"></p>
       <div class="dialog-actions">
         <button type="button" id="material-create-cancel-button" class="primary">キャンセル</button>
-        <button type="submit" id="material-create-submit-button">追加</button>
+        <button type="submit" id="material-create-submit-button" class="btn-accent">追加</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="summary-dialog" class="summary-dialog">
+  <dialog id="summary-dialog" class="app-dialog summary-dialog">
     <h3>材料集計</h3>
     <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
     <table id="summary-table">
@@ -99,7 +99,7 @@
     <p id="summary-empty" hidden>表示できる食材がありません。</p>
     <p class="error" id="summary-error"></p>
     <div class="dialog-actions">
-      <button type="button" id="summary-dialog-close">閉じる</button>
+      <button type="button" id="summary-dialog-close" class="primary">閉じる</button>
     </div>
   </dialog>
 

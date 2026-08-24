@@ -234,6 +234,60 @@ button.primary:hover {
   background: var(--color-bg-hover);
 }
 
+/* フェーズAリファクタリング: 各画面のダイアログ・ボタン・入力欄で個別定義されていた
+   同一スタイルを共通クラスへ切り出したもの。 */
+.app-dialog {
+  border: 1px solid light-dark(#ccc, #555);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dialog);
+}
+
+.app-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.btn-accent {
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: light-dark(#fff, #16223f);
+}
+
+.btn-accent:hover {
+  opacity: 0.9;
+}
+
+.btn-danger-outline {
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.btn-danger-outline:hover {
+  background: var(--color-bg-hover);
+}
+
+.text-input,
+.ingredient-row input[type="number"],
+.seasoning-row input[type="number"],
+.ingredient-row .ingredient-note,
+.seasoning-row .seasoning-note,
+.quantity-input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+}
+
+.text-input:focus,
+.ingredient-row input[type="number"]:focus,
+.seasoning-row input[type="number"]:focus,
+.ingredient-row .ingredient-note:focus,
+.seasoning-row .seasoning-note:focus,
+.quantity-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 #ingredient-table .icon-button,
 #seasoning-table .icon-button {
   border: 1px solid var(--color-border);
@@ -332,27 +386,6 @@ button.primary:hover {
 .ingredient-row .ingredient-note,
 .seasoning-row .seasoning-note {
   width: 3.5rem;
-}
-
-#recipe-servings,
-#recipe-url,
-.ingredient-row input[type="number"],
-.seasoning-row input[type="number"],
-.ingredient-row .ingredient-note,
-.seasoning-row .seasoning-note {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.5rem;
-}
-
-#recipe-servings:focus,
-#recipe-url:focus,
-.ingredient-row input[type="number"]:focus,
-.seasoning-row input[type="number"]:focus,
-.ingredient-row .ingredient-note:focus,
-.seasoning-row .seasoning-note:focus {
-  outline: none;
-  border-color: var(--color-accent);
 }
 
 .qty-field {
@@ -455,14 +488,6 @@ button.primary:hover {
 
 .quantity-input {
   width: 6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.5rem;
-}
-
-.quantity-input:focus {
-  outline: none;
-  border-color: var(--color-accent);
 }
 
 .quantity-unit {
@@ -503,16 +528,9 @@ form .field-row label.icon-field > i,
 }
 
 .ingredient-filter-dialog {
-  border: 1px solid light-dark(#ccc, #555);
   padding: 0.8rem 1rem;
   width: 20rem;
   max-width: 90vw;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
-}
-
-.ingredient-filter-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .ingredient-filter-dialog > label {
@@ -629,16 +647,9 @@ form .field-row label.icon-field > i,
      コンテンツ量に関わらず常に高さを固定する */
   height: 90dvh;
   max-height: 90dvh;
-  border: 1px solid light-dark(#ccc, #555);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
   padding: 0;
   width: 34rem;
   max-width: 95vw;
-}
-
-.recipe-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .recipe-dialog-head {
@@ -729,19 +740,9 @@ form .field-row label.icon-field > i,
   font-size: 1rem;
 }
 
-#recipe-view-edit,
-#recipe-view-close,
-#recipe-dialog-cancel,
-#recipe-ingredient-filter-close {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
-}
-
-#recipe-view-delete {
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
+/* 削除ボタンはダイアログのアクション列内で左端に配置するため個別にmargin-right:autoを付与 */
+#recipe-view-delete,
+#master-delete-button {
   margin-right: auto;
 }
 
@@ -763,17 +764,6 @@ form .field-row label.icon-field > i,
   border-color: var(--color-border-strong);
   background: var(--color-bg-hover);
   color: var(--color-text);
-}
-
-#recipe-submit {
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: light-dark(#fff, #16223f);
-}
-
-#recipe-submit:hover {
-  opacity: 0.9;
 }
 
 .visually-hidden-input {
@@ -1246,16 +1236,9 @@ main {
 }
 
 .plan-dialog {
-  border: 1px solid light-dark(#ccc, #555);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
   width: 30rem;
   max-width: 95vw;
-}
-
-.plan-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .plan-dialog h3 {
@@ -1264,58 +1247,6 @@ main {
 
 .plan-dialog #plan-form {
   align-items: start;
-}
-
-#plan-date,
-#plan-meal-time {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.5rem;
-}
-
-#plan-date:focus,
-#plan-meal-time:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-#plan-servings {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.5rem;
-}
-
-#plan-servings:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-#plan-note {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.6rem;
-}
-
-#plan-note:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-#plan-submit {
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: light-dark(#fff, #16223f);
-}
-
-#plan-submit:hover {
-  opacity: 0.9;
-}
-
-#plan-dialog-cancel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
 }
 
 .plan-recipe-display {
@@ -1348,26 +1279,13 @@ main {
 }
 
 .summary-dialog {
-  border: 1px solid light-dark(#ccc, #555);
   padding: 0.8rem 1rem;
   width: 30rem;
   max-width: 95vw;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
-}
-
-.summary-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .summary-dialog h3 {
   margin-top: 0;
-}
-
-#summary-dialog-close {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
 }
 
 .toast {
@@ -1421,16 +1339,9 @@ main {
 }
 
 .master-dialog {
-  border: 1px solid light-dark(#ccc, #555);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
   width: 18rem;
   max-width: 95vw;
-}
-
-.master-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .master-dialog h3 {
@@ -1440,16 +1351,9 @@ main {
 /* 食材/調味料の新規作成専用ダイアログ。.master-dialogと同じ見た目にするが、
    admin.html側のスタイルに影響しないよう独立したクラスとして定義する。 */
 .material-create-dialog {
-  border: 1px solid light-dark(#ccc, #555);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-dialog);
   padding: 0.8rem 1rem;
   width: 18rem;
   max-width: 95vw;
-}
-
-.material-create-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4);
 }
 
 .material-create-dialog h3 {
@@ -1472,42 +1376,9 @@ main {
   flex: 1;
   min-width: 0;
 }
-.material-create-dialog .field-row input[type="text"],
-.master-dialog .field-row input[type="text"] {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.6rem;
-}
-.material-create-dialog .field-row input[type="text"]:focus,
-.master-dialog .field-row input[type="text"]:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
 .material-create-dialog #material-create-unit,
 .master-dialog #master-unit {
   width: 3.5em;
-}
-
-.material-create-dialog #material-create-submit-button,
-.master-dialog #master-submit-button {
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: light-dark(#fff, #16223f);
-}
-.material-create-dialog #material-create-submit-button:hover,
-.master-dialog #master-submit-button:hover {
-  opacity: 0.9;
-}
-
-.master-dialog #master-delete-button {
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
-  margin-right: auto;
-}
-.master-dialog #master-delete-button:hover {
-  background: var(--color-bg-hover);
 }
 
 .material-create-dialog .dialog-actions,

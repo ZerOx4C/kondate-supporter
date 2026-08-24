@@ -43,12 +43,12 @@
 
     <div id="plan-list" class="plan-timeline"></div>
 
-    <dialog id="plan-dialog" class="plan-dialog">
+    <dialog id="plan-dialog" class="app-dialog plan-dialog">
       <h3 id="plan-dialog-title">献立を追加</h3>
       <form id="plan-form" class="inline-form">
         <input type="hidden" id="plan-id">
-        <select id="plan-date" aria-label="日付"></select>
-        <select id="plan-meal-time" required aria-label="区分">
+        <select id="plan-date" class="text-input" aria-label="日付"></select>
+        <select id="plan-meal-time" class="text-input" required aria-label="区分">
           <option value="morning">朝</option>
           <option value="noon">昼</option>
           <option value="night">夜</option>
@@ -57,7 +57,7 @@
         <div id="plan-recipe-fields">
           <p class="plan-recipe-display">レシピ: <strong id="plan-recipe-name"></strong></p>
           <input type="hidden" id="plan-recipe">
-          <input type="number" id="plan-servings" min="1" step="1" required aria-label="人数">人分
+          <input type="number" id="plan-servings" class="text-input" min="1" step="1" required aria-label="人数">人分
           <div id="plan-ingredient-requirements">
             <p class="plan-ingredient-requirements-label">必要な食材</p>
             <table class="plan-ingredient-requirements-table">
@@ -88,19 +88,19 @@
         <div id="plan-note-fields" hidden>
           <label>
             メモ
-            <textarea id="plan-note" rows="3" placeholder="外食予定や作り置きなど" required></textarea>
+            <textarea id="plan-note" class="text-input" rows="3" placeholder="外食予定や作り置きなど" required></textarea>
           </label>
         </div>
         <p class="error" id="plan-error"></p>
         <div class="dialog-actions">
-          <button type="button" id="plan-dialog-cancel">キャンセル</button>
-          <button type="submit" id="plan-submit">保存</button>
+          <button type="button" id="plan-dialog-cancel" class="primary">キャンセル</button>
+          <button type="submit" id="plan-submit" class="btn-accent">保存</button>
         </div>
       </form>
     </dialog>
   </main>
 
-  <dialog id="summary-dialog" class="summary-dialog">
+  <dialog id="summary-dialog" class="app-dialog summary-dialog">
     <h3>材料集計</h3>
     <p>表示期間の献立に必要な食材と、在庫からの残りを表示します。</p>
     <table id="summary-table">
@@ -116,7 +116,7 @@
     <p id="summary-empty" hidden>表示できる食材がありません。</p>
     <p class="error" id="summary-error"></p>
     <div class="dialog-actions">
-      <button type="button" id="summary-dialog-close">閉じる</button>
+      <button type="button" id="summary-dialog-close" class="primary">閉じる</button>
     </div>
   </dialog>
 
