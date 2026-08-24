@@ -227,7 +227,8 @@ function openPlanDialog(plan, defaultDate, mode) {
 }
 
 async function onDeletePlan(plan) {
-  if (!(await confirmDialog(`${plan.date || '未定'}の「${plan.recipeName}」を削除しますか?`))) return;
+  const planLabel = plan.recipeId ? plan.recipeName : plan.note;
+  if (!(await confirmDialog(`${plan.date || '未定'}の「${planLabel}」を削除しますか?`))) return;
   planErrorEl.textContent = '';
   try {
     await deletePlan(plan.id);
