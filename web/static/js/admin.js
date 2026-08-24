@@ -269,7 +269,7 @@ masterDeleteButton.addEventListener('click', async (e) => {
   const name = masterNameField.value;
 
   const typeLabel = type === 'ingredient' ? '食材' : '調味料';
-  if (!confirm(`「${name}」という${typeLabel}を削除しますか?`)) {
+  if (!(await confirmDialog(`「${name}」という${typeLabel}を削除しますか?`))) {
     return;
   }
 

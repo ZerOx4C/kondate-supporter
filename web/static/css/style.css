@@ -1356,6 +1356,14 @@ main {
   max-width: 95vw;
 }
 
+/* confirmDialog()がJSで動的生成する<dialog>用。.app-dialogにはborder等の見た目のみ定義されており
+   padding/widthは各画面固有クラス側で個別に持つ設計のため、専用の小さなクラスを用意する。 */
+.confirm-dialog {
+  padding: 0.8rem 1rem;
+  width: 18rem;
+  max-width: 95vw;
+}
+
 .material-create-dialog h3 {
   margin-top: 0;
 }

@@ -558,7 +558,7 @@ async function onUseRecipe(recipe) {
 }
 
 async function onDeleteRecipe(recipe) {
-  if (!confirm(`「${recipe.name}」を削除しますか?`)) return;
+  if (!(await confirmDialog(`「${recipe.name}」を削除しますか?`))) return;
   recipeErrorEl.textContent = '';
   try {
     await deleteRecipe(recipe.id);
