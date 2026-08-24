@@ -703,6 +703,7 @@ form .field-row label.icon-field > i,
 
 .recipe-dialog-foot .dialog-actions {
   margin: 0;
+  gap: 0.5rem;
 }
 
 .recipe-view-url {
@@ -741,6 +742,7 @@ form .field-row label.icon-field > i,
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
   background: var(--color-bg-surface);
+  margin-right: auto;
 }
 
 .ghost-add {
@@ -1310,6 +1312,12 @@ main {
   opacity: 0.9;
 }
 
+#plan-dialog-cancel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
 .plan-recipe-display {
   font-size: 0.85rem;
   margin: 0 0 0.6rem;
@@ -1354,6 +1362,12 @@ main {
 
 .summary-dialog h3 {
   margin-top: 0;
+}
+
+#summary-dialog-close {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
 }
 
 .toast {
@@ -1490,6 +1504,7 @@ main {
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
   background: var(--color-bg-surface);
+  margin-right: auto;
 }
 .master-dialog #master-delete-button:hover {
   background: var(--color-bg-hover);
