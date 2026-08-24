@@ -66,7 +66,9 @@ data/                     # SQLiteファイルの実行時生成先(Git管理外
 
 ## 動作検証時の注意
 
-ユーザーが手動起動する開発サーバー(`make run`, `:8080`, `data/kondate.db`)とは別に、Claude Codeがpreview系ツールで動作検証を行う際は `.claude/launch.json` の設定により自動的に `:8081` / `data/kondate-preview.db` を使う(ポート・DBとも分離済み)。
+ユーザーが手動起動する開発サーバー(`make run`, `:8080`, `data/kondate.db`, `data/recipe-images/`)とは別に、Claude Codeがpreview系ツールで動作検証を行う際は `.claude/launch.json` の設定により自動的に `:8081` / `data/kondate-preview.db` / `data/recipe-images-preview/` を使う(ポート・DB・レシピ画像保存先とも分離済み)。
+
+画像保存先(`KONDATE_IMAGE_DIR`)はレシピIDのみをファイル名にした共有ディレクトリのため、分離していないとpreview側でのレシピ作成・削除・画像アップロードが、IDの一致する手動起動側のレシピ画像を上書き・削除してしまう(過去に実際発生した事故)。DB追加時は同様に分離が必要な設定がないか確認すること。
 
 ## サブエージェント情報
 
