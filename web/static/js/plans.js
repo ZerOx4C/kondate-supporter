@@ -16,7 +16,25 @@ const planRecipeNameEl = document.getElementById('plan-recipe-name');
 const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
 const planSeasoningRequirementsListEl = document.getElementById('plan-seasoning-requirements-list');
 
+const planViewMetaEl = document.getElementById('plan-view-meta');
+const planViewFieldsEl = document.getElementById('plan-view-fields');
+const planViewRecipeFieldsEl = document.getElementById('plan-view-recipe-fields');
+const planViewNoteFieldsEl = document.getElementById('plan-view-note-fields');
+const planViewImageEl = document.getElementById('plan-view-image');
+const planViewUrlEl = document.getElementById('plan-view-url');
+const planViewIngredientsEl = document.getElementById('plan-view-ingredients');
+const planViewSeasoningsEl = document.getElementById('plan-view-seasonings');
+const planViewStepsEl = document.getElementById('plan-view-steps');
+const planViewStepsEmptyEl = document.getElementById('plan-view-steps-empty');
+const planViewNoteEl = document.getElementById('plan-view-note');
+const planViewActionsEl = document.getElementById('plan-view-actions');
+const planEditActionsEl = document.getElementById('plan-edit-actions');
+const planViewEditButton = document.getElementById('plan-view-edit');
+const planViewDeleteButton = document.getElementById('plan-view-delete');
+const planViewCloseButton = document.getElementById('plan-view-close');
+
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
 
 function formatDateLabel(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -26,6 +44,7 @@ function formatDateLabel(dateStr) {
 let plansById = new Map();
 let dragState = null;
 let planDialogMode = 'recipe';
+let planDialogTarget = null;
 let planRecipeDetail = null;
 let planIngredientOverrides = new Map();
 let planSeasoningOverrides = new Map();
@@ -164,16 +183,55 @@ function resetPlanForm() {
 function closePlanDialog() {
   planDialog.close();
   resetPlanForm();
+  planDialogTarget = null;
 }
 
-function applyPlanDialogMode(mode) {
+// フォーム内の「レシピ紐づけ」「メモ」の内容切り替え(表示モード用の対応要素も含む)
+function applyPlanContentMode(mode) {
   planDialogMode = mode;
   planRecipeFieldsEl.hidden = mode !== 'recipe';
   planNoteFieldsEl.hidden = mode !== 'note';
+  planViewRecipeFieldsEl.hidden = mode !== 'recipe';
+  planViewNoteFieldsEl.hidden = mode !== 'note';
   // hidden な祖先を持っていてもネイティブのrequiredチェックはブロックされる
   // ブラウザがあるため、非表示のフィールドはrequiredを明示的に外す。
   planServingsField.required = mode === 'recipe';
   planNoteField.required = mode === 'note';
+}
+
+// ダイアログ全体の表示モード/編集モード切り替え
+function applyPlanInteractionMode(mode) {
+  planViewMetaEl.hidden = mode !== 'view';
+  planViewFieldsEl.hidden = mode !== 'view';
+  planForm.hidden = mode !== 'edit';
+  planViewActionsEl.hidden = mode !== 'view';
+  planEditActionsEl.hidden = mode !== 'edit';
+}
+
+// 表示・編集どちらのモードでも共通に行う状態投入処理。実際に採用したcontentモード('recipe'|'note')を返す
+function populatePlanFields(plan, defaultDate, mode) {
+  const effectiveMode = plan ? (plan.recipeId ? 'recipe' : 'note') : (mode || 'recipe');
+  applyPlanContentMode(effectiveMode);
+  renderPlanDateOptions();
+
+  if (plan) {
+    planIdField.value = plan.id;
+    planDateField.value = plan.date || '';
+    planMealTimeField.value = plan.mealTime;
+
+    if (effectiveMode === 'recipe') {
+      planServingsField.value = plan.servings;
+      planRecipeField.value = plan.recipeId;
+      planRecipeNameEl.textContent = plan.recipeName;
+      planIngredientOverrides = new Map((plan.ingredientOverrides || []).map((o) => [o.ingredientId, o.quantity]));
+      planSeasoningOverrides = new Map((plan.seasoningOverrides || []).map((o) => [o.seasoningId, o.quantity]));
+    } else {
+      planNoteField.value = plan.note;
+    }
+  } else {
+    planDateField.value = defaultDate ?? toDateInputValue(new Date());
+  }
+  return effectiveMode;
 }
 
 function renderPlanDateOptions() {
@@ -192,38 +250,113 @@ function renderPlanDateOptions() {
   }
 }
 
-function openPlanDialog(plan, defaultDate, mode) {
-  resetPlanForm();
-  const effectiveMode = plan ? (plan.recipeId ? 'recipe' : 'note') : (mode || 'recipe');
-  applyPlanDialogMode(effectiveMode);
-  renderPlanDateOptions();
+// 表示モードのfoot/head部分へ、その献立の内容を描画する。
+// 材料・調味料の必要量はオーバーライドがあればそれを、無ければplanRecipeDetailを元に
+// computeIngredientRequirement/computeSeasoningRequirementで算出する(編集モードと同じロジック)。
+function renderPlanView(plan, effectiveMode) {
+  const mealLabel = mealTimeLabels[plan.mealTime] || plan.mealTime;
+  planViewMetaEl.textContent = `${plan.date ? formatDateLabel(plan.date) : '未定'} ${mealLabel}`;
 
-  if (plan) {
-    planDialogTitle.textContent = '献立を編集';
-    planIdField.value = plan.id;
-    planDateField.value = plan.date || '';
-    planMealTimeField.value = plan.mealTime;
+  if (effectiveMode === 'recipe') {
+    planDialogTitle.textContent = `${plan.recipeName}(${plan.servings}人分)`;
+    if (!planRecipeDetail) return;
 
-    if (effectiveMode === 'recipe') {
-      planServingsField.value = plan.servings;
-      planRecipeField.value = plan.recipeId;
-      planRecipeNameEl.textContent = plan.recipeName;
-      planIngredientOverrides = new Map((plan.ingredientOverrides || []).map((o) => [o.ingredientId, o.quantity]));
-      planSeasoningOverrides = new Map((plan.seasoningOverrides || []).map((o) => [o.seasoningId, o.quantity]));
-      loadPlanIngredientRequirements(plan.recipeId);
-    } else {
-      planNoteField.value = plan.note;
+    planViewImageEl.hidden = !plan.hasImage;
+    if (plan.hasImage) {
+      planViewImageEl.src = `/api/recipes/${plan.recipeId}/image?t=${Date.now()}`;
+    }
+
+    planViewUrlEl.innerHTML = '';
+    planViewUrlEl.hidden = !planRecipeDetail.url;
+    if (planRecipeDetail.url) {
+      const link = document.createElement('a');
+      link.href = planRecipeDetail.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = planRecipeDetail.url;
+      planViewUrlEl.appendChild(link);
+    }
+
+    planViewIngredientsEl.innerHTML = '';
+    for (const ing of planRecipeDetail.ingredients) {
+      const quantity = planIngredientOverrides.has(ing.ingredientId)
+        ? planIngredientOverrides.get(ing.ingredientId)
+        : computeIngredientRequirement(ing);
+      const li = document.createElement('li');
+      li.textContent = ing.note
+        ? `${ing.name} ${quantity}${ing.unit}(${ing.note})`
+        : `${ing.name} ${quantity}${ing.unit}`;
+      planViewIngredientsEl.appendChild(li);
+    }
+
+    planViewSeasoningsEl.innerHTML = '';
+    for (const s of planRecipeDetail.seasonings) {
+      const quantity = planSeasoningOverrides.has(s.seasoningId)
+        ? planSeasoningOverrides.get(s.seasoningId)
+        : computeSeasoningRequirement(s);
+      const li = document.createElement('li');
+      li.textContent = s.note
+        ? `${s.name} ${quantity}${s.unit}(${s.note})`
+        : `${s.name} ${quantity}${s.unit}`;
+      planViewSeasoningsEl.appendChild(li);
+    }
+
+    planViewStepsEl.innerHTML = '';
+    planViewStepsEmptyEl.hidden = planRecipeDetail.steps.length > 0;
+    for (const step of planRecipeDetail.steps) {
+      const li = document.createElement('li');
+      li.textContent = step;
+      planViewStepsEl.appendChild(li);
     }
   } else {
-    planDialogTitle.textContent = '献立を追加';
-    planDateField.value = defaultDate ?? toDateInputValue(new Date());
+    planDialogTitle.textContent = 'メモ';
+    planViewNoteEl.textContent = plan.note;
   }
-  planDialog.showModal();
+}
+
+async function showPlanView(plan) {
+  planDialogTarget = plan;
+  planErrorEl.textContent = '';
+  resetPlanForm();
+  const effectiveMode = populatePlanFields(plan, null, null);
+  if (effectiveMode === 'recipe') {
+    await loadPlanIngredientRequirements(plan.recipeId);
+  }
+  renderPlanView(plan, effectiveMode);
+  applyPlanInteractionMode('view');
+}
+
+async function showPlanEdit(plan, defaultDate, mode) {
+  planErrorEl.textContent = '';
+  resetPlanForm();
+  const effectiveMode = populatePlanFields(plan, defaultDate, mode);
+  planDialogTitle.textContent = plan ? '献立を編集' : '献立を追加';
+  if (effectiveMode === 'recipe' && plan) {
+    await loadPlanIngredientRequirements(plan.recipeId);
+  }
+  applyPlanInteractionMode('edit');
   if (effectiveMode === 'recipe') {
     planServingsField.focus();
   } else {
     planNoteField.focus();
   }
+}
+
+async function openPlanDialog(plan, defaultDate, mode) {
+  if (plan) {
+    await showPlanView(plan);
+  } else {
+    planDialogTarget = null;
+    await showPlanEdit(null, defaultDate, mode);
+  }
+  planDialog.showModal();
+}
+
+// .plan-panel-actions内の編集ボタン専用。既存の献立を直接編集モードで開く。
+async function openPlanEditDialog(plan) {
+  planDialogTarget = plan;
+  await showPlanEdit(plan);
+  planDialog.showModal();
 }
 
 async function onDeletePlan(plan) {
@@ -333,11 +466,13 @@ function createPlanPanel(plan) {
   if (plan.mealTime !== 'other') {
     panel.classList.add(`plan-panel-${plan.mealTime}`);
   }
+  panel.addEventListener('click', () => openPlanDialog(plan));
 
   const handle = document.createElement('span');
   handle.className = 'plan-panel-handle';
   handle.setAttribute('aria-hidden', 'true');
   handle.innerHTML = '<i class="ti ti-grip-vertical" aria-hidden="true"></i>';
+  handle.addEventListener('click', (event) => event.stopPropagation());
   handle.addEventListener('pointerdown', (e) => onPlanPanelPointerDown(e, plan, panel, handle));
   handle.addEventListener('pointermove', onPlanPanelPointerMove);
   handle.addEventListener('pointerup', onPlanPanelPointerUp);
@@ -387,7 +522,10 @@ function createPlanPanel(plan) {
   editButton.className = 'icon-button';
   editButton.setAttribute('aria-label', '編集');
   editButton.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i>';
-  editButton.addEventListener('click', () => openPlanDialog(plan));
+  editButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openPlanEditDialog(plan);
+  });
   actions.appendChild(editButton);
 
   const deleteButton = document.createElement('button');
@@ -395,7 +533,10 @@ function createPlanPanel(plan) {
   deleteButton.className = 'icon-button danger';
   deleteButton.setAttribute('aria-label', '削除');
   deleteButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
-  deleteButton.addEventListener('click', () => onDeletePlan(plan));
+  deleteButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onDeletePlan(plan);
+  });
   actions.appendChild(deleteButton);
 
   meta.appendChild(actions);
@@ -488,7 +629,17 @@ async function refresh() {
 
 document.addEventListener('daterangechange', refresh);
 
-planDialogCancelButton.addEventListener('click', closePlanDialog);
+planDialogCancelButton.addEventListener('click', () => {
+  if (planDialogTarget) {
+    showPlanView(planDialogTarget);
+  } else {
+    closePlanDialog();
+  }
+});
+
+planViewEditButton.addEventListener('click', () => showPlanEdit(planDialogTarget));
+planViewDeleteButton.addEventListener('click', () => onDeletePlan(planDialogTarget));
+planViewCloseButton.addEventListener('click', closePlanDialog);
 
 planServingsField.addEventListener('input', () => {
   renderPlanIngredientRequirements();
@@ -505,6 +656,7 @@ planForm.addEventListener('submit', async (e) => {
   const date = planDateField.value || null;
   const mealTime = planMealTimeField.value;
   try {
+    let saved;
     if (planDialogMode === 'recipe') {
       if (!planRecipeField.value) {
         planErrorEl.textContent = 'レシピを選択してください';
@@ -515,9 +667,9 @@ planForm.addEventListener('submit', async (e) => {
       const ingredientOverrides = Array.from(planIngredientOverrides.entries()).map(([ingredientId, quantity]) => ({ ingredientId, quantity }));
       const seasoningOverrides = Array.from(planSeasoningOverrides.entries()).map(([seasoningId, quantity]) => ({ seasoningId, quantity }));
       if (planIdField.value) {
-        await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides, seasoningOverrides);
+        saved = await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides, seasoningOverrides);
       } else {
-        await createPlan(date, recipeId, servings, mealTime, '');
+        saved = await createPlan(date, recipeId, servings, mealTime, '');
       }
     } else {
       const note = planNoteField.value.trim();
@@ -526,14 +678,13 @@ planForm.addEventListener('submit', async (e) => {
         return;
       }
       if (planIdField.value) {
-        await updatePlan(planIdField.value, date, null, 0, mealTime, note);
+        saved = await updatePlan(planIdField.value, date, null, 0, mealTime, note);
       } else {
-        await createPlan(date, null, 0, mealTime, note);
+        saved = await createPlan(date, null, 0, mealTime, note);
       }
     }
-    planDialog.close();
-    resetPlanForm();
     await refresh();
+    await showPlanView(saved);
   } catch (err) {
     planErrorEl.textContent = err.message;
   }

@@ -742,6 +742,7 @@ form .field-row label.icon-field > i,
 
 /* 削除ボタンはダイアログのアクション列内で左端に配置するため個別にmargin-right:autoを付与 */
 #recipe-view-delete,
+#plan-view-delete,
 #master-delete-button {
   margin-right: auto;
 }
@@ -1049,6 +1050,7 @@ main {
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
 }
 
 .plan-panel:hover {
@@ -1235,18 +1237,69 @@ main {
   color: var(--color-text);
 }
 
-.plan-dialog {
-  padding: 0.8rem 1rem;
+/* .recipe-dialog[open]と同様、head/footを固定してbody部分のみをスクロールさせる構成 */
+.plan-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  height: 90dvh;
+  max-height: 90dvh;
+  padding: 0;
   width: 30rem;
   max-width: 95vw;
 }
 
-.plan-dialog h3 {
-  margin-top: 0;
+.plan-dialog-head {
+  flex-shrink: 0;
+  padding: 0.8rem 1rem 0;
 }
 
-.plan-dialog #plan-form {
+.plan-dialog-head h3 {
+  margin: 0;
+}
+
+.plan-view-meta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0.2rem 0 0;
+}
+
+.plan-dialog-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 1rem 0.6rem;
+  overflow-y: auto;
+}
+
+.plan-dialog-body #plan-form {
   align-items: start;
+}
+
+/* .inline-formのdisplay:flexがhidden属性のUA既定スタイルより詳細度で勝ってしまうため、明示的に上書きする */
+#plan-form[hidden] {
+  display: none;
+}
+
+.plan-dialog-foot {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.plan-dialog-foot .dialog-actions {
+  margin: 0;
+  gap: 0.5rem;
+}
+
+.plan-view-image {
+  max-width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.plan-view-url {
+  margin: 0 0 0.6rem;
 }
 
 .plan-recipe-display {

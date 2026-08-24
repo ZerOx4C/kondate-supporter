@@ -44,59 +44,89 @@
     <div id="plan-list" class="plan-timeline"></div>
 
     <dialog id="plan-dialog" class="app-dialog plan-dialog">
-      <h3 id="plan-dialog-title">献立を追加</h3>
-      <form id="plan-form" class="inline-form">
-        <input type="hidden" id="plan-id">
-        <select id="plan-date" class="text-input" aria-label="日付"></select>
-        <select id="plan-meal-time" class="text-input" required aria-label="区分">
-          <option value="morning">朝</option>
-          <option value="noon">昼</option>
-          <option value="night">夜</option>
-          <option value="other">その他</option>
-        </select>
-        <div id="plan-recipe-fields">
-          <p class="plan-recipe-display">レシピ: <strong id="plan-recipe-name"></strong></p>
-          <input type="hidden" id="plan-recipe">
-          <input type="number" id="plan-servings" class="text-input" min="1" step="1" required aria-label="人数">人分
-          <div id="plan-ingredient-requirements">
-            <p class="plan-ingredient-requirements-label">必要な食材</p>
-            <table class="plan-ingredient-requirements-table">
-              <thead>
-                <tr>
-                  <th>食材</th>
-                  <th>必要量</th>
-                  <th>調整</th>
-                </tr>
-              </thead>
-              <tbody id="plan-ingredient-requirements-list"></tbody>
-            </table>
-          </div>
-          <div id="plan-seasoning-requirements">
-            <p class="plan-ingredient-requirements-label">必要な調味料</p>
-            <table class="plan-ingredient-requirements-table">
-              <thead>
-                <tr>
-                  <th>調味料</th>
-                  <th>必要量</th>
-                  <th>調整</th>
-                </tr>
-              </thead>
-              <tbody id="plan-seasoning-requirements-list"></tbody>
-            </table>
-          </div>
-        </div>
-        <div id="plan-note-fields" hidden>
-          <label>
-            メモ
-            <textarea id="plan-note" class="text-input" rows="3" placeholder="外食予定や作り置きなど" required></textarea>
-          </label>
-        </div>
+      <div class="plan-dialog-head">
+        <h3 id="plan-dialog-title">献立を追加</h3>
+        <p id="plan-view-meta" class="plan-view-meta"></p>
+      </div>
+      <div class="plan-dialog-body">
         <p class="error" id="plan-error"></p>
-        <div class="dialog-actions">
-          <button type="button" id="plan-dialog-cancel" class="primary">キャンセル</button>
-          <button type="submit" id="plan-submit" class="btn-accent">保存</button>
+
+        <div id="plan-view-fields">
+          <div id="plan-view-recipe-fields">
+            <img id="plan-view-image" class="plan-view-image" hidden>
+            <p id="plan-view-url" class="plan-view-url"></p>
+            <h4 class="section-title"><span class="icon"><i class="ti ti-carrot" aria-hidden="true"></i></span>食材</h4>
+            <ul id="plan-view-ingredients"></ul>
+            <h4 class="section-title"><span class="icon"><i class="ti ti-salt" aria-hidden="true"></i></span>調味料</h4>
+            <ul id="plan-view-seasonings"></ul>
+            <h4 class="section-title"><span class="icon"><i class="ti ti-list-numbers" aria-hidden="true"></i></span>手順</h4>
+            <ol id="plan-view-steps"></ol>
+            <p id="plan-view-steps-empty" hidden>手順は登録されていません。</p>
+          </div>
+          <div id="plan-view-note-fields" hidden>
+            <p id="plan-view-note"></p>
+          </div>
         </div>
-      </form>
+
+        <form id="plan-form" class="inline-form">
+          <input type="hidden" id="plan-id">
+          <select id="plan-date" class="text-input" aria-label="日付"></select>
+          <select id="plan-meal-time" class="text-input" required aria-label="区分">
+            <option value="morning">朝</option>
+            <option value="noon">昼</option>
+            <option value="night">夜</option>
+            <option value="other">その他</option>
+          </select>
+          <div id="plan-recipe-fields">
+            <p class="plan-recipe-display">レシピ: <strong id="plan-recipe-name"></strong></p>
+            <input type="hidden" id="plan-recipe">
+            <input type="number" id="plan-servings" class="text-input" min="1" step="1" required aria-label="人数">人分
+            <div id="plan-ingredient-requirements">
+              <p class="plan-ingredient-requirements-label">必要な食材</p>
+              <table class="plan-ingredient-requirements-table">
+                <thead>
+                  <tr>
+                    <th>食材</th>
+                    <th>必要量</th>
+                    <th>調整</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-ingredient-requirements-list"></tbody>
+              </table>
+            </div>
+            <div id="plan-seasoning-requirements">
+              <p class="plan-ingredient-requirements-label">必要な調味料</p>
+              <table class="plan-ingredient-requirements-table">
+                <thead>
+                  <tr>
+                    <th>調味料</th>
+                    <th>必要量</th>
+                    <th>調整</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-seasoning-requirements-list"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="plan-note-fields" hidden>
+            <label>
+              メモ
+              <textarea id="plan-note" class="text-input" rows="3" placeholder="外食予定や作り置きなど" required></textarea>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="plan-dialog-foot">
+        <div id="plan-view-actions" class="dialog-actions">
+          <button type="button" id="plan-view-delete" class="danger btn-danger-outline">削除</button>
+          <button type="button" id="plan-view-edit" class="primary">編集</button>
+          <button type="button" id="plan-view-close" class="primary">閉じる</button>
+        </div>
+        <div id="plan-edit-actions" class="dialog-actions" hidden>
+          <button type="button" id="plan-dialog-cancel" class="primary">キャンセル</button>
+          <button type="submit" form="plan-form" id="plan-submit" class="btn-accent">保存</button>
+        </div>
+      </div>
     </dialog>
   </main>
 
