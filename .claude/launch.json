@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "kondate-supporter",
-      "runtimeExecutable": "go",
-      "runtimeArgs": ["run", "./cmd/server"],
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts\\preview-server.ps1"],
       "port": 8081,
       "env": {
         "KONDATE_ADDR": ":8081",
