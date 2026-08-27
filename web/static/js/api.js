@@ -127,21 +127,25 @@ function listUnscheduledPlans() {
   return apiRequest('/api/plans/unscheduled');
 }
 
+function listDailyPlans() {
+  return apiRequest('/api/plans/daily');
+}
+
 function getPlan(id) {
   return apiRequest(`/api/plans/${id}`);
 }
 
-function createPlan(date, recipeId, servings, mealTime, note) {
+function createPlan(date, type, recipeId, servings, mealTime, note) {
   return apiRequest('/api/plans', {
     method: 'POST',
-    body: JSON.stringify({ date, recipeId, servings, mealTime, note }),
+    body: JSON.stringify({ date, type, recipeId, servings, mealTime, note }),
   });
 }
 
-function updatePlan(id, date, recipeId, servings, mealTime, note, ingredientOverrides, seasoningOverrides) {
+function updatePlan(id, date, type, recipeId, servings, mealTime, note, ingredientOverrides, seasoningOverrides) {
   return apiRequest(`/api/plans/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ date, recipeId, servings, mealTime, note, ingredientOverrides, seasoningOverrides }),
+    body: JSON.stringify({ date, type, recipeId, servings, mealTime, note, ingredientOverrides, seasoningOverrides }),
   });
 }
 

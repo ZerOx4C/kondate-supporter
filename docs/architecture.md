@@ -77,13 +77,16 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | カラム | 型/制約 |
 |---|---|
 | id | INTEGER PRIMARY KEY |
-| date | TEXT(NULL可。NULLは「日付未定」の献立=未定エリア) |
+| date | TEXT(NULL可。`plan_type = 'scheduled'` の行でのみ意味を持つ。それ以外の行では常にNULL) |
+| plan_type | TEXT NOT NULL DEFAULT 'scheduled'(scheduled/daily/unscheduled。scheduled=日付指定、daily=検討期間内は毎日消費するとみなす献立=毎日エリア、unscheduled=日付未定=未定エリア) |
 | recipe_id | INTEGER REFERENCES recipes(id)(NULL可。NULLはレシピに依存しないメモ行=外食予定や作り置きなど) |
 | servings | INTEGER NOT NULL DEFAULT 0 |
 | meal_time | TEXT NOT NULL DEFAULT 'other'(morning/noon/night/other) |
 | note | TEXT NOT NULL DEFAULT ''(メモ行のときは必須、レシピ紐づけ時は空) |
 
 インデックス: `idx_plans_date`
+
+`plan_type` を正とし、`date IS NULL`/`date IS NOT NULL` によるSQL判定は使わず常に `plan_type` を比較する(0013で追加。`is_daily`のような単一目的フラグを種別ごとに増やし続けない設計判断)。
 
 ### `plan_ingredient_overrides`(献立ごとの食材必要量オーバーライド)
 | カラム | 型/制約 |
@@ -136,14 +139,15 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | GET /api/recipes/{id}/image | レシピ画像取得(未登録なら404) |
 | POST /api/recipes/{id}/image | レシピ画像アップロード(multipart の `image` フィールド、最大8MB、jpeg/png/gif/webp判定。成功時204) |
 | DELETE /api/recipes/{id}/image | レシピ画像削除(成功時204) |
-| GET /api/plans | 献立一覧取得(from/toで期間指定、どちらも省略可。日付未定行は除外。日付→朝/昼/夜/その他→idの順にソート) |
-| POST /api/plans | 献立新規作成(レシピ紐づけ or メモ行のいずれか)。オーバーライドはバリデーションのみで保存されない |
-| GET /api/plans/summary | 指定期間の献立に登場する食材と在庫が0より多い食材の和集合について、必要量・在庫からの残り(不足時はマイナス)を返す |
-| GET /api/plans/unscheduled | 日付未定(未定エリア)の献立一覧取得(検討期間によらず全件) |
+| GET /api/plans | 献立一覧取得(from/toで期間指定、どちらも省略可。`plan_type = 'scheduled'` の行のみ対象。日付→朝/昼/夜/その他→idの順にソート) |
+| POST /api/plans | 献立新規作成(レシピ紐づけ or メモ行のいずれか)。`type`(scheduled/daily/unscheduled)を指定、scheduled以外はdateを無視し常にNULL保存。オーバーライドはバリデーションのみで保存されない |
+| GET /api/plans/summary | 指定期間の献立に登場する食材と在庫が0より多い食材の和集合について、必要量・在庫からの残り(不足時はマイナス)を返す。毎日献立(`plan_type = 'daily'`)はfrom/toが両方指定された場合のみ期間日数を乗数として加算する |
+| GET /api/plans/unscheduled | 日付未定(未定エリア、`plan_type = 'unscheduled'`)の献立一覧取得(検討期間によらず全件) |
+| GET /api/plans/daily | 毎日(毎日エリア、`plan_type = 'daily'`)の献立一覧取得(検討期間によらず全件) |
 | GET /api/plans/{id} | 献立1件取得(食材・調味料オーバーライド込み) |
 | PUT /api/plans/{id} | 献立更新(オーバーライドはdelete-then-insertで全置換) |
 | DELETE /api/plans/{id} | 献立削除(オーバーライドも同一トランザクションで削除) |
-| GET /api/shoppinglist | 指定期間の献立に対する不足食材リスト取得(在庫比較。不足が0以下の食材は返さない) |
+| GET /api/shoppinglist | 指定期間の献立に対する不足食材リスト取得(在庫比較。不足が0以下の食材は返さない)。毎日献立はfrom/toが両方指定された場合のみ期間日数を乗数として加算する |
 | GET / | ルートパスのみ `/plans.html` へリダイレクト(302)。それ以外は静的ファイル配信(web/static、embedでバイナリに焼き込み。`DEV_MODE=1` のときのみ `os.DirFS("web/static")` から配信) |
 
 エラー応答は全て `{"error": "メッセージ"}` 形式(`internal/handler/respond.go`)。
@@ -156,7 +160,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 |---|---|---|
 | `stocks.html`(在庫) | 食材ごとの在庫数量を検索・編集。未検索時は数量0の在庫を非表示にし、検索時のみ数量0を末尾に含めて表示する。検索中のみ「新規食材を追加」ボタンが現れ、検索語を初期値にその場で食材を新規作成できる。更新日時は相対表記(さっき/N時間前/N日前/かなり前) | 現行 |
 | `recipes.html`(レシピ) | レシピのカード一覧・検索・食材による絞り込み・詳細表示・作成/編集(材料・調味料・手順・画像)。編集時の材料・調味料選択は`<select>`ではなく検索パネル形式のポップオーバーダイアログ(単一選択、その場での新規食材/調味料作成も可能)。詳細から「未定に追加」で日付未定の献立を1件作成できる | 現行 |
-| `plans.html`(献立) | 日付ごとの献立(レシピ+人数、またはメモ行)を検討期間分のタイムラインと未定エリアに表示し追加/編集。パネル本体をクリックすると`#plan-dialog`が表示モードで開く(`recipes.html`の`#recipe-dialog`と同様、1つの`<dialog>`が表示/編集モードを切り替えるhead/body/foot構成)。表示モードは画像・参考URL・食材/調味料リスト(その献立自身の人数・個別オーバーライドを反映して算出)・手順、またはメモ内容を表示し、「編集」ボタンで同一ダイアログが編集モードに切り替わる。パネルのハンドルをPointerEventでドラッグして別日付や未定エリアへ移動できる(ハンドル・編集/削除ボタンのクリックはパネル本体のクリックへ伝播させない) | 現行 |
+| `plans.html`(献立) | 日付ごとの献立(レシピ+人数、またはメモ行)を検討期間分のタイムラインと未定エリア・毎日エリアに表示し追加/編集。未定エリアの次に毎日エリア(検討期間内は毎日消費するとみなす献立)を表示し、両エリアとも検討期間によらず全件表示・日付欄なしで扱われる。パネル本体をクリックすると`#plan-dialog`が表示モードで開く(`recipes.html`の`#recipe-dialog`と同様、1つの`<dialog>`が表示/編集モードを切り替えるhead/body/foot構成)。表示モードは画像・参考URL・食材/調味料リスト(その献立自身の人数・個別オーバーライドを反映して算出)・手順、またはメモ内容を表示し、「編集」ボタンで同一ダイアログが編集モードに切り替わる。編集モードの日付`<select>`は「未定」「毎日」+検討期間内の日付から選び、選択値がそのまま献立の`date`/`type`の組に対応する。パネルのハンドルをPointerEventでドラッグして別日付・未定エリア・毎日エリアへ移動できる(ハンドル・編集/削除ボタンのクリックはパネル本体のクリックへ伝播させない) | 現行 |
 | `shoppinglist.html`(買い物リスト) | 指定期間の献立に対して在庫が不足している食材を一覧表示、コピー機能あり | 現行 |
 | `admin.html`(管理) | 「監視」「食材マスタ」「調味料マスタ」の3タブ切替画面。監視タブはサーバー死活確認(`/healthz`)を表示、各マスタタブは食材マスタ・調味料マスタをダイアログ形式で編集するCRUD画面(`materialCreateDialog.js`ではなく画面固有の`master-dialog`を使う) | 現行 |
 
@@ -190,7 +194,11 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 
 - **単位換算ロジックを持たない**: `ingredients.unit` は自由入力文字列でマスタ化しない。在庫・レシピ材料・買い物リスト集計は同一ingredient_idの数量を同じunitとして単純加算するのみで、換算テーブルや変換関数は存在しない([docs/development.md](development.md)の制約に対応)。
 
-- **献立の「日付未定」「レシピ非依存メモ行」という2つの独立した軸**: `plans.date` がNULLなら「未定エリア」、`plans.recipe_id` がNULLなら「外食予定や作り置きなど」のメモ行。買い物リスト集計では `recipe_id` がNULLの行は集計対象外。`PlanRepository.List()` は `date IS NOT NULL` を常に条件に含め、未定エリアは `ListUnscheduled()` が期間指定なしで返す。
+- **献立の「種別(`plan_type`)」「レシピ非依存メモ行」という2つの独立した軸**: `plans.plan_type` が `scheduled`/`daily`/`unscheduled` のいずれか(scheduled=日付指定、daily=毎日エリア、unscheduled=未定エリア)、`plans.recipe_id` がNULLなら「外食予定や作り置きなど」のメモ行。買い物リスト集計では `recipe_id` がNULLの行は集計対象外。`PlanRepository.List()` は `plan_type = 'scheduled'` を常に条件に含め、未定エリアは `ListUnscheduled()`(`plan_type = 'unscheduled'`)、毎日エリアは `ListDaily()`(`plan_type = 'daily'`)がそれぞれ期間指定なしで返す。
+
+- **`plan_type`列アプローチ(0013)**: 献立の種別追加(未定に続く「毎日」エリア)にあたり、`is_daily` のような単一目的のbool列を種別ごとに増やし続けるのではなく、`plan_type` という文字列enum列(`scheduled`/`daily`/`unscheduled`)で表現する方針を採用した。`plan_type` を正とし、`date` 列は `plan_type = 'scheduled'` の行でのみ意味を持つ(それ以外は常にNULL)。この不変条件はhandler層(`planRequest.validate()`、type≠scheduledならdateを無視)とrepository層(`Create`/`Update`、type≠scheduledならdate引数を無視して常にNULLを書き込む)の両方で防御的に保証している。
+
+- **毎日献立(`plan_type = 'daily'`)の買い物リスト・材料集計への寄与**: `ShoppingListService.aggregate()` は通常献立(乗数1)と毎日献立(乗数=検討期間の日数)を同じ`addPlanRequirement()`ロジックで集計する。毎日献立は検討期間の `from`/`to` が両方とも指定されている場合のみ「期間の日数」を乗数として加算し、どちらか一方でも省略された場合は日数を決定できないため寄与を0として扱う(毎日献立の集計自体をスキップする)。食材のオーバーライド値は「1日分の必要量」という前提のため、オーバーライドされている場合も同様に乗数を掛けてから加算する。
 
 - **基準人数が不正なレシピは集計をスキップ**: `aggregate()` は `recipe.servings <= 0` の献立を倍率計算不能としてスキップする(0除算を避けるための防御)。
 

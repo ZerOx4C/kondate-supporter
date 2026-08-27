@@ -29,6 +29,14 @@ var validMealTimes = map[string]bool{
 	"other":   true,
 }
 
+// validPlanTypes は献立の種別として許可する値。
+// scheduled=日付指定、daily=毎日エリア、unscheduled=未定エリア。
+var validPlanTypes = map[string]bool{
+	"scheduled":   true,
+	"daily":       true,
+	"unscheduled": true,
+}
+
 type planIngredientOverrideRequest struct {
 	IngredientID int64   `json:"ingredientId"`
 	Quantity     float64 `json:"quantity"`
@@ -41,6 +49,7 @@ type planSeasoningOverrideRequest struct {
 
 type planRequest struct {
 	Date                *string                         `json:"date"`
+	Type                string                          `json:"type"`
 	RecipeID            *int64                          `json:"recipeId"`
 	Servings            int                             `json:"servings"`
 	MealTime            string                          `json:"mealTime"`
@@ -51,37 +60,45 @@ type planRequest struct {
 
 // validate はレシピに紐づく献立(RecipeIDが非nil)と、レシピに依存しない
 // メモ(RecipeIDがnilかつnoteが非空)のいずれかとしてリクエストを検証する。
-// dateがnilの場合は日付未定(未定エリア)として扱う。
-func (req planRequest) validate() (date *string, recipeID *int64, servings int, mealTime, note string, overrides []repository.PlanIngredientOverride, seasoningOverrides []repository.PlanSeasoningOverride, err error) {
-	if req.Date != nil {
-		if _, err := time.Parse(time.DateOnly, *req.Date); err != nil {
-			return nil, nil, 0, "", "", nil, nil, errors.New("dateはYYYY-MM-DD形式である必要があります")
+// typeがscheduled以外の場合はdateを無視し、常に日付未定として扱う
+// (unscheduled=未定エリア、daily=毎日エリア)。
+func (req planRequest) validate() (date *string, planType string, recipeID *int64, servings int, mealTime, note string, overrides []repository.PlanIngredientOverride, seasoningOverrides []repository.PlanSeasoningOverride, err error) {
+	if !validPlanTypes[req.Type] {
+		return nil, "", nil, 0, "", "", nil, nil, errors.New("typeはscheduled/daily/unscheduledのいずれかである必要があります")
+	}
+	if req.Type == "scheduled" {
+		if req.Date != nil {
+			if _, err := time.Parse(time.DateOnly, *req.Date); err != nil {
+				return nil, "", nil, 0, "", "", nil, nil, errors.New("dateはYYYY-MM-DD形式である必要があります")
+			}
 		}
+	} else {
+		req.Date = nil
 	}
 	if !validMealTimes[req.MealTime] {
-		return nil, nil, 0, "", "", nil, nil, errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
+		return nil, "", nil, 0, "", "", nil, nil, errors.New("mealTimeはmorning/noon/night/otherのいずれかである必要があります")
 	}
 
 	if req.RecipeID != nil {
 		if req.Servings <= 0 {
-			return nil, nil, 0, "", "", nil, nil, errors.New("servingsは1以上である必要があります")
+			return nil, "", nil, 0, "", "", nil, nil, errors.New("servingsは1以上である必要があります")
 		}
 		overrides, err := validatePlanIngredientOverrides(req.IngredientOverrides)
 		if err != nil {
-			return nil, nil, 0, "", "", nil, nil, err
+			return nil, "", nil, 0, "", "", nil, nil, err
 		}
 		seasoningOverrides, err := validatePlanSeasoningOverrides(req.SeasoningOverrides)
 		if err != nil {
-			return nil, nil, 0, "", "", nil, nil, err
+			return nil, "", nil, 0, "", "", nil, nil, err
 		}
-		return req.Date, req.RecipeID, req.Servings, req.MealTime, "", overrides, seasoningOverrides, nil
+		return req.Date, req.Type, req.RecipeID, req.Servings, req.MealTime, "", overrides, seasoningOverrides, nil
 	}
 
 	note = strings.TrimSpace(req.Note)
 	if note == "" {
-		return nil, nil, 0, "", "", nil, nil, errors.New("recipeIdまたはnoteのいずれかを指定してください")
+		return nil, "", nil, 0, "", "", nil, nil, errors.New("recipeIdまたはnoteのいずれかを指定してください")
 	}
-	return req.Date, nil, 0, req.MealTime, note, nil, nil, nil
+	return req.Date, req.Type, nil, 0, req.MealTime, note, nil, nil, nil
 }
 
 // validatePlanIngredientOverrides はingredientIdの重複と負のquantityを弾く。
@@ -137,6 +154,7 @@ type planSeasoningOverrideResponse struct {
 type planResponse struct {
 	ID                  int64                            `json:"id"`
 	Date                *string                          `json:"date"`
+	Type                string                           `json:"type"`
 	RecipeID            *int64                           `json:"recipeId"`
 	RecipeName          string                           `json:"recipeName"`
 	HasImage            bool                             `json:"hasImage"`
@@ -173,6 +191,7 @@ func toPlanResponse(detail repository.PlanDetail) planResponse {
 	return planResponse{
 		ID:                  detail.ID,
 		Date:                detail.Date,
+		Type:                detail.Type,
 		RecipeID:            detail.RecipeID,
 		RecipeName:          detail.RecipeName,
 		HasImage:            detail.HasImage,
@@ -220,6 +239,22 @@ func (h *PlanHandler) ListUnscheduled(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
+// ListDaily は検討期間内は毎日消費するとみなす献立(毎日エリア)を
+// レシピ名込みで返す。未定エリアと同様、検討期間によらず範囲指定は受け付けない。
+func (h *PlanHandler) ListDaily(w http.ResponseWriter, r *http.Request) {
+	plans, err := h.repo.ListDaily(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "サーバー内部エラーが発生しました")
+		return
+	}
+
+	res := make([]planResponse, 0, len(plans))
+	for _, p := range plans {
+		res = append(res, toPlanResponse(p))
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
 // Summary は指定された期間の献立に登場する食材と在庫がある食材の和集合について、
 // 必要量と在庫からの残りを返す。
 func (h *PlanHandler) Summary(w http.ResponseWriter, r *http.Request) {
@@ -254,13 +289,13 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	date, recipeID, servings, mealTime, note, _, _, err := req.validate()
+	date, planType, recipeID, servings, mealTime, note, _, _, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	detail, err := h.repo.Create(r.Context(), date, recipeID, servings, mealTime, note)
+	detail, err := h.repo.Create(r.Context(), date, planType, recipeID, servings, mealTime, note)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -293,13 +328,13 @@ func (h *PlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	date, recipeID, servings, mealTime, note, overrides, seasoningOverrides, err := req.validate()
+	date, planType, recipeID, servings, mealTime, note, overrides, seasoningOverrides, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	detail, err := h.repo.Update(r.Context(), id, date, recipeID, servings, mealTime, note, overrides, seasoningOverrides)
+	detail, err := h.repo.Update(r.Context(), id, date, planType, recipeID, servings, mealTime, note, overrides, seasoningOverrides)
 	if err != nil {
 		h.handleError(w, err)
 		return

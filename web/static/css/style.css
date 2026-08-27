@@ -989,11 +989,15 @@ main {
   border-bottom: none;
 }
 
-.plan-day-unscheduled {
+.plan-day-unscheduled .plan-day-date {
+  color: var(--color-text-muted);
+}
+
+.plan-day-daily {
   border-bottom: 2px solid var(--color-border-strong);
 }
 
-.plan-day-unscheduled .plan-day-date {
+.plan-day-daily .plan-day-date {
   color: var(--color-text-muted);
 }
 

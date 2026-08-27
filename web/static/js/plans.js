@@ -216,7 +216,7 @@ function populatePlanFields(plan, defaultDate, mode) {
 
   if (plan) {
     planIdField.value = plan.id;
-    planDateField.value = plan.date || '';
+    planDateField.value = plan.type === 'daily' ? 'daily' : (plan.date || '');
     planMealTimeField.value = plan.mealTime;
 
     if (effectiveMode === 'recipe') {
@@ -234,6 +234,17 @@ function populatePlanFields(plan, defaultDate, mode) {
   return effectiveMode;
 }
 
+// 献立日付フィールド(<select>)の値と献立の日付/種別との対応:
+// value === '' -> {date: null, type: 'unscheduled'}(未定)
+// value === 'daily' -> {date: null, type: 'daily'}(毎日)
+// それ以外(実際の日付文字列) -> {date: value, type: 'scheduled'}
+function resolvePlanDateSelection() {
+  const value = planDateField.value;
+  if (value === 'daily') return { date: null, type: 'daily' };
+  if (value === '') return { date: null, type: 'unscheduled' };
+  return { date: value, type: 'scheduled' };
+}
+
 function renderPlanDateOptions() {
   const dateRange = getDateRange();
   const dates = enumerateDateRange(dateRange.from, dateRange.to);
@@ -242,6 +253,10 @@ function renderPlanDateOptions() {
   unscheduledOption.value = '';
   unscheduledOption.textContent = '未定';
   planDateField.appendChild(unscheduledOption);
+  const dailyOption = document.createElement('option');
+  dailyOption.value = 'daily';
+  dailyOption.textContent = '毎日';
+  planDateField.appendChild(dailyOption);
   for (const dateStr of dates) {
     const option = document.createElement('option');
     option.value = dateStr;
@@ -255,7 +270,8 @@ function renderPlanDateOptions() {
 // computeIngredientRequirement/computeSeasoningRequirementで算出する(編集モードと同じロジック)。
 function renderPlanView(plan, effectiveMode) {
   const mealLabel = mealTimeLabels[plan.mealTime] || plan.mealTime;
-  planViewMetaEl.textContent = `${plan.date ? formatDateLabel(plan.date) : '未定'} ${mealLabel}`;
+  const dateLabel = plan.date ? formatDateLabel(plan.date) : (plan.type === 'daily' ? '毎日' : '未定');
+  planViewMetaEl.textContent = `${dateLabel} ${mealLabel}`;
 
   if (effectiveMode === 'recipe') {
     planDialogTitle.textContent = `${plan.recipeName}(${plan.servings}人分)`;
@@ -361,7 +377,8 @@ async function openPlanEditDialog(plan) {
 
 async function onDeletePlan(plan) {
   const planLabel = plan.recipeId ? plan.recipeName : plan.note;
-  if (!(await confirmDialog(`${plan.date || '未定'}の「${planLabel}」を削除しますか?`))) return;
+  const deleteDateLabel = plan.date || (plan.type === 'daily' ? '毎日' : '未定');
+  if (!(await confirmDialog(`${deleteDateLabel}の「${planLabel}」を削除しますか?`))) return;
   planErrorEl.textContent = '';
   try {
     await deletePlan(plan.id);
@@ -381,12 +398,12 @@ function groupPlansByDate(plans) {
   return map;
 }
 
-async function onDropPlan(planId, newDate) {
+async function onDropPlan(planId, newDate, newType) {
   const plan = plansById.get(Number(planId));
-  if (!plan || plan.date === newDate) return;
+  if (!plan || (plan.date === newDate && plan.type === newType)) return;
   planErrorEl.textContent = '';
   try {
-    await updatePlan(plan.id, newDate, plan.recipeId, plan.servings, plan.mealTime, plan.note, plan.ingredientOverrides, plan.seasoningOverrides);
+    await updatePlan(plan.id, newDate, newType, plan.recipeId, plan.servings, plan.mealTime, plan.note, plan.ingredientOverrides, plan.seasoningOverrides);
     await refresh();
   } catch (err) {
     planErrorEl.textContent = err.message;
@@ -443,9 +460,11 @@ function onPlanPanelPointerUp(e) {
   dragState = null;
 
   if (dropCell && dropCell.dataset.unscheduled === 'true') {
-    onDropPlan(plan.id, null);
+    onDropPlan(plan.id, null, 'unscheduled');
+  } else if (dropCell && dropCell.dataset.daily === 'true') {
+    onDropPlan(plan.id, null, 'daily');
   } else if (dropCell && dropCell.dataset.date) {
-    onDropPlan(plan.id, dropCell.dataset.date);
+    onDropPlan(plan.id, dropCell.dataset.date, 'scheduled');
   }
 }
 
@@ -545,10 +564,11 @@ function createPlanPanel(plan) {
   return panel;
 }
 
-function createPlanAreaEl(label, plans, { unscheduled = false, date = null, onAddNote }) {
+function createPlanAreaEl(label, plans, { unscheduled = false, daily = false, date = null, onAddNote }) {
   const dayEl = document.createElement('div');
   dayEl.className = 'plan-day';
   if (unscheduled) dayEl.classList.add('plan-day-unscheduled');
+  if (daily) dayEl.classList.add('plan-day-daily');
 
   const header = document.createElement('div');
   header.className = 'plan-day-header';
@@ -572,6 +592,8 @@ function createPlanAreaEl(label, plans, { unscheduled = false, date = null, onAd
   cell.className = 'plan-cell';
   if (unscheduled) {
     cell.dataset.unscheduled = 'true';
+  } else if (daily) {
+    cell.dataset.daily = 'true';
   } else {
     cell.dataset.date = date;
   }
@@ -588,15 +610,21 @@ function createPlanAreaEl(label, plans, { unscheduled = false, date = null, onAd
   return dayEl;
 }
 
-function renderPlans(scheduledPlans, unscheduledPlans) {
+function renderPlans(scheduledPlans, unscheduledPlans, dailyPlans) {
   planListBody.innerHTML = '';
   plansById = new Map();
   for (const plan of unscheduledPlans) plansById.set(plan.id, plan);
+  for (const plan of dailyPlans) plansById.set(plan.id, plan);
   const plansByDate = groupPlansByDate(scheduledPlans);
 
   planListBody.appendChild(createPlanAreaEl('未定', unscheduledPlans, {
     unscheduled: true,
     onAddNote: () => openPlanDialog(null, '', 'note'),
+  }));
+
+  planListBody.appendChild(createPlanAreaEl('毎日', dailyPlans, {
+    daily: true,
+    onAddNote: () => openPlanDialog(null, 'daily', 'note'),
   }));
 
   const dateRange = getDateRange();
@@ -613,11 +641,12 @@ async function loadPlans() {
   planErrorEl.textContent = '';
   try {
     const dateRange = getDateRange();
-    const [scheduledPlans, unscheduledPlans] = await Promise.all([
+    const [scheduledPlans, unscheduledPlans, dailyPlans] = await Promise.all([
       listPlans(dateRange.from, dateRange.to),
       listUnscheduledPlans(),
+      listDailyPlans(),
     ]);
-    renderPlans(scheduledPlans, unscheduledPlans);
+    renderPlans(scheduledPlans, unscheduledPlans, dailyPlans);
   } catch (err) {
     planErrorEl.textContent = err.message;
   }
@@ -653,7 +682,7 @@ planDialog.addEventListener('click', (e) => {
 planForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   planErrorEl.textContent = '';
-  const date = planDateField.value || null;
+  const { date, type } = resolvePlanDateSelection();
   const mealTime = planMealTimeField.value;
   try {
     let saved;
@@ -667,9 +696,9 @@ planForm.addEventListener('submit', async (e) => {
       const ingredientOverrides = Array.from(planIngredientOverrides.entries()).map(([ingredientId, quantity]) => ({ ingredientId, quantity }));
       const seasoningOverrides = Array.from(planSeasoningOverrides.entries()).map(([seasoningId, quantity]) => ({ seasoningId, quantity }));
       if (planIdField.value) {
-        saved = await updatePlan(planIdField.value, date, recipeId, servings, mealTime, '', ingredientOverrides, seasoningOverrides);
+        saved = await updatePlan(planIdField.value, date, type, recipeId, servings, mealTime, '', ingredientOverrides, seasoningOverrides);
       } else {
-        saved = await createPlan(date, recipeId, servings, mealTime, '');
+        saved = await createPlan(date, type, recipeId, servings, mealTime, '');
       }
     } else {
       const note = planNoteField.value.trim();
@@ -678,9 +707,9 @@ planForm.addEventListener('submit', async (e) => {
         return;
       }
       if (planIdField.value) {
-        saved = await updatePlan(planIdField.value, date, null, 0, mealTime, note);
+        saved = await updatePlan(planIdField.value, date, type, null, 0, mealTime, note);
       } else {
-        saved = await createPlan(date, null, 0, mealTime, note);
+        saved = await createPlan(date, type, null, 0, mealTime, note);
       }
     }
     await refresh();

@@ -10,10 +10,12 @@ import (
 
 // PlanDetail はplanとrecipeをLEFT JOINした結果。repository層はHTTP/JSONを
 // 意識しないため、JSONタグは付けない。RecipeIDがnilの行はレシピに依存しない
-// メモ行(外食予定や作り置きなど)を表す。Dateがnilの行は日付未定(未定エリア)を表す。
+// メモ行(外食予定や作り置きなど)を表す。Typeが"scheduled"以外の行はDateが
+// 常にnilとなる("unscheduled"=未定エリア、"daily"=毎日エリア)。
 type PlanDetail struct {
 	ID                  int64
 	Date                *string
+	Type                string
 	RecipeID            *int64
 	RecipeName          string
 	RecipeServings      int
@@ -49,15 +51,15 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 }
 
 // List は指定された日付範囲(片方または両方省略可)の献立をレシピ名込みで返す。
-// 日付未定(未定エリア)の献立は対象外。
+// 日付未定(未定エリア)・毎日(毎日エリア)の献立は対象外。
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetail, error) {
 	query := strings.Builder{}
 	query.WriteString(`
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
+		SELECT p.id, p.date, p.plan_type, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 	`)
-	conditions := []string{"p.date IS NOT NULL"}
+	conditions := []string{"p.plan_type = 'scheduled'"}
 	var args []any
 	if from != "" {
 		conditions = append(conditions, "p.date >= ?")
@@ -85,10 +87,30 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]PlanDetai
 // 未定エリアは検討期間によらず常に表示されるため、範囲指定は行わない。
 func (r *PlanRepository) ListUnscheduled(ctx context.Context) ([]PlanDetail, error) {
 	query := `
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
+		SELECT p.id, p.date, p.plan_type, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
-		WHERE p.date IS NULL
+		WHERE p.plan_type = 'unscheduled'
+		ORDER BY
+			CASE p.meal_time
+				WHEN 'morning' THEN 0
+				WHEN 'noon' THEN 1
+				WHEN 'night' THEN 2
+				ELSE 3
+			END,
+			p.id`
+
+	return r.queryPlans(ctx, query)
+}
+
+// ListDaily は検討期間内は毎日消費するとみなす献立(毎日エリア)を
+// レシピ名込みで返す。未定エリアと同様、範囲指定は行わず常に全件取得する。
+func (r *PlanRepository) ListDaily(ctx context.Context) ([]PlanDetail, error) {
+	query := `
+		SELECT p.id, p.date, p.plan_type, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
+		FROM plans p
+		LEFT JOIN recipes r ON r.id = p.recipe_id
+		WHERE p.plan_type = 'daily'
 		ORDER BY
 			CASE p.meal_time
 				WHEN 'morning' THEN 0
@@ -118,7 +140,7 @@ func (r *PlanRepository) queryPlans(ctx context.Context, query string, args ...a
 			recipeServings sql.NullInt64
 			recipeImageExt sql.NullString
 		)
-		if err := rows.Scan(&p.ID, &date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note); err != nil {
+		if err := rows.Scan(&p.ID, &date, &p.Type, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note); err != nil {
 			return nil, err
 		}
 		if date.Valid {
@@ -160,11 +182,11 @@ func (r *PlanRepository) Get(ctx context.Context, id int64) (PlanDetail, error) 
 		recipeImageExt sql.NullString
 	)
 	err := r.db.QueryRowContext(ctx, `
-		SELECT p.id, p.date, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
+		SELECT p.id, p.date, p.plan_type, p.recipe_id, r.name, r.servings, r.image_ext, p.servings, p.meal_time, p.note
 		FROM plans p
 		LEFT JOIN recipes r ON r.id = p.recipe_id
 		WHERE p.id = ?
-	`, id).Scan(&p.ID, &date, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note)
+	`, id).Scan(&p.ID, &date, &p.Type, &recipeID, &recipeName, &recipeServings, &recipeImageExt, &p.Servings, &p.MealTime, &p.Note)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PlanDetail{}, ErrNotFound
 	}
@@ -296,7 +318,7 @@ func validateRecipeExists(ctx context.Context, tx *sql.Tx, recipeID int64) error
 	return nil
 }
 
-func (r *PlanRepository) Create(ctx context.Context, date *string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
+func (r *PlanRepository) Create(ctx context.Context, date *string, planType string, recipeID *int64, servings int, mealTime, note string) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -309,9 +331,15 @@ func (r *PlanRepository) Create(ctx context.Context, date *string, recipeID *int
 		}
 	}
 
+	// scheduled以外はrepository層でも防御的にdateを常にNULLにする
+	// (呼び出し元の不整合がDBへ伝播しないようにする)。
+	if planType != "scheduled" {
+		date = nil
+	}
+
 	res, err := tx.ExecContext(ctx,
-		"INSERT INTO plans (date, recipe_id, servings, meal_time, note) VALUES (?, ?, ?, ?, ?)",
-		date, recipeID, servings, mealTime, note,
+		"INSERT INTO plans (date, plan_type, recipe_id, servings, meal_time, note) VALUES (?, ?, ?, ?, ?, ?)",
+		date, planType, recipeID, servings, mealTime, note,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)
@@ -327,7 +355,7 @@ func (r *PlanRepository) Create(ctx context.Context, date *string, recipeID *int
 	return r.Get(ctx, id)
 }
 
-func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride, seasoningOverrides []PlanSeasoningOverride) (PlanDetail, error) {
+func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, planType string, recipeID *int64, servings int, mealTime, note string, overrides []PlanIngredientOverride, seasoningOverrides []PlanSeasoningOverride) (PlanDetail, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return PlanDetail{}, err
@@ -338,6 +366,12 @@ func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, rec
 		if err := validateRecipeExists(ctx, tx, *recipeID); err != nil {
 			return PlanDetail{}, err
 		}
+	}
+
+	// scheduled以外はrepository層でも防御的にdateを常にNULLにする
+	// (呼び出し元の不整合がDBへ伝播しないようにする)。
+	if planType != "scheduled" {
+		date = nil
 	}
 	if len(overrides) > 0 {
 		ids := make([]int64, len(overrides))
@@ -359,8 +393,8 @@ func (r *PlanRepository) Update(ctx context.Context, id int64, date *string, rec
 	}
 
 	res, err := tx.ExecContext(ctx,
-		"UPDATE plans SET date = ?, recipe_id = ?, servings = ?, meal_time = ?, note = ? WHERE id = ?",
-		date, recipeID, servings, mealTime, note, id,
+		"UPDATE plans SET date = ?, plan_type = ?, recipe_id = ?, servings = ?, meal_time = ?, note = ? WHERE id = ?",
+		date, planType, recipeID, servings, mealTime, note, id,
 	)
 	if err != nil {
 		return PlanDetail{}, classifySQLiteError(err)

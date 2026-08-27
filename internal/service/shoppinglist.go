@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"sort"
+	"time"
 
 	"kondate-supporter/internal/repository"
 )
@@ -54,6 +55,69 @@ type requiredAmount struct {
 	quantity float64
 }
 
+// addPlanRequirement は1件の献立に必要な食材の量をrequiredマップへ加算する。
+// dayMultiplierは通常献立なら1、毎日献立(検討期間内は毎日消費するとみなす献立)
+// なら検討期間の日数を渡すことで、同じロジックを使い回せるようにしている。
+func (s *ShoppingListService) addPlanRequirement(ctx context.Context, plan repository.PlanDetail, dayMultiplier float64, recipeCache map[int64]repository.RecipeDetail, required map[int64]*requiredAmount) error {
+	if plan.RecipeID == nil {
+		// レシピに依存しないメモ行は食材集計の対象外。
+		return nil
+	}
+	recipeDetail, ok := recipeCache[*plan.RecipeID]
+	if !ok {
+		var err error
+		recipeDetail, err = s.recipeRepo.Get(ctx, *plan.RecipeID)
+		if err != nil {
+			return err
+		}
+		recipeCache[*plan.RecipeID] = recipeDetail
+	}
+
+	if recipeDetail.Recipe.Servings <= 0 {
+		// 基準人数が不正なレシピは倍率計算ができないため、この献立の寄与をスキップする。
+		return nil
+	}
+	factor := float64(plan.Servings) / float64(recipeDetail.Recipe.Servings)
+
+	overrideByIngredient := make(map[int64]float64, len(plan.IngredientOverrides))
+	for _, o := range plan.IngredientOverrides {
+		overrideByIngredient[o.IngredientID] = o.Quantity
+	}
+
+	for _, ing := range recipeDetail.Ingredients {
+		amount, ok := required[ing.IngredientID]
+		if !ok {
+			amount = &requiredAmount{name: ing.Name, unit: ing.Unit}
+			required[ing.IngredientID] = amount
+		}
+		qty := ing.Quantity
+		if !ing.FixedQuantity {
+			qty = ing.Quantity * factor
+		}
+		// オーバーライド値は1日分の必要量という前提のため、
+		// 通常献立同様dayMultiplierを乗じてから加算する。
+		if o, ok := overrideByIngredient[ing.IngredientID]; ok {
+			qty = o
+		}
+		amount.quantity += qty * dayMultiplier
+	}
+	return nil
+}
+
+// dayCountBetween はfrom(YYYY-MM-DD)からto(YYYY-MM-DD)までの日数を
+// 両端を含めて返す(from=toなら1)。毎日献立の寄与量算出に使う。
+func dayCountBetween(from, to string) (int, error) {
+	fromDate, err := time.Parse(time.DateOnly, from)
+	if err != nil {
+		return 0, err
+	}
+	toDate, err := time.Parse(time.DateOnly, to)
+	if err != nil {
+		return 0, err
+	}
+	return int(toDate.Sub(fromDate).Hours()/24) + 1, nil
+}
+
 // aggregate は指定された期間(from/toは省略可)の献立に必要な食材の合計量と、
 // 現在の在庫を集計する。Calculate/Summarizeの共通処理。
 func (s *ShoppingListService) aggregate(ctx context.Context, from, to string) (map[int64]*requiredAmount, map[int64]repository.StockDetail, error) {
@@ -66,44 +130,27 @@ func (s *ShoppingListService) aggregate(ctx context.Context, from, to string) (m
 	required := make(map[int64]*requiredAmount)
 
 	for _, plan := range plans {
-		if plan.RecipeID == nil {
-			// レシピに依存しないメモ行は食材集計の対象外。
-			continue
+		if err := s.addPlanRequirement(ctx, plan, 1, recipeCache, required); err != nil {
+			return nil, nil, err
 		}
-		recipeDetail, ok := recipeCache[*plan.RecipeID]
-		if !ok {
-			recipeDetail, err = s.recipeRepo.Get(ctx, *plan.RecipeID)
-			if err != nil {
+	}
+
+	// 毎日献立(検討期間内は毎日消費するとみなす献立)は、期間が両方とも
+	// 指定されている場合のみ日数分の乗数で加算する。片方でも省略された場合は
+	// 日数を決定できないため寄与を0として扱う(集計自体をスキップする)。
+	if from != "" && to != "" {
+		days, err := dayCountBetween(from, to)
+		if err != nil {
+			return nil, nil, err
+		}
+		dailyPlans, err := s.planRepo.ListDaily(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, plan := range dailyPlans {
+			if err := s.addPlanRequirement(ctx, plan, float64(days), recipeCache, required); err != nil {
 				return nil, nil, err
 			}
-			recipeCache[*plan.RecipeID] = recipeDetail
-		}
-
-		if recipeDetail.Recipe.Servings <= 0 {
-			// 基準人数が不正なレシピは倍率計算ができないため、この献立の寄与をスキップする。
-			continue
-		}
-		factor := float64(plan.Servings) / float64(recipeDetail.Recipe.Servings)
-
-		overrideByIngredient := make(map[int64]float64, len(plan.IngredientOverrides))
-		for _, o := range plan.IngredientOverrides {
-			overrideByIngredient[o.IngredientID] = o.Quantity
-		}
-
-		for _, ing := range recipeDetail.Ingredients {
-			amount, ok := required[ing.IngredientID]
-			if !ok {
-				amount = &requiredAmount{name: ing.Name, unit: ing.Unit}
-				required[ing.IngredientID] = amount
-			}
-			qty := ing.Quantity
-			if !ing.FixedQuantity {
-				qty = ing.Quantity * factor
-			}
-			if o, ok := overrideByIngredient[ing.IngredientID]; ok {
-				qty = o
-			}
-			amount.quantity += qty
 		}
 	}
 

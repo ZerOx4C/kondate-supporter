@@ -550,7 +550,7 @@ function closeRecipeDialog() {
 
 async function onUseRecipe(recipe) {
   try {
-    await createPlan(null, recipe.id, recipe.servings, 'other', '');
+    await createPlan(null, 'unscheduled', recipe.id, recipe.servings, 'other', '');
     showToast(`「${recipe.name}」を未定に追加しました`);
   } catch (err) {
     recipeListErrorEl.textContent = err.message;
