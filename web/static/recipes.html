@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <div id="recipe-list" class="recipe-grid"></div>
+    <div id="recipe-list" class="recipe-list"></div>
     <p class="error" id="recipe-list-error"></p>
 
     <dialog id="recipe-dialog" class="app-dialog recipe-dialog">
@@ -77,6 +77,10 @@
 
         <div id="recipe-view-fields">
           <img id="recipe-view-image" class="recipe-view-image" hidden>
+          <div id="recipe-view-image-placeholder" class="recipe-view-image-placeholder" hidden>
+            <i class="ti ti-photo-off" aria-hidden="true"></i>
+            <span>画像なし</span>
+          </div>
           <p id="recipe-view-url" class="recipe-view-url"></p>
           <h4 class="section-title"><span class="icon"><i class="ti ti-carrot" aria-hidden="true"></i></span>食材</h4>
           <ul id="recipe-view-ingredients"></ul>

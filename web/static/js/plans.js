@@ -523,14 +523,14 @@ function createPlanPanel(plan) {
   text.textContent = plan.recipeId ? plan.recipeName : plan.note;
   main.appendChild(text);
 
-  const meta = document.createElement('div');
-  meta.className = 'plan-panel-meta';
-
   if (plan.recipeId) {
+    const meta = document.createElement('div');
+    meta.className = 'plan-panel-meta';
     const servings = document.createElement('span');
     servings.className = 'plan-panel-servings';
     servings.innerHTML = `<i class="ti ti-users" aria-hidden="true"></i> ${plan.servings}`;
     meta.appendChild(servings);
+    main.appendChild(meta);
   }
 
   const actions = document.createElement('span');
@@ -558,9 +558,8 @@ function createPlanPanel(plan) {
   });
   actions.appendChild(deleteButton);
 
-  meta.appendChild(actions);
-  main.appendChild(meta);
   panel.appendChild(main);
+  panel.appendChild(actions);
   return panel;
 }
 

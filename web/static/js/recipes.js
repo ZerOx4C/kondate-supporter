@@ -22,6 +22,7 @@ const recipeErrorEl = document.getElementById('recipe-error');
 
 const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
 const recipeViewImageEl = document.getElementById('recipe-view-image');
+const recipeViewImagePlaceholderEl = document.getElementById('recipe-view-image-placeholder');
 const recipeViewUrlEl = document.getElementById('recipe-view-url');
 const recipeViewIngredientsEl = document.getElementById('recipe-view-ingredients');
 const recipeViewSeasoningsEl = document.getElementById('recipe-view-seasonings');
@@ -435,6 +436,7 @@ function applyRecipeDialogMode(mode) {
 function renderRecipeView(recipe) {
   recipeDialogTitle.textContent = `${recipe.name}(${recipe.servings}人分)`;
   recipeViewImageEl.hidden = !recipe.hasImage;
+  recipeViewImagePlaceholderEl.hidden = recipe.hasImage;
   if (recipe.hasImage) {
     recipeViewImageEl.src = `/api/recipes/${recipe.id}/image?t=${Date.now()}`;
   }
@@ -669,6 +671,28 @@ function onToggleIngredientFilter(ingredientId) {
   renderRecipeList();
 }
 
+// コンテナの表示幅を超えるチップを末尾から間引き、超過分を「+N」チップにまとめる。
+// container・chipEls内の各要素は呼び出し時点でDOM接続済み(親要素にappend済み)である必要がある。
+// 未接続の状態ではclientWidthが0になり、間引き判定が正しく機能しない。
+function trimChipsToFit(container, chipEls, moreChipClassName) {
+  let hiddenCount = 0;
+  while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
+    chipEls.pop().remove();
+    hiddenCount++;
+  }
+  if (hiddenCount > 0) {
+    const more = document.createElement('span');
+    more.className = moreChipClassName;
+    more.textContent = `+${hiddenCount}`;
+    container.appendChild(more);
+    while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
+      chipEls.pop().remove();
+      hiddenCount++;
+      more.textContent = `+${hiddenCount}`;
+    }
+  }
+}
+
 function renderSelectedIngredientChips() {
   const container = recipeSelectedIngredientsEl;
   container.innerHTML = '';
@@ -692,22 +716,7 @@ function renderSelectedIngredientChips() {
     chipEls.push(chip);
   }
 
-  let hiddenCount = 0;
-  while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
-    chipEls.pop().remove();
-    hiddenCount++;
-  }
-  if (hiddenCount > 0) {
-    const more = document.createElement('span');
-    more.className = 'ingredient-chip ingredient-chip-more';
-    more.textContent = `+${hiddenCount}`;
-    container.appendChild(more);
-    while (container.scrollWidth > container.clientWidth && chipEls.length > 0) {
-      chipEls.pop().remove();
-      hiddenCount++;
-      more.textContent = `+${hiddenCount}`;
-    }
-  }
+  trimChipsToFit(container, chipEls, 'ingredient-chip ingredient-chip-more');
 }
 
 function getFilteredRecipes() {
@@ -767,18 +776,13 @@ function renderRecipeList() {
 
     const chips = document.createElement('ul');
     chips.className = 'recipe-card-ingredients';
-    const shownIngredients = recipe.ingredients.slice(0, 3);
-    for (const ing of shownIngredients) {
+    const chipEls = [];
+    for (const ing of recipe.ingredients) {
       const li = document.createElement('li');
       li.className = 'material-chip';
       li.textContent = `${ing.name} ${ing.quantity}${ing.unit}`;
       chips.appendChild(li);
-    }
-    if (recipe.ingredients.length > shownIngredients.length) {
-      const li = document.createElement('li');
-      li.className = 'material-chip material-chip-more';
-      li.textContent = `+${recipe.ingredients.length - shownIngredients.length}`;
-      chips.appendChild(li);
+      chipEls.push(li);
     }
     body.appendChild(chips);
     card.appendChild(body);
@@ -796,6 +800,8 @@ function renderRecipeList() {
 
     card.addEventListener('click', () => openRecipeDialog(recipe));
     recipeListBody.appendChild(card);
+    // DOM接続後でないとclientWidthが正しく取れないため、appendしてから間引く
+    trimChipsToFit(chips, chipEls, 'material-chip material-chip-more');
   }
 }
 
