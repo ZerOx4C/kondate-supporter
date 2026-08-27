@@ -950,7 +950,8 @@ main {
 
 .recipe-card-ingredients {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
   gap: var(--space-xs);
   list-style: none;
   padding: 0;
@@ -1122,6 +1123,7 @@ main {
 
 .plan-panel-media {
   width: 6rem;
+  aspect-ratio: 1 / 1;
   flex-shrink: 0;
   background: var(--color-bg-sunken);
   display: flex;
@@ -1158,6 +1160,7 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: bold;
 }
 
 .plan-panel-meta {
