@@ -1,2 +1,0 @@
-ALTER TABLE recipe_ingredients ADD COLUMN note TEXT NOT NULL DEFAULT '';
-ALTER TABLE recipe_seasonings ADD COLUMN note TEXT NOT NULL DEFAULT '';

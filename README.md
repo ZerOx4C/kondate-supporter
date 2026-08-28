@@ -44,3 +44,5 @@ make build-rpi
 2. `scp bin/kondate-supporter-armv6 pi@<host>:/home/pi/kondate-supporter/`
 3. RaspberryPi Zero上でsystemdサービスとして登録し常時稼働させる
 4. DBファイルは配置先の `data/kondate.db` に作成される
+
+マイグレーションファイルを統合した更新を反映する場合は、統合前の `schema_migrations` の適用履歴と一致しなくなるため、稼働中の `data/kondate.db` を削除してから起動すること(個人利用でデータ量が少ない前提。既存データを残したい場合は事前にバックアップを取る)。
