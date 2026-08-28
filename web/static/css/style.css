@@ -531,7 +531,8 @@ form .field-row {
 }
 
 form .field-row label,
-.recipe-name-row label {
+.recipe-name-row label,
+.dialog-meta-row label {
   display: flex;
   flex-direction: column;
   font-size: 0.85rem;
@@ -539,15 +540,21 @@ form .field-row label,
 }
 
 form .field-row label.icon-field,
-.recipe-name-row label.icon-field {
+.recipe-name-row label.icon-field,
+.dialog-meta-row label.icon-field {
   flex-direction: row;
   align-items: center;
   gap: 0.4rem;
 }
 
 form .field-row label.icon-field > i,
-.recipe-name-row label.icon-field > i {
+.recipe-name-row label.icon-field > i,
+.dialog-meta-row label.icon-field > i {
   color: var(--color-text-muted);
+}
+
+#plan-servings-field[hidden] {
+  display: none;
 }
 
 .ingredient-filter-dialog {
@@ -686,8 +693,9 @@ form .field-row label.icon-field > i,
 
 .recipe-name-row {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
 }
 
 .recipe-name-row input[type="number"] {
@@ -991,6 +999,16 @@ form .field-row label.icon-field > i,
   border-color: var(--color-accent);
 }
 
+.material-note-badge {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  padding: 0.05rem 0.5rem;
+  margin-right: 0.4rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-sunken);
+}
+
 .plan-timeline {
   display: flex;
   flex-direction: column;
@@ -1193,12 +1211,20 @@ form .field-row label.icon-field > i,
   gap: 0.3rem;
 }
 
-.plan-panel-servings {
+.plan-panel-servings,
+.dialog-servings {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  flex-shrink: 0;
   color: var(--color-text-muted);
+}
+
+.plan-panel-servings {
+  flex-shrink: 0;
+}
+
+.dialog-servings[hidden] {
+  display: none;
 }
 
 .plan-panel-actions {
@@ -1285,10 +1311,29 @@ form .field-row label.icon-field > i,
   margin: 0;
 }
 
+.dialog-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+.dialog-meta-row[hidden] {
+  display: none;
+}
+
+.plan-edit-datetime {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
 .plan-view-meta {
   font-size: 0.85rem;
   color: var(--color-text-muted);
-  margin: 0.2rem 0 0;
+  margin: 0;
+  margin-left: auto;
 }
 
 .plan-dialog-body {

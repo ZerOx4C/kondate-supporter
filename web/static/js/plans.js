@@ -5,6 +5,8 @@ const planDateField = document.getElementById('plan-date');
 const planMealTimeField = document.getElementById('plan-meal-time');
 const planRecipeField = document.getElementById('plan-recipe');
 const planServingsField = document.getElementById('plan-servings');
+const planEditMetaRowEl = document.getElementById('plan-edit-meta-row');
+const planServingsFieldEl = document.getElementById('plan-servings-field');
 const planErrorEl = document.getElementById('plan-error');
 const planDialog = document.getElementById('plan-dialog');
 const planDialogTitle = document.getElementById('plan-dialog-title');
@@ -16,7 +18,10 @@ const planRecipeNameEl = document.getElementById('plan-recipe-name');
 const planIngredientRequirementsListEl = document.getElementById('plan-ingredient-requirements-list');
 const planSeasoningRequirementsListEl = document.getElementById('plan-seasoning-requirements-list');
 
+const planViewMetaRowEl = document.getElementById('plan-view-meta-row');
 const planViewMetaEl = document.getElementById('plan-view-meta');
+const planViewServingsEl = document.getElementById('plan-view-servings');
+const planViewServingsValueEl = planViewServingsEl.querySelector('span');
 const planViewFieldsEl = document.getElementById('plan-view-fields');
 const planViewRecipeFieldsEl = document.getElementById('plan-view-recipe-fields');
 const planViewNoteFieldsEl = document.getElementById('plan-view-note-fields');
@@ -193,6 +198,7 @@ function applyPlanContentMode(mode) {
   planNoteFieldsEl.hidden = mode !== 'note';
   planViewRecipeFieldsEl.hidden = mode !== 'recipe';
   planViewNoteFieldsEl.hidden = mode !== 'note';
+  planServingsFieldEl.hidden = mode !== 'recipe';
   // hidden な祖先を持っていてもネイティブのrequiredチェックはブロックされる
   // ブラウザがあるため、非表示のフィールドはrequiredを明示的に外す。
   planServingsField.required = mode === 'recipe';
@@ -201,9 +207,10 @@ function applyPlanContentMode(mode) {
 
 // ダイアログ全体の表示モード/編集モード切り替え
 function applyPlanInteractionMode(mode) {
-  planViewMetaEl.hidden = mode !== 'view';
+  planViewMetaRowEl.hidden = mode !== 'view';
   planViewFieldsEl.hidden = mode !== 'view';
   planForm.hidden = mode !== 'edit';
+  planEditMetaRowEl.hidden = mode !== 'edit';
   planViewActionsEl.hidden = mode !== 'view';
   planEditActionsEl.hidden = mode !== 'edit';
 }
@@ -274,7 +281,9 @@ function renderPlanView(plan, effectiveMode) {
   planViewMetaEl.textContent = `${dateLabel} ${mealLabel}`;
 
   if (effectiveMode === 'recipe') {
-    planDialogTitle.textContent = `${plan.recipeName}(${plan.servings}人分)`;
+    planDialogTitle.textContent = plan.recipeName;
+    planViewServingsEl.hidden = false;
+    planViewServingsValueEl.textContent = `${plan.servings}人分`;
     if (!planRecipeDetail) return;
 
     planViewImageEl.hidden = !plan.hasImage;
@@ -299,9 +308,13 @@ function renderPlanView(plan, effectiveMode) {
         ? planIngredientOverrides.get(ing.ingredientId)
         : computeIngredientRequirement(ing);
       const li = document.createElement('li');
-      li.textContent = ing.note
-        ? `${ing.name} ${quantity}${ing.unit}(${ing.note})`
-        : `${ing.name} ${quantity}${ing.unit}`;
+      if (ing.note) {
+        const badge = document.createElement('span');
+        badge.className = 'material-note-badge';
+        badge.textContent = ing.note;
+        li.appendChild(badge);
+      }
+      li.appendChild(document.createTextNode(`${ing.name} ${quantity}${ing.unit}`));
       planViewIngredientsEl.appendChild(li);
     }
 
@@ -311,9 +324,13 @@ function renderPlanView(plan, effectiveMode) {
         ? planSeasoningOverrides.get(s.seasoningId)
         : computeSeasoningRequirement(s);
       const li = document.createElement('li');
-      li.textContent = s.note
-        ? `${s.name} ${quantity}${s.unit}(${s.note})`
-        : `${s.name} ${quantity}${s.unit}`;
+      if (s.note) {
+        const badge = document.createElement('span');
+        badge.className = 'material-note-badge';
+        badge.textContent = s.note;
+        li.appendChild(badge);
+      }
+      li.appendChild(document.createTextNode(`${s.name} ${quantity}${s.unit}`));
       planViewSeasoningsEl.appendChild(li);
     }
 
@@ -326,6 +343,7 @@ function renderPlanView(plan, effectiveMode) {
     }
   } else {
     planDialogTitle.textContent = 'メモ';
+    planViewServingsEl.hidden = true;
     planViewNoteEl.textContent = plan.note;
   }
 }

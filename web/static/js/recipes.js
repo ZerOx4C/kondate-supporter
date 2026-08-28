@@ -19,6 +19,8 @@ const materialPickerListEl = document.getElementById('material-picker-list');
 const recipeDialog = document.getElementById('recipe-dialog');
 const recipeDialogTitle = document.getElementById('recipe-dialog-title');
 const recipeErrorEl = document.getElementById('recipe-error');
+const recipeViewServingsEl = document.getElementById('recipe-view-servings');
+const recipeViewServingsValueEl = recipeViewServingsEl.querySelector('span');
 
 const recipeViewFieldsEl = document.getElementById('recipe-view-fields');
 const recipeViewImageEl = document.getElementById('recipe-view-image');
@@ -430,11 +432,13 @@ function applyRecipeDialogMode(mode) {
   recipeViewActionsEl.hidden = mode !== 'view';
   recipeEditActionsEl.hidden = mode !== 'edit';
   recipeDialogTitle.hidden = mode !== 'view';
+  recipeViewServingsEl.hidden = mode !== 'view';
   recipeNameRowEl.hidden = mode !== 'edit';
 }
 
 function renderRecipeView(recipe) {
-  recipeDialogTitle.textContent = `${recipe.name}(${recipe.servings}人分)`;
+  recipeDialogTitle.textContent = recipe.name;
+  recipeViewServingsValueEl.textContent = `${recipe.servings}人分`;
   recipeViewImageEl.hidden = !recipe.hasImage;
   recipeViewImagePlaceholderEl.hidden = recipe.hasImage;
   if (recipe.hasImage) {
@@ -455,18 +459,26 @@ function renderRecipeView(recipe) {
   recipeViewIngredientsEl.innerHTML = '';
   for (const ing of recipe.ingredients) {
     const li = document.createElement('li');
-    li.textContent = ing.note
-      ? `${ing.name} ${ing.quantity}${ing.unit}(${ing.note})`
-      : `${ing.name} ${ing.quantity}${ing.unit}`;
+    if (ing.note) {
+      const badge = document.createElement('span');
+      badge.className = 'material-note-badge';
+      badge.textContent = ing.note;
+      li.appendChild(badge);
+    }
+    li.appendChild(document.createTextNode(`${ing.name} ${ing.quantity}${ing.unit}`));
     recipeViewIngredientsEl.appendChild(li);
   }
 
   recipeViewSeasoningsEl.innerHTML = '';
   for (const s of recipe.seasonings) {
     const li = document.createElement('li');
-    li.textContent = s.note
-      ? `${s.name} ${s.quantity}${s.unit}(${s.note})`
-      : `${s.name} ${s.quantity}${s.unit}`;
+    if (s.note) {
+      const badge = document.createElement('span');
+      badge.className = 'material-note-badge';
+      badge.textContent = s.note;
+      li.appendChild(badge);
+    }
+    li.appendChild(document.createTextNode(`${s.name} ${s.quantity}${s.unit}`));
     recipeViewSeasoningsEl.appendChild(li);
   }
 

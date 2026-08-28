@@ -46,7 +46,27 @@
     <dialog id="plan-dialog" class="app-dialog plan-dialog">
       <div class="plan-dialog-head">
         <h3 id="plan-dialog-title">献立を追加</h3>
-        <p id="plan-view-meta" class="plan-view-meta"></p>
+        <div id="plan-view-meta-row" class="dialog-meta-row">
+          <p id="plan-view-servings" class="dialog-servings" hidden>
+            <i class="ti ti-users" aria-hidden="true"></i><span></span>
+          </p>
+          <p id="plan-view-meta" class="plan-view-meta"></p>
+        </div>
+        <div id="plan-edit-meta-row" class="dialog-meta-row" hidden>
+          <label class="icon-field" id="plan-servings-field">
+            <i class="ti ti-users" aria-hidden="true"></i>
+            <input type="number" id="plan-servings" class="text-input" form="plan-form" min="1" step="1" aria-label="人数">
+          </label>
+          <div class="plan-edit-datetime">
+            <select id="plan-date" class="text-input" form="plan-form" aria-label="日付"></select>
+            <select id="plan-meal-time" class="text-input" form="plan-form" required aria-label="区分">
+              <option value="morning">朝</option>
+              <option value="noon">昼</option>
+              <option value="night">夜</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+        </div>
       </div>
       <div class="plan-dialog-body">
         <p class="error" id="plan-error"></p>
@@ -70,17 +90,9 @@
 
         <form id="plan-form" class="inline-form">
           <input type="hidden" id="plan-id">
-          <select id="plan-date" class="text-input" aria-label="日付"></select>
-          <select id="plan-meal-time" class="text-input" required aria-label="区分">
-            <option value="morning">朝</option>
-            <option value="noon">昼</option>
-            <option value="night">夜</option>
-            <option value="other">その他</option>
-          </select>
           <div id="plan-recipe-fields">
             <p class="plan-recipe-display">レシピ: <strong id="plan-recipe-name"></strong></p>
             <input type="hidden" id="plan-recipe">
-            <input type="number" id="plan-servings" class="text-input" min="1" step="1" required aria-label="人数">人分
             <div id="plan-ingredient-requirements">
               <p class="plan-ingredient-requirements-label">必要な食材</p>
               <table class="plan-ingredient-requirements-table">
