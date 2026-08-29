@@ -871,6 +871,8 @@ form .field-row label.icon-field > i,
   max-width: 64rem;
   margin-left: auto;
   margin-right: auto;
+  /* 材料名・手順などスペースを含まない長い文字列が折り返らず、body自体の幅をはみ出して横スクロールが発生するのを防ぐ */
+  overflow-wrap: anywhere;
 }
 
 .recipe-dialog-foot {
@@ -1496,10 +1498,12 @@ form .field-row label.icon-field > i,
 }
 
 /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
-   flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+   flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する。
+   box-sizingがデフォルト(content-box)だとwidth:100%に左右paddingが加算されて親幅をはみ出すため、border-boxを明示する */
 .plan-dialog.fullscreen-dialog .plan-dialog-head,
 .plan-dialog.fullscreen-dialog .plan-dialog-body,
 .plan-dialog.fullscreen-dialog .plan-dialog-foot {
+  box-sizing: border-box;
   width: 100%;
   max-width: 64rem;
   margin-left: auto;
@@ -1542,6 +1546,8 @@ form .field-row label.icon-field > i,
   overflow-y: auto;
   /* iOS Safariでダイアログ内スクロールが背後のbodyへ伝播する(スクロールチェイン)のを防ぐ */
   overscroll-behavior: contain;
+  /* 参考URLなどスペースを含まない長い文字列が折り返らず、body自体の幅をはみ出して横スクロールが発生するのを防ぐ */
+  overflow-wrap: anywhere;
 }
 
 .plan-dialog-body #plan-form {
