@@ -1496,10 +1496,12 @@ form .field-row label.icon-field > i,
 }
 
 /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
-   flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+   flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する。
+   box-sizingがデフォルト(content-box)だとwidth:100%に左右paddingが加算されて親幅をはみ出すため、border-boxを明示する */
 .plan-dialog.fullscreen-dialog .plan-dialog-head,
 .plan-dialog.fullscreen-dialog .plan-dialog-body,
 .plan-dialog.fullscreen-dialog .plan-dialog-foot {
+  box-sizing: border-box;
   width: 100%;
   max-width: 64rem;
   margin-left: auto;
