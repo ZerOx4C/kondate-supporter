@@ -283,7 +283,7 @@ function renderPlanView(plan, effectiveMode) {
   if (effectiveMode === 'recipe') {
     planDialogTitle.textContent = plan.recipeName;
     planViewServingsEl.hidden = false;
-    planViewServingsValueEl.textContent = `${plan.servings}人分`;
+    planViewServingsValueEl.textContent = `${plan.servings}`;
     if (!planRecipeDetail) return;
 
     planViewImageEl.hidden = !plan.hasImage;

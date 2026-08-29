@@ -494,7 +494,7 @@ function applyRecipeDialogMode(mode) {
 
 function renderRecipeView(recipe) {
   recipeDialogTitle.textContent = recipe.name;
-  recipeViewServingsValueEl.textContent = `${recipe.servings}人分`;
+  recipeViewServingsValueEl.textContent = `${recipe.servings}`;
   recipeViewImageEl.hidden = !recipe.hasImage;
   recipeViewImagePlaceholderEl.hidden = recipe.hasImage;
   if (recipe.hasImage) {
