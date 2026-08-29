@@ -792,7 +792,7 @@ function renderRecipeList() {
     for (const ing of recipe.ingredients) {
       const li = document.createElement('li');
       li.className = 'material-chip';
-      li.textContent = `${ing.name} ${ing.quantity}${ing.unit}`;
+      li.textContent = ing.name;
       chips.appendChild(li);
       chipEls.push(li);
     }

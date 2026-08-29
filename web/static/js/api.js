@@ -72,10 +72,11 @@ function listStocks() {
   return apiRequest('/api/stocks');
 }
 
-function updateStockQuantity(ingredientId, quantity) {
+function updateStockQuantity(ingredientId, quantity, options = {}) {
   return apiRequest(`/api/stocks/${ingredientId}`, {
     method: 'PUT',
     body: JSON.stringify({ quantity }),
+    ...options,
   });
 }
 

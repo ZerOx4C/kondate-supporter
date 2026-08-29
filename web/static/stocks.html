@@ -44,6 +44,9 @@
     <div class="search-field">
       <i class="ti ti-search" aria-hidden="true"></i>
       <input type="text" id="stock-search" placeholder="食材名で検索" aria-label="食材を検索">
+      <button type="button" id="stock-search-clear" class="icon-button" aria-label="検索をクリア">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
       <button type="button" id="new-ingredient-button" class="icon-button" aria-label="新規食材を追加" hidden>
         <i class="ti ti-plus" aria-hidden="true"></i>
       </button>
@@ -55,7 +58,6 @@
           <th>名前</th>
           <th>数量</th>
           <th>更新日時</th>
-          <th></th>
         </tr>
       </thead>
       <tbody id="stock-list"></tbody>

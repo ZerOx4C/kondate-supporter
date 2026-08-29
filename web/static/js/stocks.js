@@ -1,9 +1,13 @@
 const stockListBody = document.getElementById('stock-list');
 const stockErrorEl = document.getElementById('stock-error');
 const stockSearchField = document.getElementById('stock-search');
+const stockSearchClearButton = document.getElementById('stock-search-clear');
 const newIngredientButton = document.getElementById('new-ingredient-button');
 
 let currentStocks = [];
+// 食材ID -> { stock, quantityInput, updatedAtTd } のMap。render()のたびに作り直す。
+// 定期的な自動保存(saveDirtyRows)が入力中の行を参照するために保持する。
+const pendingRows = new Map();
 
 function getVisibleStocks() {
   const query = stockSearchField.value.trim();
@@ -34,6 +38,7 @@ function render() {
 
   newIngredientButton.hidden = !filtering;
 
+  pendingRows.clear();
   stockListBody.innerHTML = '';
   for (const stock of stocks) {
     const tr = document.createElement('tr');
@@ -49,6 +54,8 @@ function render() {
     quantityInput.min = '0';
     quantityInput.className = 'quantity-input';
     quantityInput.value = stock.quantity;
+    // 未保存の変更判定に使う基準値。保存に成功するたびに更新する。
+    quantityInput.dataset.savedValue = String(stock.quantity);
     quantityTd.appendChild(quantityInput);
     const quantityUnitSpan = document.createElement('span');
     quantityUnitSpan.className = 'quantity-unit';
@@ -60,16 +67,8 @@ function render() {
     updatedAtTd.textContent = formatUpdatedAt(stock.updatedAt);
     tr.appendChild(updatedAtTd);
 
-    const actionTd = document.createElement('td');
-    const updateButton = document.createElement('button');
-    updateButton.type = 'button';
-    updateButton.className = 'primary';
-    updateButton.textContent = '更新';
-    updateButton.addEventListener('click', () => onUpdate(stock, quantityInput));
-    actionTd.appendChild(updateButton);
-    tr.appendChild(actionTd);
-
     stockListBody.appendChild(tr);
+    pendingRows.set(stock.ingredientId, { stock, quantityInput, updatedAtTd });
   }
 }
 
@@ -84,6 +83,11 @@ async function loadStocks() {
 }
 
 stockSearchField.addEventListener('input', render);
+stockSearchClearButton.addEventListener('click', () => {
+  stockSearchField.value = '';
+  stockSearchField.focus();
+  render();
+});
 
 newIngredientButton.addEventListener('click', async () => {
   const name = stockSearchField.value.trim();
@@ -93,19 +97,26 @@ newIngredientButton.addEventListener('click', async () => {
   await loadStocks();
 });
 
-async function onUpdate(stock, quantityInput) {
-  const quantity = Number(quantityInput.value);
-  if (Number.isNaN(quantity) || quantity < 0) {
-    stockErrorEl.textContent = '数量は0以上の数値を入力してください';
-    return;
-  }
-  stockErrorEl.textContent = '';
-  try {
-    await updateStockQuantity(stock.ingredientId, quantity);
-    await loadStocks();
-  } catch (err) {
-    stockErrorEl.textContent = err.message;
+// 変更のあった行だけを保存する。不正な値(NaN・負数)の行は保存せず、
+// 次回の自動保存に委ねる(その場でのエラー表示は行わない)。
+async function saveDirtyRows({ keepalive } = {}) {
+  for (const [ingredientId, { quantityInput, updatedAtTd }] of pendingRows) {
+    const rawValue = quantityInput.value;
+    if (rawValue === quantityInput.dataset.savedValue) continue;
+    const quantity = Number(rawValue);
+    if (Number.isNaN(quantity) || quantity < 0) continue;
+    try {
+      await updateStockQuantity(ingredientId, quantity, { keepalive });
+      quantityInput.dataset.savedValue = rawValue;
+      updatedAtTd.textContent = 'さっき';
+      showToast('保存しました');
+    } catch (err) {
+      stockErrorEl.textContent = err.message;
+    }
   }
 }
+
+setInterval(() => saveDirtyRows(), 10000);
+window.addEventListener('beforeunload', () => saveDirtyRows({ keepalive: true }));
 
 loadStocks();
