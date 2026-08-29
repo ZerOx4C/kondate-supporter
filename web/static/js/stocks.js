@@ -116,7 +116,7 @@ async function saveDirtyRows({ keepalive } = {}) {
   }
 }
 
-setInterval(() => saveDirtyRows(), 10000);
+setInterval(() => saveDirtyRows(), 2000);
 window.addEventListener('beforeunload', () => saveDirtyRows({ keepalive: true }));
 
 loadStocks();
