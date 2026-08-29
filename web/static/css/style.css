@@ -369,10 +369,24 @@ button.primary:hover {
   border-top: 2px solid var(--color-accent);
 }
 
+.ingredient-row.drag-over-top,
+.seasoning-row.drag-over-top {
+  /* 行の角丸に沿って挿入線が歪むのを防ぐため、接する上2角を潰す */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
 .ingredient-row.drag-over-bottom,
 .seasoning-row.drag-over-bottom,
 .step-row.drag-over-bottom {
   border-bottom: 2px solid var(--color-accent);
+}
+
+.ingredient-row.drag-over-bottom,
+.seasoning-row.drag-over-bottom {
+  /* 行の角丸に沿って挿入線が歪むのを防ぐため、接する下2角を潰す */
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .material-row-handle {

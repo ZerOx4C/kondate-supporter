@@ -311,7 +311,8 @@ function renderPlanView(plan, effectiveMode) {
       // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
       const badge = document.createElement('span');
       badge.className = 'material-note-badge';
-      badge.textContent = ing.note;
+      // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
+      badge.textContent = ing.note || ' ';
       li.appendChild(badge);
       li.appendChild(document.createTextNode(`${ing.name} ${quantity}${ing.unit}`));
       planViewIngredientsEl.appendChild(li);
@@ -326,7 +327,8 @@ function renderPlanView(plan, effectiveMode) {
       // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
       const badge = document.createElement('span');
       badge.className = 'material-note-badge';
-      badge.textContent = s.note;
+      // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
+      badge.textContent = s.note || ' ';
       li.appendChild(badge);
       li.appendChild(document.createTextNode(`${s.name} ${quantity}${s.unit}`));
       planViewSeasoningsEl.appendChild(li);

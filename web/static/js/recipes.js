@@ -393,7 +393,8 @@ function onRowHandlePointerDown(e, row, handle, container, rowSelector, onReorde
   row.classList.add('dragging');
   handle.setPointerCapture(e.pointerId);
   // input/textarea上をカーソルが通過するとハンドルのポインターキャプチャが暗黙的に外れ、
-  // pointerup/pointercancelがハンドルに届かなくなることがあるため、documentにもフェイルセーフで登録する
+  // pointermove/pointerup/pointercancelがハンドルに届かなくなることがあるため、documentに登録する
+  document.addEventListener('pointermove', onRowHandlePointerMove);
   document.addEventListener('pointerup', onRowHandlePointerUp);
   document.addEventListener('pointercancel', onRowHandlePointerUp);
 }
@@ -422,6 +423,7 @@ function onRowHandlePointerMove(e) {
 
 function onRowHandlePointerUp(e) {
   if (!rowDragState) return;
+  document.removeEventListener('pointermove', onRowHandlePointerMove);
   document.removeEventListener('pointerup', onRowHandlePointerUp);
   document.removeEventListener('pointercancel', onRowHandlePointerUp);
   clearRowDragOverClass();
@@ -436,7 +438,6 @@ function createRowHandle(row, container, rowSelector, onReorder) {
   handle.setAttribute('aria-hidden', 'true');
   handle.innerHTML = '<i class="ti ti-grip-vertical" aria-hidden="true"></i>';
   handle.addEventListener('pointerdown', (e) => onRowHandlePointerDown(e, row, handle, container, rowSelector, onReorder));
-  handle.addEventListener('pointermove', onRowHandlePointerMove);
   handle.addEventListener('pointerup', onRowHandlePointerUp);
   handle.addEventListener('pointercancel', onRowHandlePointerUp);
   return handle;
@@ -517,7 +518,8 @@ function renderRecipeView(recipe) {
     // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
     const badge = document.createElement('span');
     badge.className = 'material-note-badge';
-    badge.textContent = ing.note;
+    // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
+    badge.textContent = ing.note || ' ';
     li.appendChild(badge);
     li.appendChild(document.createTextNode(`${ing.name} ${ing.quantity}${ing.unit}`));
     recipeViewIngredientsEl.appendChild(li);
@@ -529,7 +531,8 @@ function renderRecipeView(recipe) {
     // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
     const badge = document.createElement('span');
     badge.className = 'material-note-badge';
-    badge.textContent = s.note;
+    // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
+    badge.textContent = s.note || ' ';
     li.appendChild(badge);
     li.appendChild(document.createTextNode(`${s.name} ${s.quantity}${s.unit}`));
     recipeViewSeasoningsEl.appendChild(li);
