@@ -31,11 +31,25 @@ function loadDateRange() {
 }
 
 const rangeFromField = document.getElementById('range-from');
+const rangeFromDisplayButton = document.getElementById('range-from-display');
 const rangeDaysField = document.getElementById('range-days');
+
+// 隠しinput(range-from)の現在値「YYYY-MM-DD」から「M/D」形式のラベルを組み立てる(ゼロパディングなし)。
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const [, month, day] = dateStr.split('-');
+  return `${parseInt(month, 10)}/${parseInt(day, 10)}`;
+}
+
+// 表示用ボタンのラベルを隠しinputの現在値に合わせて再計算する。
+function updateRangeFromDisplay() {
+  rangeFromDisplayButton.textContent = formatDateShort(rangeFromField.value);
+}
 
 const initialDateRange = loadDateRange();
 rangeFromField.value = initialDateRange.start;
 rangeDaysField.value = initialDateRange.days;
+updateRangeFromDisplay();
 
 // 不正な日数入力(空値・1未満・NaN等)を1以上の整数にガードする。
 function sanitizeDays(value) {
@@ -54,11 +68,16 @@ function onDateRangeFieldChange() {
     DATE_RANGE_STORAGE_KEY,
     JSON.stringify({ start: rangeFromField.value, days: sanitizeDays(rangeDaysField.value) })
   );
+  updateRangeFromDisplay();
   document.dispatchEvent(new CustomEvent('daterangechange'));
 }
 
 rangeFromField.addEventListener('change', onDateRangeFieldChange);
 rangeDaysField.addEventListener('change', onDateRangeFieldChange);
+
+// 表示用ボタンをクリックしたら、隠しinputのネイティブ日付ピッカーを開く
+// (showPicker()はユーザー操作イベントハンドラ内からの呼び出しが必須)。
+rangeFromDisplayButton.addEventListener('click', () => rangeFromField.showPicker());
 
 const rangeShiftPrevButton = document.getElementById('range-shift-prev');
 const rangeShiftNextButton = document.getElementById('range-shift-next');
@@ -68,6 +87,7 @@ function shiftDateRange(direction) {
   const days = sanitizeDays(rangeDaysField.value);
   const base = rangeFromField.value || toDateInputValue(new Date());
   rangeFromField.value = addDays(base, direction * days);
+  updateRangeFromDisplay();
   onDateRangeFieldChange();
 }
 

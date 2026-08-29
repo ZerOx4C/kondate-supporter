@@ -154,7 +154,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 
 ## 3. 画面一覧
 
-すべての画面はヘッダー共通の「検討期間(開始日+日数)」を持ち、`daterange.js` により localStorage `kondate-supporter:date-range` で画面遷移をまたいで値を保持・同期する(`daterangechange` イベントで各画面が再取得)。入力は開始日(`range-from`)と日数(`range-days`、開始日を含めてN日間)で、`daterange.js` の `getDateRange()` が開始日+日数から `{from, to}` 形式(to = from + (日数-1))に変換し、各画面・APIへ渡す。前後の期間へ日数分だけ開始日をずらす矢印ボタン(`range-shift-prev`/`range-shift-next`)も共通ヘッダーに持つ。また共通の「材料集計」ダイアログ(`summary.js`、`GET /api/plans/summary` を表示)を全画面から開ける。
+すべての画面はヘッダー共通の「検討期間(開始日+日数)」を持ち、`daterange.js` により localStorage `kondate-supporter:date-range` で画面遷移をまたいで値を保持・同期する(`daterangechange` イベントで各画面が再取得)。入力は開始日(`range-from`)と日数(`range-days`、開始日を含めてN日間)で、`daterange.js` の `getDateRange()` が開始日+日数から `{from, to}` 形式(to = from + (日数-1))に変換し、各画面・APIへ渡す。開始日の`<input type="date" id="range-from">`は値の保持・`showPicker()`呼び出し専用として視覚的に隠し、実際の表示・クリックは重ねて配置した表示用ボタン(`range-from-display`、「8/29」のような月/日の短縮ラベル)が担う。前後の期間へ日数分だけ開始日をずらす矢印ボタン(`range-shift-prev`/`range-shift-next`)も共通ヘッダーに持つ。また共通の「材料集計」ダイアログ(`summary.js`、`GET /api/plans/summary` を表示)を全画面から開ける。
 
 | 画面 | 内容 | 状態 |
 |---|---|---|

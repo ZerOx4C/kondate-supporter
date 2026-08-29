@@ -172,6 +172,43 @@ header fieldset.inline-form .ti-calendar-week {
   color: var(--color-text-muted);
 }
 
+/* 開始日は隠しinput(range-from)の上に表示用ボタン(range-from-display)を重ねる構成。
+   inputはピッカー呼び出し用に残すのみで、クリック・表示は常にボタン側が担う。 */
+.date-from-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.date-from-wrap input[type="date"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.date-from-display {
+  min-width: 2.6rem;
+  height: 1.8rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.date-from-display:hover {
+  background: var(--color-bg-hover);
+}
+
+.date-from-display:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 button.range-shift-button {
   flex-shrink: 0;
   min-width: 1.8rem;

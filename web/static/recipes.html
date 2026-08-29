@@ -19,7 +19,10 @@
         <button type="button" id="range-shift-next" class="icon-button range-shift-button" aria-label="次の期間へ移動">
           <i class="ti ti-chevron-right" aria-hidden="true"></i>
         </button>
-        <input type="date" id="range-from" aria-label="開始日">
+        <span class="date-from-wrap">
+          <input type="date" id="range-from" aria-label="開始日" tabindex="-1">
+          <button type="button" id="range-from-display" class="date-from-display" aria-label="開始日を変更"></button>
+        </span>
         <span>から</span>
         <input type="number" id="range-days" aria-label="日数" min="1" step="1">
         <span>日間</span>
