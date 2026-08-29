@@ -413,6 +413,9 @@ dialog.fullscreen-dialog::backdrop {
   font-size: 0.9rem;
 }
 
+/* ハンドル・補足記号セレクト・名称ピッカー(1fr)・数量・ピン・削除ボタンの6列。
+   数量欄の縮小(6rem→3.5rem)と単位表示の廃止で行の横幅に余裕ができたため、
+   スマートフォン幅でもこの6列のまま(補足記号セレクトを2行目に折り返さず)横スクロールなしで収める。 */
 .ingredient-row,
 .seasoning-row {
   display: grid;
@@ -496,27 +499,22 @@ dialog.fullscreen-dialog::backdrop {
 
 .ingredient-row input[type="number"],
 .seasoning-row input[type="number"] {
-  width: 6rem;
+  /* 半角3桁程度が入る幅に縮小し、狭い画面幅でも補足記号セレクトが折り返さないよう余裕を持たせる */
+  width: 3.5rem;
+  min-width: 0;
 }
 
 .ingredient-row .ingredient-note,
 .seasoning-row .seasoning-note {
   width: 3.5rem;
+  min-width: 0;
 }
 
 .qty-field {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-}
-
-.qty-unit {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  width: 2em;
-  text-align: left;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .pin-toggle {
@@ -804,7 +802,9 @@ form .field-row label.icon-field > i,
   /* 常時全画面表示(fullscreen-dialog)のため、上端のsafe-area分もpaddingに加える */
   padding: calc(0.8rem + env(safe-area-inset-top)) 1rem 0;
   /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
-     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する。
+     box-sizingがデフォルト(content-box)だとwidth:100%に左右paddingが加算されて親幅をはみ出すため、border-boxを明示する */
+  box-sizing: border-box;
   width: 100%;
   max-width: 64rem;
   margin-left: auto;
@@ -833,8 +833,10 @@ form .field-row label.icon-field > i,
 
 .recipe-name-title {
   display: block;
-  flex: 1;
-  min-width: 0;
+  /* 親(.recipe-name-row)はflex-direction:columnのためflex:1は主軸(高さ)にしか効かず、
+     横幅は align-items:flex-start により内容依存の既定幅(input要素のUA既定幅)になってしまっていた。
+     横幅いっぱいに広げるにはwidth:100%を明示する必要がある。 */
+  width: 100%;
   border: none;
   border-bottom: 1px solid var(--color-border);
   background: transparent;
@@ -862,7 +864,9 @@ form .field-row label.icon-field > i,
   /* iOS Safariでダイアログ内スクロールが背後のbodyへ伝播する(スクロールチェイン)のを防ぐ */
   overscroll-behavior: contain;
   /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
-     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する。
+     box-sizingがデフォルト(content-box)だとwidth:100%に左右paddingが加算されて親幅をはみ出すため、border-boxを明示する */
+  box-sizing: border-box;
   width: 100%;
   max-width: 64rem;
   margin-left: auto;
@@ -875,7 +879,9 @@ form .field-row label.icon-field > i,
   padding: 0.6rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
   /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
-     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する。
+     box-sizingがデフォルト(content-box)だとwidth:100%に左右paddingが加算されて親幅をはみ出すため、border-boxを明示する */
+  box-sizing: border-box;
   width: 100%;
   max-width: 64rem;
   margin-left: auto;
@@ -1727,22 +1733,4 @@ form .field-row label.icon-field > i,
 input, select, textarea,
 form input, form select, form textarea {
   font-size: 1rem;
-}
-
-/* スマートフォン幅ではselect列(1fr)が潰れて選択肢が読めなくなるため、
-   補足フィールドを2行目・全幅に折り返して4列(select, qty, pin, remove)に戻す。
-   通常の`.ingredient-row, .seasoning-row`定義より後(ファイル末尾)に置くことで、
-   同じ詳細度でもソース順で確実に上書きする。 */
-@media (max-width: 600px) {
-  .ingredient-row,
-  .seasoning-row {
-    grid-template-columns: auto 1fr auto auto auto;
-  }
-
-  .ingredient-row .ingredient-note,
-  .seasoning-row .seasoning-note {
-    grid-column: 1 / -1;
-    width: 100%;
-    order: 1;
-  }
 }

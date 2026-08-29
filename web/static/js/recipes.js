@@ -137,13 +137,12 @@ function selectMaterial(id) {
   const item = master.find((i) => i.id === id);
   if (!item) return;
   const button = row.querySelector(type === 'ingredient' ? '.ingredient-picker-button' : '.seasoning-picker-button');
-  button.textContent = type === 'ingredient' ? `${item.name} (${item.unit})` : `${item.name} (mL)`;
+  // ピッカーボタンのラベルには単位を付与せず名前のみ表示する
+  button.textContent = item.name;
   if (type === 'ingredient') {
     button.dataset.ingredientId = id;
-    updateIngredientRowUnit(row, id);
   } else {
     button.dataset.seasoningId = id;
-    updateSeasoningRowUnit(row);
   }
   materialPickerDialog.close();
 }
@@ -179,13 +178,6 @@ function updatePinToggleState(button, active) {
     : '<i class="ti ti-pin" aria-hidden="true"></i>';
 }
 
-// 食材選択に応じて数量入力の隣に単位を表示する
-function updateIngredientRowUnit(row, ingredientId) {
-  const unitEl = row.querySelector('.qty-unit');
-  const ingredient = ingredientMaster.find((i) => i.id === Number(ingredientId));
-  unitEl.textContent = ingredient ? ingredient.unit : '';
-}
-
 // 食材・調味料の補足欄(-/A/B/C)用の<option>を生成する
 function createNoteOption(value) {
   const option = document.createElement('option');
@@ -210,7 +202,8 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   pickerButton.type = 'button';
   pickerButton.className = 'ingredient-picker-button';
   if (resolvedId !== undefined) pickerButton.dataset.ingredientId = resolvedId;
-  pickerButton.textContent = resolvedIngredient ? `${resolvedIngredient.name} (${resolvedIngredient.unit})` : '';
+  // ピッカーボタンのラベルには単位を付与せず名前のみ表示する
+  pickerButton.textContent = resolvedIngredient ? resolvedIngredient.name : '';
   pickerButton.addEventListener('click', () => openMaterialPicker('ingredient', row));
 
   const qtyField = document.createElement('span');
@@ -222,10 +215,7 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   quantityInput.min = '0.01';
   quantityInput.placeholder = '数量';
   if (quantity !== undefined) quantityInput.value = quantity;
-  const unitEl = document.createElement('span');
-  unitEl.className = 'qty-unit';
   qtyField.appendChild(quantityInput);
-  qtyField.appendChild(unitEl);
 
   const fixedCheckbox = document.createElement('input');
   fixedCheckbox.type = 'checkbox';
@@ -269,7 +259,6 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   ingredientRowsEl.appendChild(row);
 
   updatePinToggleState(pinButton, fixedCheckbox.checked);
-  updateIngredientRowUnit(row, resolvedId);
 }
 
 function collectIngredientRows() {
@@ -280,11 +269,6 @@ function collectIngredientRows() {
     fixedQuantity: row.querySelector('.ingredient-fixed').checked,
     note: row.querySelector('.ingredient-note').value,
   }));
-}
-
-// 調味料の数量は常にmL固定のため、選択内容によらず固定文字列を表示する
-function updateSeasoningRowUnit(row) {
-  row.querySelector('.qty-unit').textContent = 'mL';
 }
 
 function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
@@ -303,7 +287,8 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   pickerButton.type = 'button';
   pickerButton.className = 'seasoning-picker-button';
   if (resolvedId !== undefined) pickerButton.dataset.seasoningId = resolvedId;
-  pickerButton.textContent = resolvedSeasoning ? `${resolvedSeasoning.name} (mL)` : '';
+  // ピッカーボタンのラベルには単位を付与せず名前のみ表示する
+  pickerButton.textContent = resolvedSeasoning ? resolvedSeasoning.name : '';
   pickerButton.addEventListener('click', () => openMaterialPicker('seasoning', row));
 
   const qtyField = document.createElement('span');
@@ -315,10 +300,7 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   quantityInput.min = '0.01';
   quantityInput.placeholder = '数量';
   if (quantity !== undefined) quantityInput.value = quantity;
-  const unitEl = document.createElement('span');
-  unitEl.className = 'qty-unit';
   qtyField.appendChild(quantityInput);
-  qtyField.appendChild(unitEl);
 
   const fixedCheckbox = document.createElement('input');
   fixedCheckbox.type = 'checkbox';
@@ -362,7 +344,6 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   seasoningRowsEl.appendChild(row);
 
   updatePinToggleState(pinButton, fixedCheckbox.checked);
-  updateSeasoningRowUnit(row);
 }
 
 function collectSeasoningRows() {
