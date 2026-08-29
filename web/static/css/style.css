@@ -766,6 +766,12 @@ form .field-row label.icon-field > i,
   flex-shrink: 0;
   /* 常時全画面表示(fullscreen-dialog)のため、上端のsafe-area分もpaddingに加える */
   padding: calc(0.8rem + env(safe-area-inset-top)) 1rem 0;
+  /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+  width: 100%;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .recipe-dialog-head h3 {
@@ -818,6 +824,12 @@ form .field-row label.icon-field > i,
   overflow-y: auto;
   /* iOS Safariでダイアログ内スクロールが背後のbodyへ伝播する(スクロールチェイン)のを防ぐ */
   overscroll-behavior: contain;
+  /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+  width: 100%;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .recipe-dialog-foot {
@@ -825,6 +837,12 @@ form .field-row label.icon-field > i,
   /* 常時全画面表示(fullscreen-dialog)のため、下端のsafe-area分もpaddingに加える */
   padding: 0.6rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
+  /* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
+     flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+  width: 100%;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .recipe-dialog-foot .dialog-actions {
@@ -1432,6 +1450,17 @@ form .field-row label.icon-field > i,
    safe-area対応のpaddingもその場合のみ加える(メモ行表示時は中央ダイアログのまま) */
 .plan-dialog.fullscreen-dialog .plan-dialog-head {
   padding-top: calc(0.8rem + env(safe-area-inset-top));
+}
+
+/* 全画面ダイアログの背景幅はそのまま、コンテンツ幅だけページ本体(body)と揃えて中央寄せする。
+   flexアイテムはmargin:autoを指定するとalign-items:stretchが効かなくなりshrink-to-fitになるため、widthも明示する */
+.plan-dialog.fullscreen-dialog .plan-dialog-head,
+.plan-dialog.fullscreen-dialog .plan-dialog-body,
+.plan-dialog.fullscreen-dialog .plan-dialog-foot {
+  width: 100%;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .plan-dialog-head h3 {
