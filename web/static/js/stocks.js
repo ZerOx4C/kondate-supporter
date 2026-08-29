@@ -6,8 +6,27 @@ const newIngredientButton = document.getElementById('new-ingredient-button');
 
 let currentStocks = [];
 // 食材ID -> { stock, quantityInput, updatedAtTd } のMap。render()のたびに作り直す。
-// 定期的な自動保存(saveDirtyRows)が入力中の行を参照するために保持する。
+// 保存成功時にDOM(dataset.savedValue・更新日時表示)を書き換えるために、表示中の行だけ保持する。
 const pendingRows = new Map();
+// 食材ID -> 未保存の入力値(文字列) のMap。render()で作り直されず、
+// 検索フィルタの切り替えなどで行が非表示になっても未保存の入力内容を保持し続ける。
+const dirtyValues = new Map();
+// デバウンス保存用のタイマーID。入力があるたびにクリアして張り直す。
+let saveTimer = null;
+
+// SQLiteのdatetime('now')と同じ "YYYY-MM-DD HH:MM:SS" (UTC) 形式の現在時刻文字列を生成する
+function nowAsSqliteTimestamp() {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ');
+}
+
+// 入力から2秒後にまとめて保存するデバウンス処理。2秒以内に再度呼ばれるとカウントダウンをやり直す。
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveDirtyRows();
+  }, 2000);
+}
 
 function getVisibleStocks() {
   const query = stockSearchField.value.trim();
@@ -53,9 +72,14 @@ function render() {
     quantityInput.step = 'any';
     quantityInput.min = '0';
     quantityInput.className = 'quantity-input';
-    quantityInput.value = stock.quantity;
+    // 未保存の入力値が残っていればそれを復元し、なければサーバー側の最新値を表示する。
+    quantityInput.value = dirtyValues.has(stock.ingredientId) ? dirtyValues.get(stock.ingredientId) : stock.quantity;
     // 未保存の変更判定に使う基準値。保存に成功するたびに更新する。
     quantityInput.dataset.savedValue = String(stock.quantity);
+    quantityInput.addEventListener('input', () => {
+      dirtyValues.set(stock.ingredientId, quantityInput.value);
+      scheduleSave();
+    });
     quantityTd.appendChild(quantityInput);
     const quantityUnitSpan = document.createElement('span');
     quantityUnitSpan.className = 'quantity-unit';
@@ -97,18 +121,31 @@ newIngredientButton.addEventListener('click', async () => {
   await loadStocks();
 });
 
-// 変更のあった行だけを保存する。不正な値(NaN・負数)の行は保存せず、
-// 次回の自動保存に委ねる(その場でのエラー表示は行わない)。
+// 未保存の値(dirtyValues)を全件保存する。表示状態によらず全件が対象。
+// 不正な値(NaN・負数)はdirtyValuesに残したままにし、次回のデバウンス保存で再試行する
+// (その場でのエラー表示は行わない)。
 async function saveDirtyRows({ keepalive } = {}) {
-  for (const [ingredientId, { quantityInput, updatedAtTd }] of pendingRows) {
-    const rawValue = quantityInput.value;
-    if (rawValue === quantityInput.dataset.savedValue) continue;
+  for (const [ingredientId, rawValue] of dirtyValues) {
     const quantity = Number(rawValue);
     if (Number.isNaN(quantity) || quantity < 0) continue;
     try {
       await updateStockQuantity(ingredientId, quantity, { keepalive });
-      quantityInput.dataset.savedValue = rawValue;
-      updatedAtTd.textContent = 'さっき';
+      dirtyValues.delete(ingredientId);
+
+      const stock = currentStocks.find((s) => s.ingredientId === ingredientId);
+      const updatedAt = nowAsSqliteTimestamp();
+      if (stock) {
+        stock.quantity = quantity;
+        stock.updatedAt = updatedAt;
+      }
+
+      // 現在表示中の行であればDOMも書き換える。非表示中の行はrender()時に反映されるためスキップする。
+      const row = pendingRows.get(ingredientId);
+      if (row) {
+        row.quantityInput.dataset.savedValue = rawValue;
+        row.updatedAtTd.textContent = 'さっき';
+      }
+
       showToast('保存しました');
     } catch (err) {
       stockErrorEl.textContent = err.message;
@@ -116,7 +153,10 @@ async function saveDirtyRows({ keepalive } = {}) {
   }
 }
 
-setInterval(() => saveDirtyRows(), 2000);
-window.addEventListener('beforeunload', () => saveDirtyRows({ keepalive: true }));
+window.addEventListener('beforeunload', () => {
+  // 離脱時はタイマー待ちせず即座に保存する。
+  clearTimeout(saveTimer);
+  saveDirtyRows({ keepalive: true });
+});
 
 loadStocks();
