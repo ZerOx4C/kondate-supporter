@@ -1042,6 +1042,8 @@ form .field-row label.icon-field > i,
 .material-note-badge {
   display: inline-block;
   min-width: 0.8em;
+  min-height: 1.4em;
+  line-height: 1.4;
   border-radius: var(--radius-pill);
   padding: 0.05rem 0.5rem;
   margin-right: 0.4rem;
