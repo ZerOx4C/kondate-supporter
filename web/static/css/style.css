@@ -249,6 +249,33 @@ button.primary:hover {
   background: rgba(0, 0, 0, 0.4);
 }
 
+/* レシピ表示・献立表示ダイアログの全画面化(調理中のスマートフォン操作性向上のため)。
+   viewport-fit=coverとセットで、head/foot側のpaddingにenv(safe-area-inset-*)を加えノッチ端末に対応する。 */
+dialog.fullscreen-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100vw;
+  max-width: 100vw;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+dialog.fullscreen-dialog::backdrop {
+  background: transparent;
+}
+
+/* ダイアログhead内でタイトルと編集アイコンボタンを横並びにする共通レイアウト */
+.dialog-head-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .btn-accent {
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
@@ -670,6 +697,23 @@ form .field-row label.icon-field > i,
   display: none;
 }
 
+/* レシピ/献立の全画面表示ダイアログの「戻る・閉じる・進む」3ボタンを均等幅で横並びにする。
+   タッチターゲットを考慮しicon-button(2rem)より大きめの高さを確保する。 */
+.dialog-nav-row {
+  gap: 0.5rem;
+}
+
+.dialog-nav-row .dialog-nav-button {
+  flex: 1;
+  justify-content: center;
+  min-height: 2.75rem;
+}
+
+.dialog-nav-row .dialog-nav-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .filter-field {
   display: inline-flex;
   align-items: center;
@@ -718,24 +762,10 @@ form .field-row label.icon-field > i,
   border-color: var(--color-accent);
 }
 
-.recipe-dialog[open] {
-  display: flex;
-  flex-direction: column;
-  /* dialog全体の高さを画面内に収め、head/footを固定したままbody部分のみをスクロールさせる。
-     vhはスマホでアドレスバーの表示/非表示により実際の表示可能高さと乖離するためdvhを使う。
-     heightを明示指定しないとflex:1のbodyが「残りスペース」を計算できずコンテンツ量に
-     フォールバックしてしまう(材料等が少ないレシピでダイアログが縦に短くなる不具合の原因)ため、
-     コンテンツ量に関わらず常に高さを固定する */
-  height: 90dvh;
-  max-height: 90dvh;
-  padding: 0;
-  width: 34rem;
-  max-width: 95vw;
-}
-
 .recipe-dialog-head {
   flex-shrink: 0;
-  padding: 0.8rem 1rem 0;
+  /* 常時全画面表示(fullscreen-dialog)のため、上端のsafe-area分もpaddingに加える */
+  padding: calc(0.8rem + env(safe-area-inset-top)) 1rem 0;
 }
 
 .recipe-dialog-head h3 {
@@ -786,11 +816,14 @@ form .field-row label.icon-field > i,
   min-height: 0;
   padding: 0 1rem 0.6rem;
   overflow-y: auto;
+  /* iOS Safariでダイアログ内スクロールが背後のbodyへ伝播する(スクロールチェイン)のを防ぐ */
+  overscroll-behavior: contain;
 }
 
 .recipe-dialog-foot {
   flex-shrink: 0;
-  padding: 0.6rem 1rem 0.8rem;
+  /* 常時全画面表示(fullscreen-dialog)のため、下端のsafe-area分もpaddingに加える */
+  padding: 0.6rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
 }
 
@@ -1378,7 +1411,8 @@ form .field-row label.icon-field > i,
   color: var(--color-text);
 }
 
-/* .recipe-dialog[open]と同様、head/footを固定してbody部分のみをスクロールさせる構成 */
+/* メモ行表示時(fullscreen-dialogが付与されない場合)の中央ダイアログサイズ。
+   head/footを固定してbody部分のみをスクロールさせる構成 */
 .plan-dialog[open] {
   display: flex;
   flex-direction: column;
@@ -1392,6 +1426,12 @@ form .field-row label.icon-field > i,
 .plan-dialog-head {
   flex-shrink: 0;
   padding: 0.8rem 1rem 0;
+}
+
+/* レシピ紐づけの献立を表示する際のみfullscreen-dialogが付与されるため、
+   safe-area対応のpaddingもその場合のみ加える(メモ行表示時は中央ダイアログのまま) */
+.plan-dialog.fullscreen-dialog .plan-dialog-head {
+  padding-top: calc(0.8rem + env(safe-area-inset-top));
 }
 
 .plan-dialog-head h3 {
@@ -1428,6 +1468,8 @@ form .field-row label.icon-field > i,
   min-height: 0;
   padding: 0 1rem 0.6rem;
   overflow-y: auto;
+  /* iOS Safariでダイアログ内スクロールが背後のbodyへ伝播する(スクロールチェイン)のを防ぐ */
+  overscroll-behavior: contain;
 }
 
 .plan-dialog-body #plan-form {
@@ -1443,6 +1485,10 @@ form .field-row label.icon-field > i,
   flex-shrink: 0;
   padding: 0.6rem 1rem 0.8rem;
   border-top: 1px solid var(--color-border);
+}
+
+.plan-dialog.fullscreen-dialog .plan-dialog-foot {
+  padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
 }
 
 .plan-dialog-foot .dialog-actions {

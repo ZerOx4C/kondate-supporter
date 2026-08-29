@@ -37,6 +37,8 @@ const planEditActionsEl = document.getElementById('plan-edit-actions');
 const planViewEditButton = document.getElementById('plan-view-edit');
 const planViewDeleteButton = document.getElementById('plan-view-delete');
 const planViewCloseButton = document.getElementById('plan-view-close');
+const planViewPrevButton = document.getElementById('plan-view-prev');
+const planViewNextButton = document.getElementById('plan-view-next');
 
 const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 const mealTimeLabels = { morning: '朝', noon: '昼', night: '夜', other: 'その他' };
@@ -53,6 +55,10 @@ let planDialogTarget = null;
 let planRecipeDetail = null;
 let planIngredientOverrides = new Map();
 let planSeasoningOverrides = new Map();
+
+// 献立表示ダイアログの「戻る/進む」ナビゲーション対象(同日・同区分・レシピ紐づけの献立のみ)。
+let planDialogNavList = [];
+let planDialogNavIndex = -1;
 
 function computeIngredientRequirement(ing) {
   if (ing.fixedQuantity) return ing.quantity;
@@ -189,6 +195,7 @@ function closePlanDialog() {
   planDialog.close();
   resetPlanForm();
   planDialogTarget = null;
+  resetPlanDialogNav();
 }
 
 // フォーム内の「レシピ紐づけ」「メモ」の内容切り替え(表示モード用の対応要素も含む)
@@ -203,6 +210,8 @@ function applyPlanContentMode(mode) {
   // ブラウザがあるため、非表示のフィールドはrequiredを明示的に外す。
   planServingsField.required = mode === 'recipe';
   planNoteField.required = mode === 'note';
+  // レシピ紐づけの献立のみ全画面化・戻る/進むナビゲーションを有効にする(メモ行は中央ダイアログのまま)
+  planDialog.classList.toggle('fullscreen-dialog', mode === 'recipe');
 }
 
 // ダイアログ全体の表示モード/編集モード切り替え
@@ -213,6 +222,7 @@ function applyPlanInteractionMode(mode) {
   planEditMetaRowEl.hidden = mode !== 'edit';
   planViewActionsEl.hidden = mode !== 'view';
   planEditActionsEl.hidden = mode !== 'edit';
+  planViewEditButton.hidden = mode !== 'view';
 }
 
 // 表示・編集どちらのモードでも共通に行う状態投入処理。実際に採用したcontentモード('recipe'|'note')を返す
@@ -348,6 +358,38 @@ function renderPlanView(plan, effectiveMode) {
   }
 }
 
+// 同日・同区分(date+mealTime+type)のレシピ紐づけ献立を全件抽出する。
+// unscheduled/dailyはdateが両方nullのため、typeも条件に含めないと未定と毎日が混ざってしまう。
+function getSameSlotRecipePlans(plan) {
+  return Array.from(plansById.values()).filter((p) =>
+    p.recipeId && p.type === plan.type && p.date === plan.date && p.mealTime === plan.mealTime
+  );
+}
+
+// 献立表示ダイアログを開いた時点の同日・同区分の献立一覧をスナップショットとして保持し、
+// 戻る/進むボタンの範囲をその時点の一覧に固定する。
+function buildPlanDialogNav(plan) {
+  planDialogNavList = getSameSlotRecipePlans(plan);
+  planDialogNavIndex = planDialogNavList.findIndex((p) => p.id === plan.id);
+}
+
+function resetPlanDialogNav() {
+  planDialogNavList = [];
+  planDialogNavIndex = -1;
+}
+
+function updatePlanDialogNavButtons() {
+  planViewPrevButton.disabled = planDialogNavIndex <= 0;
+  planViewNextButton.disabled = planDialogNavIndex === -1 || planDialogNavIndex >= planDialogNavList.length - 1;
+}
+
+async function showPlanDialogNavPlan(delta) {
+  const nextIndex = planDialogNavIndex + delta;
+  if (nextIndex < 0 || nextIndex >= planDialogNavList.length) return;
+  planDialogNavIndex = nextIndex;
+  await showPlanView(planDialogNavList[nextIndex]);
+}
+
 async function showPlanView(plan) {
   planDialogTarget = plan;
   planErrorEl.textContent = '';
@@ -358,6 +400,7 @@ async function showPlanView(plan) {
   }
   renderPlanView(plan, effectiveMode);
   applyPlanInteractionMode('view');
+  updatePlanDialogNavButtons();
 }
 
 async function showPlanEdit(plan, defaultDate, mode) {
@@ -378,8 +421,14 @@ async function showPlanEdit(plan, defaultDate, mode) {
 
 async function openPlanDialog(plan, defaultDate, mode) {
   if (plan) {
+    if (plan.recipeId) {
+      buildPlanDialogNav(plan);
+    } else {
+      resetPlanDialogNav();
+    }
     await showPlanView(plan);
   } else {
+    resetPlanDialogNav();
     planDialogTarget = null;
     await showPlanEdit(null, defaultDate, mode);
   }
@@ -389,6 +438,11 @@ async function openPlanDialog(plan, defaultDate, mode) {
 // .plan-panel-actions内の編集ボタン専用。既存の献立を直接編集モードで開く。
 async function openPlanEditDialog(plan) {
   planDialogTarget = plan;
+  if (plan.recipeId) {
+    buildPlanDialogNav(plan);
+  } else {
+    resetPlanDialogNav();
+  }
   await showPlanEdit(plan);
   planDialog.showModal();
 }
@@ -686,6 +740,8 @@ planDialogCancelButton.addEventListener('click', () => {
 planViewEditButton.addEventListener('click', () => showPlanEdit(planDialogTarget));
 planViewDeleteButton.addEventListener('click', () => onDeletePlan(planDialogTarget));
 planViewCloseButton.addEventListener('click', closePlanDialog);
+planViewPrevButton.addEventListener('click', () => showPlanDialogNavPlan(-1));
+planViewNextButton.addEventListener('click', () => showPlanDialogNavPlan(1));
 
 planServingsField.addEventListener('input', () => {
   renderPlanIngredientRequirements();
@@ -730,6 +786,11 @@ planForm.addEventListener('submit', async (e) => {
       }
     }
     await refresh();
+    if (saved.recipeId) {
+      buildPlanDialogNav(saved);
+    } else {
+      resetPlanDialogNav();
+    }
     await showPlanView(saved);
   } catch (err) {
     planErrorEl.textContent = err.message;

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>献立 - kondate-supporter</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/vendor/tabler-icons/tabler-icons.min.css">
@@ -45,7 +45,12 @@
 
     <dialog id="plan-dialog" class="app-dialog plan-dialog">
       <div class="plan-dialog-head">
-        <h3 id="plan-dialog-title">献立を追加</h3>
+        <div class="dialog-head-title-row">
+          <h3 id="plan-dialog-title">献立を追加</h3>
+          <button type="button" id="plan-view-edit" class="icon-button" aria-label="編集">
+            <i class="ti ti-pencil" aria-hidden="true"></i>
+          </button>
+        </div>
         <div id="plan-view-meta-row" class="dialog-meta-row">
           <p id="plan-view-servings" class="dialog-servings" hidden>
             <i class="ti ti-users" aria-hidden="true"></i><span></span>
@@ -129,12 +134,19 @@
         </form>
       </div>
       <div class="plan-dialog-foot">
-        <div id="plan-view-actions" class="dialog-actions">
-          <button type="button" id="plan-view-delete" class="danger btn-danger-outline">削除</button>
-          <button type="button" id="plan-view-edit" class="primary">編集</button>
-          <button type="button" id="plan-view-close" class="primary">閉じる</button>
+        <div id="plan-view-actions" class="dialog-actions dialog-nav-row">
+          <button type="button" id="plan-view-prev" class="primary dialog-nav-button" aria-label="前の献立">
+            <i class="ti ti-chevron-left" aria-hidden="true"></i>
+          </button>
+          <button type="button" id="plan-view-close" class="primary dialog-nav-button" aria-label="閉じる">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+          <button type="button" id="plan-view-next" class="primary dialog-nav-button" aria-label="次の献立">
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          </button>
         </div>
         <div id="plan-edit-actions" class="dialog-actions" hidden>
+          <button type="button" id="plan-view-delete" class="danger btn-danger-outline">削除</button>
           <button type="button" id="plan-dialog-cancel" class="primary">キャンセル</button>
           <button type="submit" form="plan-form" id="plan-submit" class="btn-accent">保存</button>
         </div>

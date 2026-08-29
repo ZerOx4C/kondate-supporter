@@ -33,6 +33,8 @@ const recipeViewStepsEmptyEl = document.getElementById('recipe-view-steps-empty'
 const recipeViewEditButton = document.getElementById('recipe-view-edit');
 const recipeViewDeleteButton = document.getElementById('recipe-view-delete');
 const recipeViewCloseButton = document.getElementById('recipe-view-close');
+const recipeViewPrevButton = document.getElementById('recipe-view-prev');
+const recipeViewNextButton = document.getElementById('recipe-view-next');
 const recipeViewActionsEl = document.getElementById('recipe-view-actions');
 const recipeEditActionsEl = document.getElementById('recipe-edit-actions');
 
@@ -59,6 +61,11 @@ const recipeSubmitButton = document.getElementById('recipe-submit');
 let recipeDialogTarget = null;
 let recipeImageFile = null;
 let recipeImageRemoveRequested = false;
+
+// レシピ表示ダイアログの「戻る/進む」ナビゲーション対象。
+// ダイアログを開いた時点の検索結果・絞り込み条件のスナップショットを保持する。
+let recipeDialogNavList = [];
+let recipeDialogNavIndex = -1;
 
 let ingredientMaster = [];
 let seasoningMaster = [];
@@ -488,6 +495,7 @@ function applyRecipeDialogMode(mode) {
   recipeViewActionsEl.hidden = mode !== 'view';
   recipeEditActionsEl.hidden = mode !== 'edit';
   recipeDialogTitle.hidden = mode !== 'view';
+  recipeViewEditButton.hidden = mode !== 'view';
   recipeViewServingsEl.hidden = mode !== 'view';
   recipeNameRowEl.hidden = mode !== 'edit';
 }
@@ -547,11 +555,36 @@ function renderRecipeView(recipe) {
   }
 }
 
+// ダイアログを開いた時点の検索結果・絞り込み条件をスナップショットとして保持し、
+// 戻る/進むボタンの範囲をその時点の一覧に固定する(ダイアログを開いている間に検索条件が変わっても影響しない)。
+function buildRecipeDialogNav(recipe) {
+  recipeDialogNavList = getFilteredRecipes();
+  recipeDialogNavIndex = recipeDialogNavList.findIndex((r) => r.id === recipe.id);
+}
+
+function resetRecipeDialogNav() {
+  recipeDialogNavList = [];
+  recipeDialogNavIndex = -1;
+}
+
+function updateRecipeDialogNavButtons() {
+  recipeViewPrevButton.disabled = recipeDialogNavIndex <= 0;
+  recipeViewNextButton.disabled = recipeDialogNavIndex === -1 || recipeDialogNavIndex >= recipeDialogNavList.length - 1;
+}
+
+function showRecipeDialogNavRecipe(delta) {
+  const nextIndex = recipeDialogNavIndex + delta;
+  if (nextIndex < 0 || nextIndex >= recipeDialogNavList.length) return;
+  recipeDialogNavIndex = nextIndex;
+  showRecipeView(recipeDialogNavList[nextIndex]);
+}
+
 function showRecipeView(recipe) {
   recipeDialogTarget = recipe;
   recipeErrorEl.textContent = '';
   renderRecipeView(recipe);
   applyRecipeDialogMode('view');
+  updateRecipeDialogNavButtons();
 }
 
 // 画像プレビューの表示/非表示に合わせてドロップゾーンの案内テキストと削除ボタンを連動させる
@@ -603,8 +636,10 @@ function showRecipeEdit(recipe) {
 
 function openRecipeDialog(recipe) {
   if (recipe) {
+    buildRecipeDialogNav(recipe);
     showRecipeView(recipe);
   } else {
+    resetRecipeDialogNav();
     recipeDialogTarget = null;
     showRecipeEdit(null);
   }
@@ -616,6 +651,7 @@ function closeRecipeDialog() {
   resetRecipeFormFields();
   recipeErrorEl.textContent = '';
   recipeDialogTarget = null;
+  resetRecipeDialogNav();
 }
 
 async function onUseRecipe(recipe) {
@@ -935,6 +971,8 @@ recipeIngredientFilterDialog.addEventListener('click', (e) => {
 recipeViewEditButton.addEventListener('click', () => showRecipeEdit(recipeDialogTarget));
 recipeViewDeleteButton.addEventListener('click', () => onDeleteRecipe(recipeDialogTarget));
 recipeViewCloseButton.addEventListener('click', closeRecipeDialog);
+recipeViewPrevButton.addEventListener('click', () => showRecipeDialogNavRecipe(-1));
+recipeViewNextButton.addEventListener('click', () => showRecipeDialogNavRecipe(1));
 
 function setRecipeImageFile(file) {
   recipeImageFile = file;
@@ -1023,6 +1061,7 @@ recipeForm.addEventListener('submit', async (e) => {
       saved.hasImage = false;
     }
     await loadRecipes();
+    buildRecipeDialogNav(saved);
     showRecipeView(saved);
   } catch (err) {
     recipeErrorEl.textContent = err.message;
