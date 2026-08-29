@@ -308,12 +308,11 @@ function renderPlanView(plan, effectiveMode) {
         ? planIngredientOverrides.get(ing.ingredientId)
         : computeIngredientRequirement(ing);
       const li = document.createElement('li');
-      if (ing.note) {
-        const badge = document.createElement('span');
-        badge.className = 'material-note-badge';
-        badge.textContent = ing.note;
-        li.appendChild(badge);
-      }
+      // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
+      const badge = document.createElement('span');
+      badge.className = 'material-note-badge';
+      badge.textContent = ing.note;
+      li.appendChild(badge);
       li.appendChild(document.createTextNode(`${ing.name} ${quantity}${ing.unit}`));
       planViewIngredientsEl.appendChild(li);
     }
@@ -324,12 +323,11 @@ function renderPlanView(plan, effectiveMode) {
         ? planSeasoningOverrides.get(s.seasoningId)
         : computeSeasoningRequirement(s);
       const li = document.createElement('li');
-      if (s.note) {
-        const badge = document.createElement('span');
-        badge.className = 'material-note-badge';
-        badge.textContent = s.note;
-        li.appendChild(badge);
-      }
+      // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
+      const badge = document.createElement('span');
+      badge.className = 'material-note-badge';
+      badge.textContent = s.note;
+      li.appendChild(badge);
       li.appendChild(document.createTextNode(`${s.name} ${quantity}${s.unit}`));
       planViewSeasoningsEl.appendChild(li);
     }

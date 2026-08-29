@@ -459,12 +459,11 @@ function renderRecipeView(recipe) {
   recipeViewIngredientsEl.innerHTML = '';
   for (const ing of recipe.ingredients) {
     const li = document.createElement('li');
-    if (ing.note) {
-      const badge = document.createElement('span');
-      badge.className = 'material-note-badge';
-      badge.textContent = ing.note;
-      li.appendChild(badge);
-    }
+    // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
+    const badge = document.createElement('span');
+    badge.className = 'material-note-badge';
+    badge.textContent = ing.note;
+    li.appendChild(badge);
     li.appendChild(document.createTextNode(`${ing.name} ${ing.quantity}${ing.unit}`));
     recipeViewIngredientsEl.appendChild(li);
   }
@@ -472,12 +471,11 @@ function renderRecipeView(recipe) {
   recipeViewSeasoningsEl.innerHTML = '';
   for (const s of recipe.seasonings) {
     const li = document.createElement('li');
-    if (s.note) {
-      const badge = document.createElement('span');
-      badge.className = 'material-note-badge';
-      badge.textContent = s.note;
-      li.appendChild(badge);
-    }
+    // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
+    const badge = document.createElement('span');
+    badge.className = 'material-note-badge';
+    badge.textContent = s.note;
+    li.appendChild(badge);
     li.appendChild(document.createTextNode(`${s.name} ${s.quantity}${s.unit}`));
     recipeViewSeasoningsEl.appendChild(li);
   }
