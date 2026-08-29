@@ -379,13 +379,17 @@ function resetPlanDialogNav() {
 }
 
 function updatePlanDialogNavButtons() {
-  planViewPrevButton.disabled = planDialogNavIndex <= 0;
-  planViewNextButton.disabled = planDialogNavIndex === -1 || planDialogNavIndex >= planDialogNavList.length - 1;
+  // 一覧が空、または対象献立が一覧に存在しない場合のみ両ボタンを無効化する。
+  // それ以外は先頭・末尾でもループ移動できるため常に有効のままにする。
+  const disabled = planDialogNavList.length === 0 || planDialogNavIndex === -1;
+  planViewPrevButton.disabled = disabled;
+  planViewNextButton.disabled = disabled;
 }
 
 async function showPlanDialogNavPlan(delta) {
-  const nextIndex = planDialogNavIndex + delta;
-  if (nextIndex < 0 || nextIndex >= planDialogNavList.length) return;
+  if (planDialogNavList.length === 0) return;
+  // 先頭から戻ると末尾、末尾から進むと先頭に移動するようループさせる。
+  const nextIndex = (planDialogNavIndex + delta + planDialogNavList.length) % planDialogNavList.length;
   planDialogNavIndex = nextIndex;
   await showPlanView(planDialogNavList[nextIndex]);
 }

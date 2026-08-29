@@ -568,13 +568,17 @@ function resetRecipeDialogNav() {
 }
 
 function updateRecipeDialogNavButtons() {
-  recipeViewPrevButton.disabled = recipeDialogNavIndex <= 0;
-  recipeViewNextButton.disabled = recipeDialogNavIndex === -1 || recipeDialogNavIndex >= recipeDialogNavList.length - 1;
+  // 一覧が空、または対象レシピが一覧に存在しない場合のみ両ボタンを無効化する。
+  // それ以外は先頭・末尾でもループ移動できるため常に有効のままにする。
+  const disabled = recipeDialogNavList.length === 0 || recipeDialogNavIndex === -1;
+  recipeViewPrevButton.disabled = disabled;
+  recipeViewNextButton.disabled = disabled;
 }
 
 function showRecipeDialogNavRecipe(delta) {
-  const nextIndex = recipeDialogNavIndex + delta;
-  if (nextIndex < 0 || nextIndex >= recipeDialogNavList.length) return;
+  if (recipeDialogNavList.length === 0) return;
+  // 先頭から戻ると末尾、末尾から進むと先頭に移動するようループさせる。
+  const nextIndex = (recipeDialogNavIndex + delta + recipeDialogNavList.length) % recipeDialogNavList.length;
   recipeDialogNavIndex = nextIndex;
   showRecipeView(recipeDialogNavList[nextIndex]);
 }
