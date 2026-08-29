@@ -518,8 +518,8 @@ function renderRecipeView(recipe) {
     // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
     const badge = document.createElement('span');
     badge.className = 'material-note-badge';
-    // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
-    badge.textContent = ing.note || ' ';
+    badge.dataset.note = ing.note;
+    badge.textContent = ing.note;
     li.appendChild(badge);
     li.appendChild(document.createTextNode(`${ing.name} ${ing.quantity}${ing.unit}`));
     recipeViewIngredientsEl.appendChild(li);
@@ -531,8 +531,8 @@ function renderRecipeView(recipe) {
     // 補足の有無に関わらずバッジを表示し、リストマーカー代わりの役割を持たせる
     const badge = document.createElement('span');
     badge.className = 'material-note-badge';
-    // noteが空文字列だとベースラインの基準文字がなくなりバッジが縦に潰れるため、nbspで高さを確保する
-    badge.textContent = s.note || ' ';
+    badge.dataset.note = s.note;
+    badge.textContent = s.note;
     li.appendChild(badge);
     li.appendChild(document.createTextNode(`${s.name} ${s.quantity}${s.unit}`));
     recipeViewSeasoningsEl.appendChild(li);

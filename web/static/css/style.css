@@ -9,6 +9,9 @@
   --color-accent: light-dark(#3563e9, #7fa2ff);
   --color-accent-bg: light-dark(#eef2ff, #22283f);
   --color-danger: light-dark(#a00, #f66);
+  --color-note-a: light-dark(#c62828, #c94f4f); /* 赤 */
+  --color-note-b: light-dark(#e67700, #c9791f); /* オレンジ */
+  --color-note-c: light-dark(#2b8a3e, #3f9153); /* 緑 */
   --color-text: light-dark(#1a1a1a, #eee);
   --color-text-muted: light-dark(#666, #aaa);
 
@@ -1049,23 +1052,48 @@ form .field-row label.icon-field > i,
 
 /* 食材・調味料一覧: リストマーカーの代わりに補足バッジを表示するため非表示にする */
 .material-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
   list-style: none;
   padding-left: 0;
 }
 
 .material-note-badge {
-  display: inline-block;
-  min-width: 0.8em;
-  min-height: 1.4em;
-  line-height: 1.4;
-  border-radius: var(--radius-pill);
-  padding: 0.05rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
   margin-right: 0.4rem;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background: var(--color-bg-sunken);
-  outline: 1px solid var(--color-border);
-  text-align: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: transparent;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* 補足なし: 文字入りの丸より一回り小さい単色ドットを箱の中央に表示 */
+.material-note-badge::before {
+  content: '';
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+}
+
+.material-note-badge[data-note='A'] { background: var(--color-note-a); }
+.material-note-badge[data-note='B'] { background: var(--color-note-b); }
+.material-note-badge[data-note='C'] { background: var(--color-note-c); }
+
+.material-note-badge[data-note='A']::before,
+.material-note-badge[data-note='B']::before,
+.material-note-badge[data-note='C']::before {
+  content: none;
 }
 
 .plan-timeline {
