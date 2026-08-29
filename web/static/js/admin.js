@@ -24,6 +24,8 @@ const masterNameField = document.getElementById('master-name');
 const masterNameIcon = document.getElementById('master-name-icon');
 const masterUnitField = document.getElementById('master-unit');
 const masterUnitLabel = document.getElementById('master-unit-label');
+const masterSpoonLabel = document.getElementById('master-spoon-label');
+const masterSpoonField = document.getElementById('master-spoon-display');
 const masterError = document.getElementById('master-error');
 const masterDeleteButton = document.getElementById('master-delete-button');
 const masterCancelButton = document.getElementById('master-cancel-button');
@@ -71,11 +73,14 @@ function openAddDialog(type) {
     masterNameIcon.className = 'ti ti-carrot';
     masterUnitLabel.hidden = false;
     masterUnitField.required = true;
+    masterSpoonLabel.hidden = true;
   } else {
     masterDialogTitle.textContent = '新しい調味料を追加';
     masterNameIcon.className = 'ti ti-salt';
     masterUnitLabel.hidden = true;
     masterUnitField.required = false;
+    masterSpoonLabel.hidden = false;
+    masterSpoonField.checked = true; // 新規作成時はデフォルトでON
   }
 
   masterDialog.showModal();
@@ -100,11 +105,14 @@ function openEditDialog(item, type) {
     masterUnitLabel.hidden = false;
     masterUnitField.value = item.unit || '';
     masterUnitField.required = true;
+    masterSpoonLabel.hidden = true;
   } else {
     masterDialogTitle.textContent = '調味料を編集';
     masterNameIcon.className = 'ti ti-salt';
     masterUnitLabel.hidden = true;
     masterUnitField.required = false;
+    masterSpoonLabel.hidden = false;
+    masterSpoonField.checked = item.isSpoonDisplay;
   }
 
   masterDialog.showModal();
@@ -236,6 +244,7 @@ masterForm.addEventListener('submit', async (e) => {
   const type = masterTypeField.value;
   const name = masterNameField.value.trim();
   const unit = masterUnitField.value.trim();
+  const isSpoonDisplay = masterSpoonField.checked;
 
   try {
     if (id) {
@@ -243,14 +252,14 @@ masterForm.addEventListener('submit', async (e) => {
       if (type === 'ingredient') {
         await updateIngredient(id, name, unit);
       } else {
-        await updateSeasoning(id, name);
+        await updateSeasoning(id, name, isSpoonDisplay);
       }
     } else {
       // 新規追加
       if (type === 'ingredient') {
         await createIngredient(name, unit);
       } else {
-        await createSeasoning(name);
+        await createSeasoning(name, isSpoonDisplay);
       }
     }
     closeDialog();

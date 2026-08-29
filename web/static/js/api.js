@@ -50,17 +50,17 @@ function listSeasonings() {
   return apiRequest('/api/seasonings');
 }
 
-function createSeasoning(name) {
+function createSeasoning(name, isSpoonDisplay) {
   return apiRequest('/api/seasonings', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, isSpoonDisplay }),
   });
 }
 
-function updateSeasoning(id, name) {
+function updateSeasoning(id, name, isSpoonDisplay) {
   return apiRequest(`/api/seasonings/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, isSpoonDisplay }),
   });
 }
 

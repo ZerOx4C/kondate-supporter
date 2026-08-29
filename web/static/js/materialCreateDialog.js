@@ -8,6 +8,8 @@ const materialCreateNameField = document.getElementById('material-create-name');
 const materialCreateNameIcon = document.getElementById('material-create-name-icon');
 const materialCreateUnitLabel = document.getElementById('material-create-unit-label');
 const materialCreateUnitField = document.getElementById('material-create-unit');
+const materialCreateSpoonLabel = document.getElementById('material-create-spoon-label');
+const materialCreateSpoonField = document.getElementById('material-create-spoon-display');
 const materialCreateError = document.getElementById('material-create-error');
 const materialCreateCancelButton = document.getElementById('material-create-cancel-button');
 
@@ -28,11 +30,14 @@ function openMaterialCreateDialog(type, initialName = '') {
     materialCreateNameIcon.className = 'ti ti-carrot';
     materialCreateUnitLabel.hidden = false;
     materialCreateUnitField.required = true;
+    materialCreateSpoonLabel.hidden = true;
   } else {
     materialCreateDialogTitle.textContent = '新しい調味料を追加';
     materialCreateNameIcon.className = 'ti ti-salt';
     materialCreateUnitLabel.hidden = true;
     materialCreateUnitField.required = false;
+    materialCreateSpoonLabel.hidden = false;
+    materialCreateSpoonField.checked = true; // 新規作成時はデフォルトでON
   }
 
   materialCreateDialog.showModal();
@@ -53,7 +58,7 @@ materialCreateForm.addEventListener('submit', async (e) => {
   try {
     const item = materialCreateType === 'ingredient'
       ? await createIngredient(name, unit)
-      : await createSeasoning(name);
+      : await createSeasoning(name, materialCreateSpoonField.checked);
     if (pendingResolve) {
       pendingResolve(item);
       pendingResolve = null;

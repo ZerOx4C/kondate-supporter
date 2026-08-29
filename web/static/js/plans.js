@@ -145,7 +145,7 @@ function renderPlanSeasoningRequirements() {
       valueTd.appendChild(input);
       valueTd.appendChild(document.createTextNode(s.unit));
     } else {
-      valueTd.textContent = `${computeSeasoningRequirement(s)}${s.unit}`;
+      valueTd.textContent = formatSeasoningQuantity(computeSeasoningRequirement(s), s.isSpoonDisplay);
     }
     tr.appendChild(valueTd);
 
@@ -340,7 +340,7 @@ function renderPlanView(plan, effectiveMode) {
       badge.dataset.note = s.note;
       badge.textContent = s.note;
       li.appendChild(badge);
-      li.appendChild(document.createTextNode(`${s.name} ${quantity}${s.unit}`));
+      li.appendChild(document.createTextNode(`${s.name} ${formatSeasoningQuantity(quantity, s.isSpoonDisplay)}`));
       planViewSeasoningsEl.appendChild(li);
     }
 

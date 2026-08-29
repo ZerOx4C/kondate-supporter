@@ -9,9 +9,12 @@ type Ingredient struct {
 }
 
 // Seasoning は調味料マスタ。在庫管理の対象外で、数量は常にmL単位。
+// IsSpoonDisplayがtrueの場合、フロントエンドでmL数値を大さじ/小さじ表記に
+// 変換して表示する(変換ロジック自体はweb/static/js/seasoningFormat.jsに持つ)。
 type Seasoning struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID             int64  `json:"id"`
+	Name           string `json:"name"`
+	IsSpoonDisplay bool   `json:"isSpoonDisplay"`
 }
 
 // Stock は食材ごとの現在の在庫数量。

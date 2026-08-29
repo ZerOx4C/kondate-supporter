@@ -523,7 +523,7 @@ function renderRecipeView(recipe) {
     badge.dataset.note = s.note;
     badge.textContent = s.note;
     li.appendChild(badge);
-    li.appendChild(document.createTextNode(`${s.name} ${s.quantity}${s.unit}`));
+    li.appendChild(document.createTextNode(`${s.name} ${formatSeasoningQuantity(s.quantity, s.isSpoonDisplay)}`));
     recipeViewSeasoningsEl.appendChild(li);
   }
 

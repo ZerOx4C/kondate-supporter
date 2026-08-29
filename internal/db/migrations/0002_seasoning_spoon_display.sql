@@ -1,0 +1,1 @@
+ALTER TABLE seasonings ADD COLUMN is_spoon_display INTEGER NOT NULL DEFAULT 1;

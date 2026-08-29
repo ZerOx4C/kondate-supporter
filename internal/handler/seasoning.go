@@ -19,15 +19,17 @@ func NewSeasoningHandler(repo *repository.SeasoningRepository) *SeasoningHandler
 }
 
 type seasoningRequest struct {
-	Name string `json:"name"`
+	Name           string `json:"name"`
+	IsSpoonDisplay bool   `json:"isSpoonDisplay"`
 }
 
-func (req seasoningRequest) validate() (name string, err error) {
+func (req seasoningRequest) validate() (name string, isSpoonDisplay bool, err error) {
 	name = strings.TrimSpace(req.Name)
 	if name == "" {
-		return "", errors.New("nameは必須です")
+		return "", false, errors.New("nameは必須です")
 	}
-	return name, nil
+	// isSpoonDisplayはtrue/falseどちらも有効な値としてそのまま通す。
+	return name, req.IsSpoonDisplay, nil
 }
 
 func (h *SeasoningHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -45,13 +47,13 @@ func (h *SeasoningHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	name, err := req.validate()
+	name, isSpoonDisplay, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	s, err := h.repo.Create(r.Context(), name)
+	s, err := h.repo.Create(r.Context(), name, isSpoonDisplay)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -84,13 +86,13 @@ func (h *SeasoningHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	name, err := req.validate()
+	name, isSpoonDisplay, err := req.validate()
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	s, err := h.repo.Update(r.Context(), id, name)
+	s, err := h.repo.Update(r.Context(), id, name, isSpoonDisplay)
 	if err != nil {
 		h.handleError(w, err)
 		return

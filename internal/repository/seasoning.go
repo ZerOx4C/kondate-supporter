@@ -19,7 +19,7 @@ func NewSeasoningRepository(db *sql.DB) *SeasoningRepository {
 }
 
 func (r *SeasoningRepository) List(ctx context.Context) ([]model.Seasoning, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id, name FROM seasonings ORDER BY id")
+	rows, err := r.db.QueryContext(ctx, "SELECT id, name, is_spoon_display FROM seasonings ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (r *SeasoningRepository) List(ctx context.Context) ([]model.Seasoning, erro
 	seasonings := []model.Seasoning{}
 	for rows.Next() {
 		var s model.Seasoning
-		if err := rows.Scan(&s.ID, &s.Name); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.IsSpoonDisplay); err != nil {
 			return nil, err
 		}
 		seasonings = append(seasonings, s)
@@ -41,8 +41,8 @@ func (r *SeasoningRepository) List(ctx context.Context) ([]model.Seasoning, erro
 
 func (r *SeasoningRepository) Get(ctx context.Context, id int64) (model.Seasoning, error) {
 	var s model.Seasoning
-	err := r.db.QueryRowContext(ctx, "SELECT id, name FROM seasonings WHERE id = ?", id).
-		Scan(&s.ID, &s.Name)
+	err := r.db.QueryRowContext(ctx, "SELECT id, name, is_spoon_display FROM seasonings WHERE id = ?", id).
+		Scan(&s.ID, &s.Name, &s.IsSpoonDisplay)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Seasoning{}, ErrNotFound
 	}
@@ -52,8 +52,8 @@ func (r *SeasoningRepository) Get(ctx context.Context, id int64) (model.Seasonin
 	return s, nil
 }
 
-func (r *SeasoningRepository) Create(ctx context.Context, name string) (model.Seasoning, error) {
-	res, err := r.db.ExecContext(ctx, "INSERT INTO seasonings (name) VALUES (?)", name)
+func (r *SeasoningRepository) Create(ctx context.Context, name string, isSpoonDisplay bool) (model.Seasoning, error) {
+	res, err := r.db.ExecContext(ctx, "INSERT INTO seasonings (name, is_spoon_display) VALUES (?, ?)", name, isSpoonDisplay)
 	if err != nil {
 		return model.Seasoning{}, classifySQLiteError(err)
 	}
@@ -61,11 +61,11 @@ func (r *SeasoningRepository) Create(ctx context.Context, name string) (model.Se
 	if err != nil {
 		return model.Seasoning{}, err
 	}
-	return model.Seasoning{ID: id, Name: name}, nil
+	return model.Seasoning{ID: id, Name: name, IsSpoonDisplay: isSpoonDisplay}, nil
 }
 
-func (r *SeasoningRepository) Update(ctx context.Context, id int64, name string) (model.Seasoning, error) {
-	res, err := r.db.ExecContext(ctx, "UPDATE seasonings SET name = ? WHERE id = ?", name, id)
+func (r *SeasoningRepository) Update(ctx context.Context, id int64, name string, isSpoonDisplay bool) (model.Seasoning, error) {
+	res, err := r.db.ExecContext(ctx, "UPDATE seasonings SET name = ?, is_spoon_display = ? WHERE id = ?", name, isSpoonDisplay, id)
 	if err != nil {
 		return model.Seasoning{}, classifySQLiteError(err)
 	}
@@ -76,7 +76,7 @@ func (r *SeasoningRepository) Update(ctx context.Context, id int64, name string)
 	if affected == 0 {
 		return model.Seasoning{}, ErrNotFound
 	}
-	return model.Seasoning{ID: id, Name: name}, nil
+	return model.Seasoning{ID: id, Name: name, IsSpoonDisplay: isSpoonDisplay}, nil
 }
 
 // Delete は調味料を削除する。recipe_seasoningsから参照中の調味料は

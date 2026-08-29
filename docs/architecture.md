@@ -17,6 +17,7 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 |---|---|
 | id | INTEGER PRIMARY KEY |
 | name | TEXT NOT NULL UNIQUE |
+| is_spoon_display | INTEGER NOT NULL DEFAULT 1(0002で追加。1=mL数量を大さじ/小さじ表記に変換して表示する) |
 
 `unit`カラムを持たない。数量は常にmL固定という前提でAPI/画面側が扱う(在庫管理の対象外)。
 
@@ -125,9 +126,9 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | PUT /api/ingredients/{id} | 食材マスタ更新 |
 | DELETE /api/ingredients/{id} | 食材マスタ削除(在庫行も同時削除。レシピで使用中なら409) |
 | GET /api/seasonings | 調味料マスタ一覧取得 |
-| POST /api/seasonings | 調味料マスタ新規作成(name) |
+| POST /api/seasonings | 調味料マスタ新規作成(name, isSpoonDisplay) |
 | GET /api/seasonings/{id} | 調味料マスタ1件取得 |
-| PUT /api/seasonings/{id} | 調味料マスタ更新 |
+| PUT /api/seasonings/{id} | 調味料マスタ更新(name, isSpoonDisplay) |
 | DELETE /api/seasonings/{id} | 調味料マスタ削除(レシピで使用中なら409) |
 | GET /api/stocks | 食材在庫一覧取得(食材名・単位・更新日時込み) |
 | PUT /api/stocks/{ingredientId} | 特定食材の在庫数量を更新(quantityは0以上)。在庫行は食材作成時に生成済みのため、無ければ404 |
@@ -172,8 +173,9 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 | `daterange.js` | 共通ヘッダーの検討期間(開始日+日数)の保持・同期・前後シフト |
 | `dialog.js` | `<dialog>`共通処理。背景クリック判定`isDialogBackdropClick()`、開いている間の`body`スクロールロック(MutationObserverで`open`属性を監視)、ネイティブ`confirm()`を置き換える`confirmDialog()` |
 | `summary.js` | 全画面共通の「材料集計」ダイアログ |
-| `materialCreateDialog.js` | 食材/調味料の新規作成ダイアログ。`recipes.js`(材料選択パネル)と`stocks.js`(在庫画面)から共用 |
+| `materialCreateDialog.js` | 食材/調味料の新規作成ダイアログ。`recipes.js`(材料選択パネル)と`stocks.js`(在庫画面)から共用。調味料選択時のみ「さじ表記」チェックボックス(デフォルトON)を表示する |
 | `toast.js` | 短時間で自動的に消える簡易トースト通知`showToast()` |
+| `seasoningFormat.js` | 調味料のmL数量を`isSpoonDisplay`設定に応じて「大さじX杯」「小さじY杯」表記へ変換する`formatSeasoningQuantity()`。`admin.html`/`recipes.html`/`plans.html`から読み込み、`recipes.js`(レシピ詳細表示)・`plans.js`(献立詳細表示・必要量一覧)が使用する |
 
 ### UIデザインの共通化状況
 
@@ -190,9 +192,9 @@ CLAUDE.mdの開発フローに従い、DB/API/画面に変更が入る機能改�
 
 - **調味料オーバーライドは集計に反映されない**: `aggregate()` が参照するのは `plan_ingredient_overrides` のみ。調味料は在庫管理・買い物リスト算出の対象外であり、`plan_seasoning_overrides` は献立編集画面での表示・保持用に留まる。
 
-- **調味料は`unit`カラムを持たない**: 数量は常にmL固定という前提。`internal/handler/recipe.go` の `recipeSeasoningResponse` は表示コードを食材側(`recipeIngredientResponse`)と共通化するため `Unit` フィールドを持つが値は常に `"mL"` 固定。
+- **調味料は`unit`カラムを持たない**: 数量は常にmL固定という前提。`internal/handler/recipe.go` の `recipeSeasoningResponse` は表示コードを食材側(`recipeIngredientResponse`)と共通化するため `Unit` フィールドを持つが値は常に `"mL"` 固定。調味料マスタ(`seasonings.is_spoon_display`)ごとに「大さじ/小さじ表記」のON/OFFを持つが、この変換は`web/static/js/seasoningFormat.js`の`formatSeasoningQuantity()`によるフロントエンドのみの表示加工であり、API応答の`Quantity`・`Unit`(mL固定)自体は変化しない。バックエンド(Go側)には換算ロジックを一切持たせない方針。
 
-- **単位換算ロジックを持たない**: `ingredients.unit` は自由入力文字列でマスタ化しない。在庫・レシピ材料・買い物リスト集計は同一ingredient_idの数量を同じunitとして単純加算するのみで、換算テーブルや変換関数は存在しない([docs/development.md](development.md)の制約に対応)。
+- **単位換算ロジックを持たない**: `ingredients.unit` は自由入力文字列でマスタ化しない。在庫・レシピ材料・買い物リスト集計は同一ingredient_idの数量を同じunitとして単純加算するのみで、換算テーブルや変換関数は存在しない([docs/development.md](development.md)の制約に対応)。ただし調味料のmL→大さじ/小さじ表示変換は例外的に別途フロントエンドに存在する(上記参照。食材の単位換算とは無関係)。
 
 - **献立の「種別(`plan_type`)」「レシピ非依存メモ行」という2つの独立した軸**: `plans.plan_type` が `scheduled`/`daily`/`unscheduled` のいずれか(scheduled=日付指定、daily=毎日エリア、unscheduled=未定エリア)、`plans.recipe_id` がNULLなら「外食予定や作り置きなど」のメモ行。買い物リスト集計では `recipe_id` がNULLの行は集計対象外。`PlanRepository.List()` は `plan_type = 'scheduled'` を常に条件に含め、未定エリアは `ListUnscheduled()`(`plan_type = 'unscheduled'`)、毎日エリアは `ListDaily()`(`plan_type = 'daily'`)がそれぞれ期間指定なしで返す。
 

@@ -41,11 +41,12 @@ type RecipeSeasoningInput struct {
 
 // RecipeSeasoningDetail は調味料と調味料マスタ情報をJOINした結果。
 type RecipeSeasoningDetail struct {
-	SeasoningID   int64
-	Name          string
-	Quantity      float64
-	FixedQuantity bool
-	Note          string
+	SeasoningID    int64
+	Name           string
+	IsSpoonDisplay bool
+	Quantity       float64
+	FixedQuantity  bool
+	Note           string
 }
 
 // RecipeDetail はレシピ本体・材料リスト・調味料リスト・手順リストをまとめた結果。
@@ -177,7 +178,7 @@ func queryAllRecipeIngredients(ctx context.Context, db *sql.DB) (map[int64][]Rec
 // queryAllRecipeSeasonings は全recipe_seasoningsをJOIN取得し、recipe_idごとにグルーピングする。
 func queryAllRecipeSeasonings(ctx context.Context, db *sql.DB) (map[int64][]RecipeSeasoningDetail, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT rs.recipe_id, s.id, s.name, rs.quantity, rs.is_fixed_quantity, rs.note
+		SELECT rs.recipe_id, s.id, s.name, s.is_spoon_display, rs.quantity, rs.is_fixed_quantity, rs.note
 		FROM recipe_seasonings rs
 		JOIN seasonings s ON s.id = rs.seasoning_id
 		ORDER BY rs.recipe_id, rs.id
@@ -191,7 +192,7 @@ func queryAllRecipeSeasonings(ctx context.Context, db *sql.DB) (map[int64][]Reci
 	for rows.Next() {
 		var recipeID int64
 		var d RecipeSeasoningDetail
-		if err := rows.Scan(&recipeID, &d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
+		if err := rows.Scan(&recipeID, &d.SeasoningID, &d.Name, &d.IsSpoonDisplay, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		result[recipeID] = append(result[recipeID], d)
@@ -266,7 +267,7 @@ func queryRecipeSeasonings(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, recipeID int64) ([]RecipeSeasoningDetail, error) {
 	rows, err := q.QueryContext(ctx, `
-		SELECT s.id, s.name, rs.quantity, rs.is_fixed_quantity, rs.note
+		SELECT s.id, s.name, s.is_spoon_display, rs.quantity, rs.is_fixed_quantity, rs.note
 		FROM recipe_seasonings rs
 		JOIN seasonings s ON s.id = rs.seasoning_id
 		WHERE rs.recipe_id = ?
@@ -280,7 +281,7 @@ func queryRecipeSeasonings(ctx context.Context, q interface {
 	details := []RecipeSeasoningDetail{}
 	for rows.Next() {
 		var d RecipeSeasoningDetail
-		if err := rows.Scan(&d.SeasoningID, &d.Name, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
+		if err := rows.Scan(&d.SeasoningID, &d.Name, &d.IsSpoonDisplay, &d.Quantity, &d.FixedQuantity, &d.Note); err != nil {
 			return nil, err
 		}
 		details = append(details, d)

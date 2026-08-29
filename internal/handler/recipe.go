@@ -117,13 +117,16 @@ type recipeIngredientResponse struct {
 
 // recipeSeasoningResponse のUnitは常に"mL"固定(seasoningsテーブルにunitカラムは
 // 持たせていないため、recipeIngredientResponseと表示コードを共通化する目的でここに固定値を持たせる)。
+// IsSpoonDisplayはフロントエンドがmL数値を大さじ/小さじ表記に変換するかどうかの
+// 判定にのみ使い、Quantity・Unit自体はmLのまま変化しない。
 type recipeSeasoningResponse struct {
-	SeasoningID   int64   `json:"seasoningId"`
-	Name          string  `json:"name"`
-	Unit          string  `json:"unit"`
-	Quantity      float64 `json:"quantity"`
-	FixedQuantity bool    `json:"fixedQuantity"`
-	Note          string  `json:"note"`
+	SeasoningID    int64   `json:"seasoningId"`
+	Name           string  `json:"name"`
+	Unit           string  `json:"unit"`
+	IsSpoonDisplay bool    `json:"isSpoonDisplay"`
+	Quantity       float64 `json:"quantity"`
+	FixedQuantity  bool    `json:"fixedQuantity"`
+	Note           string  `json:"note"`
 }
 
 type recipeResponse struct {
@@ -152,12 +155,13 @@ func toRecipeResponse(detail repository.RecipeDetail) recipeResponse {
 	seasonings := make([]recipeSeasoningResponse, 0, len(detail.Seasonings))
 	for _, s := range detail.Seasonings {
 		seasonings = append(seasonings, recipeSeasoningResponse{
-			SeasoningID:   s.SeasoningID,
-			Name:          s.Name,
-			Unit:          "mL",
-			Quantity:      s.Quantity,
-			FixedQuantity: s.FixedQuantity,
-			Note:          s.Note,
+			SeasoningID:    s.SeasoningID,
+			Name:           s.Name,
+			Unit:           "mL",
+			IsSpoonDisplay: s.IsSpoonDisplay,
+			Quantity:       s.Quantity,
+			FixedQuantity:  s.FixedQuantity,
+			Note:           s.Note,
 		})
 	}
 	steps := detail.Steps
