@@ -240,6 +240,9 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   noteInput.placeholder = '補足(任意)';
   if (note !== undefined) noteInput.value = note;
 
+  const handle = createRowHandle(row, ingredientRowsEl, '.ingredient-row');
+
+  row.appendChild(handle);
   row.appendChild(noteInput);
   row.appendChild(pickerButton);
   row.appendChild(qtyField);
@@ -328,6 +331,9 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   noteInput.placeholder = '補足(任意)';
   if (note !== undefined) noteInput.value = note;
 
+  const handle = createRowHandle(row, seasoningRowsEl, '.seasoning-row');
+
+  row.appendChild(handle);
   row.appendChild(noteInput);
   row.appendChild(pickerButton);
   row.appendChild(qtyField);
@@ -350,8 +356,6 @@ function collectSeasoningRows() {
   }));
 }
 
-let stepDragState = null;
-
 function renumberStepRows() {
   const rows = stepRowsEl.querySelectorAll('.step-row');
   rows.forEach((row, index) => {
@@ -359,44 +363,60 @@ function renumberStepRows() {
   });
 }
 
-function onStepHandlePointerDown(e, row, handle) {
+// 食材・調味料・手順いずれの行の並び替えにも使う汎用ドラッグ状態。
+// container: 行の親要素、rowSelector: 対象行を絞り込むクラスセレクタ、onReorder: 入れ替え直後に呼ぶコールバック(省略可)
+let rowDragState = null;
+
+function onRowHandlePointerDown(e, row, handle, container, rowSelector, onReorder) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
-  stepDragState = { row };
+  rowDragState = { row, container, rowSelector, onReorder };
   row.classList.add('dragging');
   handle.setPointerCapture(e.pointerId);
 }
 
-function onStepHandlePointerMove(e) {
-  if (!stepDragState) return;
-  const { row } = stepDragState;
+function onRowHandlePointerMove(e) {
+  if (!rowDragState) return;
+  const { row, container, rowSelector, onReorder } = rowDragState;
   const target = document.elementFromPoint(e.clientX, e.clientY);
-  const targetRow = target ? target.closest('.step-row') : null;
-  if (!targetRow || targetRow === row || targetRow.parentElement !== stepRowsEl) return;
+  const targetRow = target ? target.closest(rowSelector) : null;
+  if (!targetRow || targetRow === row || targetRow.parentElement !== container) return;
 
   const rect = targetRow.getBoundingClientRect();
   const before = e.clientY < rect.top + rect.height / 2;
-  stepRowsEl.insertBefore(row, before ? targetRow : targetRow.nextSibling);
-  renumberStepRows();
+  container.insertBefore(row, before ? targetRow : targetRow.nextSibling);
+  if (onReorder) onReorder();
 }
 
-function onStepHandlePointerUp(e) {
-  if (!stepDragState) return;
-  stepDragState.row.classList.remove('dragging');
-  stepDragState = null;
+function onRowHandlePointerUp(e) {
+  if (!rowDragState) return;
+  rowDragState.row.classList.remove('dragging');
+  rowDragState = null;
+}
+
+// 献立パネル(.plan-panel-handle)を踏襲したドラッグハンドルを生成する
+function createRowHandle(row, container, rowSelector, onReorder) {
+  const handle = document.createElement('span');
+  handle.className = 'material-row-handle';
+  handle.setAttribute('aria-hidden', 'true');
+  handle.innerHTML = '<i class="ti ti-grip-vertical" aria-hidden="true"></i>';
+  handle.addEventListener('pointerdown', (e) => onRowHandlePointerDown(e, row, handle, container, rowSelector, onReorder));
+  handle.addEventListener('pointermove', onRowHandlePointerMove);
+  handle.addEventListener('pointerup', onRowHandlePointerUp);
+  handle.addEventListener('pointercancel', onRowHandlePointerUp);
+  return handle;
 }
 
 function addStepRow(text) {
   const row = document.createElement('div');
   row.className = 'step-row';
 
-  const handle = document.createElement('span');
-  handle.className = 'step-number';
-  handle.addEventListener('pointerdown', (e) => onStepHandlePointerDown(e, row, handle));
-  handle.addEventListener('pointermove', onStepHandlePointerMove);
-  handle.addEventListener('pointerup', onStepHandlePointerUp);
-  handle.addEventListener('pointercancel', onStepHandlePointerUp);
+  const handle = createRowHandle(row, stepRowsEl, '.step-row', renumberStepRows);
   row.appendChild(handle);
+
+  const numberEl = document.createElement('span');
+  numberEl.className = 'step-number';
+  row.appendChild(numberEl);
 
   const textarea = document.createElement('textarea');
   textarea.className = 'step-text';
