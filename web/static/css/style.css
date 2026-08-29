@@ -363,6 +363,18 @@ button.primary:hover {
   opacity: 0.4;
 }
 
+.ingredient-row.drag-over-top,
+.seasoning-row.drag-over-top,
+.step-row.drag-over-top {
+  border-top: 2px solid var(--color-accent);
+}
+
+.ingredient-row.drag-over-bottom,
+.seasoning-row.drag-over-bottom,
+.step-row.drag-over-bottom {
+  border-bottom: 2px solid var(--color-accent);
+}
+
 .material-row-handle {
   display: flex;
   align-items: center;

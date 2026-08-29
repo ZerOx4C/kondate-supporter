@@ -367,16 +367,28 @@ function renumberStepRows() {
 // container: 行の親要素、rowSelector: 対象行を絞り込むクラスセレクタ、onReorder: 入れ替え直後に呼ぶコールバック(省略可)
 let rowDragState = null;
 
+// ドラッグ中に挿入位置プレビュー用クラスを付与した行を記録しておき、対象行が変わった際に確実に除去する
+function clearRowDragOverClass() {
+  if (!rowDragState || !rowDragState.overRow) return;
+  rowDragState.overRow.classList.remove('drag-over-top', 'drag-over-bottom');
+  rowDragState.overRow = null;
+}
+
 function onRowHandlePointerDown(e, row, handle, container, rowSelector, onReorder) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
-  rowDragState = { row, container, rowSelector, onReorder };
+  rowDragState = { row, container, rowSelector, onReorder, overRow: null };
   row.classList.add('dragging');
   handle.setPointerCapture(e.pointerId);
+  // input/textarea上をカーソルが通過するとハンドルのポインターキャプチャが暗黙的に外れ、
+  // pointerup/pointercancelがハンドルに届かなくなることがあるため、documentにもフェイルセーフで登録する
+  document.addEventListener('pointerup', onRowHandlePointerUp);
+  document.addEventListener('pointercancel', onRowHandlePointerUp);
 }
 
 function onRowHandlePointerMove(e) {
   if (!rowDragState) return;
+  e.preventDefault();
   const { row, container, rowSelector, onReorder } = rowDragState;
   const target = document.elementFromPoint(e.clientX, e.clientY);
   const targetRow = target ? target.closest(rowSelector) : null;
@@ -384,12 +396,23 @@ function onRowHandlePointerMove(e) {
 
   const rect = targetRow.getBoundingClientRect();
   const before = e.clientY < rect.top + rect.height / 2;
+
+  if (rowDragState.overRow !== targetRow) {
+    clearRowDragOverClass();
+    rowDragState.overRow = targetRow;
+  }
+  targetRow.classList.toggle('drag-over-top', before);
+  targetRow.classList.toggle('drag-over-bottom', !before);
+
   container.insertBefore(row, before ? targetRow : targetRow.nextSibling);
   if (onReorder) onReorder();
 }
 
 function onRowHandlePointerUp(e) {
   if (!rowDragState) return;
+  document.removeEventListener('pointerup', onRowHandlePointerUp);
+  document.removeEventListener('pointercancel', onRowHandlePointerUp);
+  clearRowDragOverClass();
   rowDragState.row.classList.remove('dragging');
   rowDragState = null;
 }
