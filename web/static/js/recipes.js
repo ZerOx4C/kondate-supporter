@@ -85,7 +85,7 @@ function createMaterialPickerTag(item) {
   const tag = document.createElement('button');
   tag.type = 'button';
   tag.className = 'ingredient-filter-tag';
-  tag.textContent = type === 'ingredient' ? `${item.name} (${item.unit})` : `${item.name} (mL)`;
+  tag.textContent = item.name;
   tag.classList.toggle('selected', currentId === item.id);
   tag.addEventListener('click', () => selectMaterial(item.id));
   return tag;
