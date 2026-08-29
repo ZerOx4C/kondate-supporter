@@ -179,6 +179,14 @@ function updateIngredientRowUnit(row, ingredientId) {
   unitEl.textContent = ingredient ? ingredient.unit : '';
 }
 
+// 食材・調味料の補足欄(-/A/B/C)用の<option>を生成する
+function createNoteOption(value) {
+  const option = document.createElement('option');
+  option.value = value || '';
+  option.textContent = value || '-';
+  return option;
+}
+
 function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   const row = document.createElement('div');
   row.className = 'ingredient-row';
@@ -234,10 +242,12 @@ function addIngredientRow(ingredientId, quantity, fixedQuantity, note) {
   removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
-  const noteInput = document.createElement('input');
-  noteInput.type = 'text';
+  const noteInput = document.createElement('select');
   noteInput.className = 'ingredient-note';
-  noteInput.placeholder = '補足(任意)';
+  noteInput.appendChild(createNoteOption());
+  noteInput.appendChild(createNoteOption('A'));
+  noteInput.appendChild(createNoteOption('B'));
+  noteInput.appendChild(createNoteOption('C'));
   if (note !== undefined) noteInput.value = note;
 
   const handle = createRowHandle(row, ingredientRowsEl, '.ingredient-row');
@@ -261,7 +271,7 @@ function collectIngredientRows() {
     ingredientId: Number(row.querySelector('.ingredient-picker-button').dataset.ingredientId),
     quantity: Number(row.querySelector('.ingredient-quantity').value),
     fixedQuantity: row.querySelector('.ingredient-fixed').checked,
-    note: row.querySelector('.ingredient-note').value.trim(),
+    note: row.querySelector('.ingredient-note').value,
   }));
 }
 
@@ -325,10 +335,12 @@ function addSeasoningRow(seasoningId, quantity, fixedQuantity, note) {
   removeButton.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i>';
   removeButton.addEventListener('click', () => row.remove());
 
-  const noteInput = document.createElement('input');
-  noteInput.type = 'text';
+  const noteInput = document.createElement('select');
   noteInput.className = 'seasoning-note';
-  noteInput.placeholder = '補足(任意)';
+  noteInput.appendChild(createNoteOption());
+  noteInput.appendChild(createNoteOption('A'));
+  noteInput.appendChild(createNoteOption('B'));
+  noteInput.appendChild(createNoteOption('C'));
   if (note !== undefined) noteInput.value = note;
 
   const handle = createRowHandle(row, seasoningRowsEl, '.seasoning-row');
@@ -352,7 +364,7 @@ function collectSeasoningRows() {
     seasoningId: Number(row.querySelector('.seasoning-picker-button').dataset.seasoningId),
     quantity: Number(row.querySelector('.seasoning-quantity').value),
     fixedQuantity: row.querySelector('.seasoning-fixed').checked,
-    note: row.querySelector('.seasoning-note').value.trim(),
+    note: row.querySelector('.seasoning-note').value,
   }));
 }
 
