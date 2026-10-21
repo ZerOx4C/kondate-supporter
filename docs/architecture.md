@@ -16,6 +16,7 @@ internal/model/          # ドメイン構造体
 internal/repository/     # DBアクセス層(SQL実行のみ)
 internal/service/        # ビジネスロジック層
 internal/handler/        # HTTPハンドラ層
+web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
 web/static/              # フロントエンド(HTML/CSS/JS、embedでバイナリに焼き込み)
 scripts/                 # ビルド・デプロイ補助スクリプト
 data/                    # SQLiteファイルの実行時生成先(Git管理外)
@@ -58,9 +59,12 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 | 画面 | 内容 | 状態 |
 |---|---|---|
-| `recipes.html`(レシピ) | 縦積みカードリスト表示・新規作成・詳細表示・編集・削除。詳細/編集は `<dialog>`(name入力欄 + bodyのtextareaのみ) | 計画中 |
+| `recipes.html`(レシピ) | 縦積みカードリスト表示・新規作成・詳細表示・編集・削除。詳細/編集は `<dialog>`(name入力欄 + bodyのtextareaのみ) | 仮ページ(準備中表示)のみ。本実装は計画中 |
 
 ## 5. 設計判断(逆行防止用)
+
+- **モジュール名は `kondate-supporter`**: 外部へ公開せず `go install` もしないため、GitHubのパスにはしない。importを短く保ち、旧実装を参照するときの読み替えを無くす。
+- **ディレクトリは使う項目で作る**: `.gitkeep` などの目印ファイルは置かない。`internal/db`・`model`・`repository`・`service` は、そのコードを初めて書くROADMAP項目で作る。ヘルパー関数や設定項目も、使う項目で追加する。
 
 - **レシピ本文は構造化しない**: 材料・調味料・手順は `body` 1カラムの自由テキストに持たせる。名称+数量+単位での構造化やLLMによる抽出はROADMAPに項目が無い限り着手しない。
 - **在庫・献立・買い物リストは現時点のスコープ外**: 関連するテーブル・APIはROADMAPに項目が追加されるまで作らない。
