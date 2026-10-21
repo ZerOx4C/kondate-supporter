@@ -19,6 +19,9 @@ func NewRouter(staticFS fs.FS, recipes *RecipeHandler) http.Handler {
 	mux.HandleFunc("DELETE /api/recipes/{id}", recipes.Delete)
 	mux.HandleFunc("POST /api/recipes/{id}/cooked", recipes.IncrementCooked)
 	mux.HandleFunc("DELETE /api/recipes/{id}/cooked", recipes.DecrementCooked)
+	mux.HandleFunc("PUT /api/recipes/{id}/image", recipes.PutImage)
+	mux.HandleFunc("DELETE /api/recipes/{id}/image", recipes.DeleteImage)
+	mux.HandleFunc("GET /api/recipes/{id}/image", recipes.GetImage)
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/recipes.html", http.StatusFound)
 	})

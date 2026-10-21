@@ -12,6 +12,8 @@ import (
 var (
 	ErrNotFound     = errors.New("レシピが見つかりません")
 	ErrNameRequired = errors.New("名前を入力してください")
+
+	ErrImageNotFound = errors.New("画像が見つかりません")
 )
 
 type RecipeService struct {
@@ -60,6 +62,28 @@ func (s *RecipeService) IncrementCookedCount(ctx context.Context, id int64) (mod
 func (s *RecipeService) DecrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {
 	rec, err := s.repo.DecrementCookedCount(ctx, id)
 	return rec, convertErr(err)
+}
+
+func (s *RecipeService) SetImage(ctx context.Context, id int64, data []byte) (model.Recipe, error) {
+	rec, err := s.repo.SetImage(ctx, id, data)
+	return rec, convertErr(err)
+}
+
+func (s *RecipeService) DeleteImage(ctx context.Context, id int64) (model.Recipe, error) {
+	rec, err := s.repo.DeleteImage(ctx, id)
+	return rec, convertErr(err)
+}
+
+// GetImage は画像のバイト列を返す。画像が無ければErrImageNotFoundを返す。
+func (s *RecipeService) GetImage(ctx context.Context, id int64) ([]byte, error) {
+	data, err := s.repo.GetImage(ctx, id)
+	if err != nil {
+		return nil, convertErr(err)
+	}
+	if len(data) == 0 {
+		return nil, ErrImageNotFound
+	}
+	return data, nil
 }
 
 func (s *RecipeService) Delete(ctx context.Context, id int64) error {

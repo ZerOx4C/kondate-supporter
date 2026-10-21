@@ -32,6 +32,8 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | name | TEXT NOT NULL(タイトル) |
 | body | TEXT NOT NULL DEFAULT ''(材料・調味料・手順を含む自由テキスト) |
 | cooked_count | INTEGER NOT NULL DEFAULT 0(作った回数) |
+| image_version | INTEGER NOT NULL DEFAULT 0(画像を保存した回数。画像URLの `v` に使う) |
+| image | BLOB(JPEG。NULLなら画像なし。必ず最後の列にする) |
 
 ### `schema_migrations`(マイグレーション適用履歴)
 | カラム | 型/制約 |
@@ -43,7 +45,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 ## 3. APIエンドポイント
 
-ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。レシピのJSONは `{"id","name","body","cooked_count"}`。PUTは `cooked_count` を受け付けず値も変えない。
+ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。レシピのJSONは `{"id","name","body","cooked_count","image_url"}`(`image_url` は画像があれば `/api/recipes/{id}/image?v={image_version}`、無ければnull)。PUTは `cooked_count` も画像も受け付けず値も変えない。
 
 | メソッド パス | 概要 |
 |---|---|
@@ -55,6 +57,9 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | DELETE /api/recipes/{id} | レシピ削除。204(ボディなし) |
 | POST /api/recipes/{id}/cooked | 作った回数を1増やす。200で更新後のレシピ |
 | DELETE /api/recipes/{id}/cooked | 作った回数を1減らす(0未満にはしない)。200で更新後のレシピ |
+| PUT /api/recipes/{id}/image | 画像を保存(`image_version` を1増やす)。ボディはJPEGのバイト列そのまま(上限2MB)。200で更新後のレシピ |
+| DELETE /api/recipes/{id}/image | 画像を外す。画像が無くても200で更新後のレシピ |
+| GET /api/recipes/{id}/image | 画像のバイト列。`Content-Type: image/jpeg`、`Cache-Control: public, max-age=31536000, immutable`。`?v=` は見ない |
 | GET / | ルートパスのみ `/recipes.html` へリダイレクト(302)。それ以外は静的ファイル配信(embed。`DEV_MODE=1` のときのみ `os.DirFS("web/static")` から配信) |
 
 エラー応答は `internal/handler/respond.go` の `writeError` で `{"error": "メッセージ"}` として返す。
@@ -64,7 +69,10 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | 400 | `{id}` が数値でない・1未満 | IDが不正です |
 | 400 | リクエストJSONが不正 | リクエストの形式が不正です |
 | 400 | `name` が空白除去後に空 | 名前を入力してください |
+| 400 | 画像のボディが2MBを超える | 画像が大きすぎます |
+| 400 | 画像のボディがJPEGでない(空を含む) | JPEG画像を送ってください |
 | 404 | 対象IDのレシピが無い | レシピが見つかりません |
+| 404 | `GET .../image` でレシピに画像が無い | 画像が見つかりません |
 | 500 | 上記以外(詳細はログのみ) | サーバー内部でエラーが発生しました |
 
 ## 4. 画面
@@ -92,6 +100,15 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **「作った」の押した状態は画面のJSだけで持ち、ダイアログを開くたびに押す前に戻す**: 記録したいのは回数で、誰がいつ押したかではないのでDBには持たない。編集に切り替えても閉じるまでは保つので、閲覧表示に戻ったあとも取り消せる。
 - **作った回数はアイコンと数字だけで表し、0回は数字を出さない**: 一覧で作ったことのあるレシピが見分けやすく、文言を切り替える処理も要らない。一覧カードでは右端にそろえて見比べやすくする。
 - **押した状態は背景と枠の色で表し、`aria-pressed` で伝える**: 同梱しているのはoutline版のアイコンだけで、塗りつぶしに切り替えられないため。CSSは `aria-pressed` の値を見て色を付け、状態の値を1つにまとめる。
+- **画像はファイルでなくrecipesのBLOB列に入れる**: 保存先がDBファイル1つなので、preview用DBを使えば画像も自動で分かれ、バックアップや配置もDBファイルだけで済む。1レシピ1枚・2MBまでならSQLiteで足りる。
+- **`image` はrecipesの最後の列にする**: SQLiteは大きなBLOBを行の後ろのオーバーフローページに置き、BLOBより後ろの列を読むとそこを辿るため。`image_version` を先に足して一覧で読んでも画像に触れない。今後recipesに列を足すときはこの点に注意する。
+- **画像の有無は `typeof(image) = 'blob'` で調べる**: 列の型だけを見て中身を読まないので、一覧・1件取得・RETURNINGで画像の本体を読まずに `image_url` を組み立てられる。
+- **`image_version` は保存のたびに増やし、画像を外しても戻さない**: 画像URLは `immutable` で1年キャッシュされる。外して付け直したときに同じ `v` になると古い画像が表示されてしまう。
+- **`image_url` はhandlerで組み立てる**: パスはルーティングの知識なので、modelは `HasImage`・`ImageVersion`(`json:"-"`)を持ち、handlerが `recipeResponse` に `image_url` を足して返す。
+- **画像の大きさ・形式の検査はhandlerで行う**: `http.MaxBytesReader` で2MBを超えた時点で読むのをやめ、大きなボディをメモリに溜めない。形式は `http.DetectContentType` がimage/jpegかどうかで見る。ボディの検査はDBより前なので、IDが無く画像も不正なときは400になる。
+- **画像は専用エンドポイントでだけ変える**: PUTの全体置換に含めると、別の端末で画像を変えた直後の保存で古い画像に戻ってしまう。ボディもJSONに包まずバイト列のまま送れる。
+- **画像を外す操作は、画像が無くても200にする**: 画面側で有無を確かめずに呼べるようにする。
+- **画像の取得では `v` を見ない**: `v` はブラウザのキャッシュを切り替えるためだけのもので、古い版はDBに残さないため常に現在の画像を返す。
 - **画面は1つのHTMLと同名のJSに分ける**: 画面固有CSSはHTMLの `<style>` に置く。画面が1つの間は共通CSS/JSを作らず、2つ目の画面を作る項目で切り出す。
 - **詳細は一覧のデータで表示する**: 一覧APIがbodyも返すので、カードを開くときに `GET /api/recipes/{id}` は呼ばない。保存・削除の後は一覧を丸ごと読み直す。
 - **詳細はまず閲覧表示にし、「編集」で入力フォームに切り替える**: 調理中の誤編集やキーボードの出現を防ぐため。本文は `textContent` と `white-space: pre-wrap` で書いたとおりの改行で表示する。

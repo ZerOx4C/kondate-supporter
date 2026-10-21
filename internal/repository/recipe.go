@@ -12,7 +12,8 @@ import (
 var ErrNotFound = errors.New("not found")
 
 // recipeColumns はmodel.Recipeの各フィールドに対応するSELECT/RETURNING列。
-const recipeColumns = `id, name, body, cooked_count`
+// typeof(image)は列の型だけを見るので、画像の本体は読まない。
+const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version`
 
 type RecipeRepository struct {
 	db *sql.DB
@@ -33,7 +34,7 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	recipes := []model.Recipe{}
 	for rows.Next() {
 		var rec model.Recipe
-		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion); err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, rec)
@@ -44,7 +45,7 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, error) {
 	var rec model.Recipe
 	err := r.db.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id).
-		Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount)
+		Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Recipe{}, ErrNotFound
 	}
@@ -78,10 +79,32 @@ func (r *RecipeRepository) DecrementCookedCount(ctx context.Context, id int64) (
 		`UPDATE recipes SET cooked_count = MAX(cooked_count - 1, 0) WHERE id = ? RETURNING `+recipeColumns, id))
 }
 
+// SetImage は画像を保存してimage_versionを1増やし、更新後のレシピを返す。
+func (r *RecipeRepository) SetImage(ctx context.Context, id int64, data []byte) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx,
+		`UPDATE recipes SET image = ?, image_version = image_version + 1 WHERE id = ? RETURNING `+recipeColumns, data, id))
+}
+
+// DeleteImage は画像を外し、更新後のレシピを返す。image_versionは戻さない。
+func (r *RecipeRepository) DeleteImage(ctx context.Context, id int64) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx,
+		`UPDATE recipes SET image = NULL WHERE id = ? RETURNING `+recipeColumns, id))
+}
+
+// GetImage は画像のバイト列を返す。レシピが無ければErrNotFound、画像が無ければnilを返す。
+func (r *RecipeRepository) GetImage(ctx context.Context, id int64) ([]byte, error) {
+	var data []byte
+	err := r.db.QueryRowContext(ctx, `SELECT image FROM recipes WHERE id = ?`, id).Scan(&data)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return data, err
+}
+
 // scanReturned はUPDATE ... RETURNINGの行を読む。行が無ければErrNotFoundを返す。
 func scanReturned(row *sql.Row) (model.Recipe, error) {
 	var rec model.Recipe
-	err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount)
+	err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Recipe{}, ErrNotFound
 	}

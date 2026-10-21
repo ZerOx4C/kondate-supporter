@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -25,13 +27,35 @@ type recipeRequest struct {
 	Body string `json:"body"`
 }
 
+// maxImageSize はアップロードできる画像の上限(2MB)。
+const maxImageSize = 2 << 20
+
+// recipeResponse はレシピのJSON応答。画像のURLはルーティングを知るhandlerで組み立てる。
+type recipeResponse struct {
+	model.Recipe
+	ImageURL *string `json:"image_url"`
+}
+
+func toRecipeResponse(rec model.Recipe) recipeResponse {
+	res := recipeResponse{Recipe: rec}
+	if rec.HasImage {
+		url := fmt.Sprintf("/api/recipes/%d/image?v=%d", rec.ID, rec.ImageVersion)
+		res.ImageURL = &url
+	}
+	return res
+}
+
 func (h *RecipeHandler) List(w http.ResponseWriter, r *http.Request) {
 	recipes, err := h.svc.List(r.Context())
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, recipes)
+	res := make([]recipeResponse, len(recipes))
+	for i, rec := range recipes {
+		res[i] = toRecipeResponse(rec)
+	}
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (h *RecipeHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +68,7 @@ func (h *RecipeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rec)
+	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
 }
 
 func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +81,7 @@ func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, rec)
+	writeJSON(w, http.StatusCreated, toRecipeResponse(rec))
 }
 
 func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +98,7 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rec)
+	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
 }
 
 func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +131,66 @@ func (h *RecipeHandler) changeCooked(w http.ResponseWriter, r *http.Request, cha
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rec)
+	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
+}
+
+// PutImage はリクエストボディのJPEGを画像として保存する。
+func (h *RecipeHandler) PutImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxImageSize))
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusBadRequest, "画像が大きすぎます")
+		} else {
+			writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		}
+		return
+	}
+	if http.DetectContentType(data) != "image/jpeg" {
+		writeError(w, http.StatusBadRequest, "JPEG画像を送ってください")
+		return
+	}
+	rec, err := h.svc.SetImage(r.Context(), id, data)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
+}
+
+func (h *RecipeHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	rec, err := h.svc.DeleteImage(r.Context(), id)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
+}
+
+// GetImage は画像のバイト列を返す。URLの?v=はブラウザのキャッシュ切り替え用で、値は見ない。
+func (h *RecipeHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	data, err := h.svc.GetImage(r.Context(), id)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 // parseID はパスの{id}を読む。不正ならエラー応答を書いてfalseを返す。
@@ -134,7 +217,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrNameRequired):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrNotFound):
+	case errors.Is(err, service.ErrNotFound), errors.Is(err, service.ErrImageNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
 	default:
 		log.Printf("handler: %v", err)
