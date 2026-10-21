@@ -128,7 +128,7 @@ function clearImageChange() {
   imageChange = null;
 }
 
-// 編集フォームの画像欄(プレビュー or 「画像なし」枠、「画像を外す」の有効・無効)を状態に合わせる
+// 編集フォームの画像欄を状態に合わせる(プレビューと「画像を外す」、または「画像なし」枠と貼り付け・「画像を選ぶ」)
 function renderEditImage() {
   let src = "";
   if (imageChange && imageChange !== "remove") src = imageChange.url;
@@ -136,9 +136,8 @@ function renderEditImage() {
   const img = $("edit-image");
   if (src) img.src = src;
   else img.removeAttribute("src");
-  img.hidden = !src;
+  $("edit-preview").hidden = !src;
   $("edit-no-image").hidden = !!src;
-  $("remove-image-button").disabled = busy || !src;
 }
 
 // 画像を長辺800px以下のJPEGにする。透過部分は白で塗る
@@ -188,7 +187,7 @@ function removeImage() {
 }
 
 const pasteArea = $("paste-area");
-// 欄の本来の中身(アイコンと文言)。中身が変えられたときに戻すため控えておく
+// 欄の本来の中身(文言と案内)。中身が変えられたときに戻すため控えておく
 const pasteAreaContent = Array.from(pasteArea.childNodes, (n) => n.cloneNode(true));
 
 function resetPasteArea() {
