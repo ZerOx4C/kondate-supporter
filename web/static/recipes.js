@@ -16,7 +16,7 @@ let imageChange = null; // 編集中の画像の変更。null=変更なし / {bl
 
 const MAX_IMAGE_SIDE = 800;
 
-// アイコンと回数(0回は数字なし)。一覧カードと「作った」ボタンで共用
+// アイコンと回数(0回は数字なし)。一覧タイルと「作った」ボタンで共用
 function cookedContent(count) {
   const span = document.createElement("span");
   span.className = "cooked";
@@ -74,10 +74,36 @@ async function loadList() {
     const li = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    const name = document.createElement("span");
-    name.className = "recipe-name";
-    name.textContent = recipe.name;
-    button.append(name, cookedContent(recipe.cooked_count));
+    button.className = "tile";
+    button.title = recipe.name;
+    const visual = document.createElement("div");
+    visual.className = "tile-visual";
+    if (recipe.image_url) {
+      const img = document.createElement("img");
+      img.className = "tile-image";
+      img.src = recipe.image_url;
+      img.alt = "";
+      img.loading = "lazy";
+      visual.appendChild(img);
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "tile-placeholder";
+      const text = document.createElement("span");
+      text.className = "tile-placeholder-text";
+      text.textContent = recipe.name;
+      placeholder.appendChild(text);
+      visual.appendChild(placeholder);
+    }
+    const cooked = cookedContent(recipe.cooked_count);
+    cooked.classList.add("tile-cooked");
+    visual.appendChild(cooked);
+    button.appendChild(visual);
+    if (recipe.image_url) {
+      const name = document.createElement("span");
+      name.className = "tile-name";
+      name.textContent = recipe.name;
+      button.appendChild(name);
+    }
     button.addEventListener("click", () => openView(recipe));
     li.appendChild(button);
     list.appendChild(li);

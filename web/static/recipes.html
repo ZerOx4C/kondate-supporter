@@ -12,10 +12,16 @@ h1 { margin: 0; font-size: 1.4rem; }
 button { min-height: 44px; padding: 0 1rem; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
 button.icon-only { min-width: 44px; padding: 0; }
 .ti { font-size: 1.25rem; }
-#recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; }
-#recipe-list li { margin-bottom: 0.5rem; }
-#recipe-list button { width: 100%; text-align: left; justify-content: flex-start; }
-.recipe-name { flex: 1; }
+#recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem 0.5rem; }
+#recipe-list li { min-width: 0; }
+.tile { display: block; width: 100%; min-height: 0; padding: 0; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.tile-visual { position: relative; }
+.tile-image { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.tile-placeholder { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; padding: 0.75rem; box-sizing: border-box; background: #eee; border: 1px solid #ccc; font-size: 1.25rem; font-weight: bold; text-align: center; }
+.tile-placeholder-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
+.tile-name { display: block; padding: 0.3rem 0.1rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-cooked { position: absolute; top: 0.3rem; right: 0.3rem; padding: 0.1rem 0.4rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.85); font-size: 0.9rem; }
+.tile-cooked .ti { font-size: 1rem; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
 #cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
 .error { color: #c00; }
