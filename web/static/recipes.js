@@ -12,6 +12,9 @@ let mode = "view";
 let snapshot = { name: "", body: "" };
 let busy = false;
 let cookedPressed = false; // 開いているダイアログで「作った」を押した状態。閉じるとリセット
+let imageChange = null; // 編集中の画像の変更。null=変更なし / {blob,url}=新しい画像 / "remove"=外す
+
+const MAX_IMAGE_SIDE = 800;
 
 // アイコンと回数(0回は数字なし)。一覧カードと「作った」ボタンで共用
 function cookedContent(count) {
@@ -27,11 +30,12 @@ function cookedContent(count) {
 
 async function api(method, path, body) {
   let res;
+  const isBlob = body instanceof Blob;
   try {
     res = await fetch(path, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : {},
-      body: body ? JSON.stringify(body) : undefined,
+      headers: body ? { "Content-Type": isBlob ? "image/jpeg" : "application/json" } : {},
+      body: body ? (isBlob ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     throw new Error("サーバーに接続できません");
@@ -90,6 +94,71 @@ function setBusy(value) {
   for (const button of recipeDialog.querySelectorAll("button")) {
     button.disabled = value;
   }
+  if (!value) renderEditImage();
+}
+
+function clearImageChange() {
+  if (imageChange && imageChange !== "remove") URL.revokeObjectURL(imageChange.url);
+  imageChange = null;
+}
+
+// 編集フォームの画像欄(プレビュー or 「画像なし」枠、「画像を外す」の有効・無効)を状態に合わせる
+function renderEditImage() {
+  let src = "";
+  if (imageChange && imageChange !== "remove") src = imageChange.url;
+  else if (!imageChange && current && current.image_url) src = current.image_url;
+  const img = $("edit-image");
+  if (src) img.src = src;
+  else img.removeAttribute("src");
+  img.hidden = !src;
+  $("edit-no-image").hidden = !!src;
+  $("remove-image-button").disabled = busy || !src;
+}
+
+// 画像を長辺800px以下のJPEGにする。透過部分は白で塗る
+async function toJpeg(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  try {
+    img.src = url;
+    await img.decode();
+  } catch {
+    throw new Error("画像を読み込めませんでした");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+  if (!blob) throw new Error("画像を変換できませんでした");
+  return blob;
+}
+
+async function setPendingImage(file) {
+  if (busy) return;
+  clearErrors();
+  setBusy(true);
+  try {
+    const blob = await toJpeg(file);
+    clearImageChange();
+    imageChange = { blob, url: URL.createObjectURL(blob) };
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function removeImage() {
+  clearImageChange();
+  if (current && current.image_url) imageChange = "remove";
+  renderEditImage();
 }
 
 function showView(recipe) {
@@ -97,6 +166,10 @@ function showView(recipe) {
   mode = "view";
   clearErrors();
   $("view-name").textContent = recipe.name;
+  const viewImage = $("view-image");
+  if (recipe.image_url) viewImage.src = recipe.image_url;
+  else viewImage.removeAttribute("src");
+  viewImage.hidden = !recipe.image_url;
   $("view-body").textContent = recipe.body;
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
@@ -113,6 +186,8 @@ function showEdit(recipe) {
   snapshot = { name, body };
   $("edit-name").value = name;
   $("edit-body").value = body;
+  clearImageChange();
+  renderEditImage();
   viewMode.hidden = true;
   editMode.hidden = false;
   $("edit-name").focus();
@@ -131,7 +206,11 @@ function openNew() {
 }
 
 function isDirty() {
-  return $("edit-name").value !== snapshot.name || $("edit-body").value !== snapshot.body;
+  return (
+    $("edit-name").value !== snapshot.name ||
+    $("edit-body").value !== snapshot.body ||
+    imageChange !== null
+  );
 }
 
 // 閉じる要求(閉じるボタン・キャンセル・Esc・外側タップ)の共通処理
@@ -186,13 +265,29 @@ async function save(event) {
   clearErrors();
   const body = { name: $("edit-name").value, body: $("edit-body").value };
   setBusy(true);
+  let saved = null;
   try {
-    const saved = current
+    saved = current
       ? await api("PUT", "/api/recipes/" + current.id, body)
       : await api("POST", "/api/recipes", body);
-    showView(saved);
+    let result = saved;
+    if (imageChange === "remove") {
+      result = await api("DELETE", "/api/recipes/" + saved.id + "/image");
+    } else if (imageChange) {
+      result = await api("PUT", "/api/recipes/" + saved.id + "/image", imageChange.blob);
+    }
+    clearImageChange();
+    showView(result);
     await loadList();
   } catch (e) {
+    if (saved) {
+      // 名前と本文は保存済み。画像の変更を残したまま編集フォームにとどまる
+      current = saved;
+      snapshot = { name: saved.name, body: saved.body };
+      $("edit-name").value = saved.name;
+      $("edit-body").value = saved.body;
+      await loadList();
+    }
     showError(e.message);
   } finally {
     setBusy(false);
@@ -243,6 +338,14 @@ $("delete-button").addEventListener("click", remove);
 $("close-button").addEventListener("click", requestClose);
 $("cancel-button").addEventListener("click", requestClose);
 editMode.addEventListener("submit", save);
+$("pick-image-button").addEventListener("click", () => $("image-input").click());
+$("image-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (file) setPendingImage(file);
+});
+$("remove-image-button").addEventListener("click", removeImage);
+recipeDialog.addEventListener("close", clearImageChange);
 
 recipeDialog.addEventListener("cancel", (e) => {
   e.preventDefault();

@@ -26,6 +26,10 @@ dialog { width: 40rem; padding: 0; }
 label { display: block; margin-bottom: 1rem; }
 input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+[hidden] { display: none !important; }
+.recipe-image { display: block; width: 100%; max-height: 50vh; object-fit: cover; margin: 0.5rem 0; }
+.no-image { display: flex; align-items: center; justify-content: center; height: 8rem; margin: 0.5rem 0; border: 1px dashed #999; color: #666; }
+.image-field { margin-bottom: 1rem; }
 </style>
 </head>
 <body>
@@ -42,6 +46,7 @@ input[type="text"], textarea { display: block; width: 100%; box-sizing: border-b
   <div class="dialog-inner">
     <section id="view-mode">
       <h2 id="view-name"></h2>
+      <img id="view-image" class="recipe-image" alt="" hidden>
       <div id="view-body"></div>
       <p class="error" id="view-error"></p>
       <div class="actions">
@@ -53,6 +58,16 @@ input[type="text"], textarea { display: block; width: 100%; box-sizing: border-b
     </section>
     <form id="edit-mode">
       <label>名前 <input id="edit-name" type="text"></label>
+      <div class="image-field">
+        <span>画像</span>
+        <img id="edit-image" class="recipe-image" alt="" hidden>
+        <div id="edit-no-image" class="no-image">画像なし</div>
+        <div class="actions">
+          <button type="button" id="pick-image-button"><i class="ti ti-photo" aria-hidden="true"></i>画像を選ぶ</button>
+          <button type="button" id="remove-image-button"><i class="ti ti-photo-off" aria-hidden="true"></i>画像を外す</button>
+        </div>
+        <input type="file" id="image-input" accept="image/*" hidden>
+      </div>
       <label>本文 <textarea id="edit-body" rows="15"></textarea></label>
       <p class="error" id="edit-error"></p>
       <div class="actions">
