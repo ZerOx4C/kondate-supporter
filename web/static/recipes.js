@@ -161,6 +161,29 @@ function removeImage() {
   renderEditImage();
 }
 
+const pasteArea = $("paste-area");
+// 欄の本来の中身(アイコンと文言)。中身が変えられたときに戻すため控えておく
+const pasteAreaContent = Array.from(pasteArea.childNodes, (n) => n.cloneNode(true));
+
+function resetPasteArea() {
+  pasteArea.replaceChildren(...pasteAreaContent.map((n) => n.cloneNode(true)));
+}
+
+// 貼り付けられたクリップボードから最初の画像ファイルを取り出し、「画像を選ぶ」と同じ処理に渡す
+function onPaste(e) {
+  e.preventDefault();
+  if (busy) return;
+  const item = Array.from(e.clipboardData ? e.clipboardData.items : [])
+    .find((i) => i.kind === "file" && i.type.startsWith("image/"));
+  const file = item ? item.getAsFile() : null;
+  if (!file) {
+    clearErrors();
+    showError("画像が見つかりませんでした");
+    return;
+  }
+  setPendingImage(file);
+}
+
 function showView(recipe) {
   current = recipe;
   mode = "view";
@@ -345,6 +368,11 @@ $("image-input").addEventListener("change", (e) => {
   if (file) setPendingImage(file);
 });
 $("remove-image-button").addEventListener("click", removeImage);
+pasteArea.addEventListener("paste", onPaste);
+// キー入力・削除・ドロップなどで欄の中身を変えさせない
+pasteArea.addEventListener("beforeinput", (e) => e.preventDefault());
+// 止められない入力(IMEの変換など)で変わってしまったら元に戻す
+pasteArea.addEventListener("input", resetPasteArea);
 recipeDialog.addEventListener("close", clearImageChange);
 
 recipeDialog.addEventListener("cancel", (e) => {

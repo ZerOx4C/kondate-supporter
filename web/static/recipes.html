@@ -30,6 +30,8 @@ input[type="text"], textarea { display: block; width: 100%; box-sizing: border-b
 .recipe-image { display: block; width: 100%; max-height: 50vh; object-fit: cover; margin: 0.5rem 0; }
 .no-image { display: flex; align-items: center; justify-content: center; height: 8rem; margin: 0.5rem 0; border: 1px dashed #999; color: #666; }
 .image-field { margin-bottom: 1rem; }
+.paste-area { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0 1rem; box-sizing: border-box; border: 1px dashed #999; color: #666; caret-color: transparent; cursor: text; }
+.paste-area:focus { outline: 2px solid #4a90e2; outline-offset: 1px; }
 </style>
 </head>
 <body>
@@ -65,6 +67,7 @@ input[type="text"], textarea { display: block; width: 100%; box-sizing: border-b
         <div class="actions">
           <button type="button" id="pick-image-button"><i class="ti ti-photo" aria-hidden="true"></i>画像を選ぶ</button>
           <button type="button" id="remove-image-button"><i class="ti ti-photo-off" aria-hidden="true"></i>画像を外す</button>
+          <div id="paste-area" class="paste-area" contenteditable="true" inputmode="none" spellcheck="false" role="textbox" aria-label="画像をここに貼り付け"><i class="ti ti-clipboard" aria-hidden="true"></i>ここに貼り付け</div>
         </div>
         <input type="file" id="image-input" accept="image/*" hidden>
       </div>
