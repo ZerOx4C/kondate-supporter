@@ -16,10 +16,11 @@ button.danger:not(:disabled):active { background: #fbeaec; }
 button:disabled { opacity: 0.5; cursor: default; }
 .ti { font-size: 1.25rem; }
 label { display: block; margin-bottom: 1rem; }
-input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; }
+input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 0.5rem; border: 1px solid #999; border-radius: 8px; }
+input[type="text"] { min-height: 44px; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .error { color: #c00; }
 .error:empty { display: none; }
-dialog { width: 40rem; padding: 0; }
+dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; }
 .dialog-inner { padding: 1rem; }
 [hidden] { display: none !important; }

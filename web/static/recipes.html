@@ -12,8 +12,8 @@
 .tile { display: block; width: 100%; min-height: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 button.tile, button.tile:hover, button.tile:active { background: none; border: none; border-radius: 0; }
 .tile-visual { position: relative; }
-.tile-image { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
-.tile-placeholder { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; padding: 0.75rem; box-sizing: border-box; background: #eee; border: 1px solid #ccc; font-size: 1.25rem; font-weight: bold; text-align: center; }
+.tile-image { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px; }
+.tile-placeholder { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; padding: 0.75rem; box-sizing: border-box; background: #eee; border: 1px solid #ccc; border-radius: 8px; font-size: 1.25rem; font-weight: bold; text-align: center; }
 .tile-placeholder-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
 .tile-name { display: block; padding: 0.3rem 0.1rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-cooked { position: absolute; top: 0.3rem; right: 0.3rem; padding: 0.1rem 0.4rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.85); font-size: 0.9rem; }
@@ -21,10 +21,10 @@ button.tile, button.tile:hover, button.tile:active { background: none; border: n
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
 #cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
 #view-body { white-space: pre-wrap; margin: 1rem 0; }
-.recipe-image { display: block; width: 100%; max-height: 50vh; object-fit: cover; margin: 0.5rem 0; }
-.no-image { display: flex; align-items: center; justify-content: center; height: 8rem; margin: 0.5rem 0; border: 1px dashed #999; color: #666; }
+.recipe-image { display: block; width: 100%; max-height: 50vh; object-fit: cover; margin: 0.5rem 0; border-radius: 8px; }
+.no-image { display: flex; align-items: center; justify-content: center; height: 8rem; margin: 0.5rem 0; border: 1px dashed #999; border-radius: 8px; color: #666; }
 .image-field { margin-bottom: 1rem; }
-.paste-area { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0 1rem; box-sizing: border-box; border: 1px dashed #999; color: #666; caret-color: transparent; cursor: text; }
+.paste-area { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; padding: 0 1rem; box-sizing: border-box; border: 1px dashed #999; border-radius: 8px; color: #666; caret-color: transparent; cursor: text; }
 .paste-area:focus { outline: 2px solid #4a90e2; outline-offset: 1px; }
 </style>
 </head>
