@@ -88,22 +88,20 @@ async function loadList() {
     } else {
       const placeholder = document.createElement("div");
       placeholder.className = "tile-placeholder";
-      const text = document.createElement("span");
-      text.className = "tile-placeholder-text";
-      text.textContent = recipe.name;
-      placeholder.appendChild(text);
+      const icon = document.createElement("i");
+      icon.className = "ti ti-photo-off";
+      icon.setAttribute("aria-hidden", "true");
+      placeholder.appendChild(icon);
       visual.appendChild(placeholder);
     }
+    const name = document.createElement("span");
+    name.className = "tile-name";
+    name.textContent = recipe.name;
+    visual.appendChild(name);
     const cooked = cookedContent(recipe.cooked_count);
     cooked.classList.add("tile-cooked");
     visual.appendChild(cooked);
     button.appendChild(visual);
-    if (recipe.image_url) {
-      const name = document.createElement("span");
-      name.className = "tile-name";
-      name.textContent = recipe.name;
-      button.appendChild(name);
-    }
     button.addEventListener("click", () => openView(recipe));
     li.appendChild(button);
     list.appendChild(li);
