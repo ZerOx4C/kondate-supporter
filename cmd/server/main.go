@@ -9,6 +9,8 @@ import (
 	"kondate-supporter/internal/config"
 	"kondate-supporter/internal/db"
 	"kondate-supporter/internal/handler"
+	"kondate-supporter/internal/repository"
+	"kondate-supporter/internal/service"
 	"kondate-supporter/web"
 )
 
@@ -34,7 +36,11 @@ func main() {
 		}
 	}
 
-	router := handler.NewRouter(staticFS)
+	recipeRepo := repository.NewRecipeRepository(conn)
+	recipeSvc := service.NewRecipeService(recipeRepo)
+	recipeHandler := handler.NewRecipeHandler(recipeSvc)
+
+	router := handler.NewRouter(staticFS, recipeHandler)
 
 	log.Printf("listening on %s (db: %s, dev mode: %v)", cfg.Addr, cfg.DBPath, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {

@@ -46,14 +46,22 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | メソッド パス | 概要 |
 |---|---|
 | GET /healthz | 死活監視用(`{"status":"ok"}`固定) |
-| GET /api/recipes | レシピ一覧取得 |
-| POST /api/recipes | レシピ新規作成(name, body) |
-| GET /api/recipes/{id} | レシピ1件取得 |
-| PUT /api/recipes/{id} | レシピ更新(name, body) |
-| DELETE /api/recipes/{id} | レシピ削除 |
+| GET /api/recipes | レシピ一覧取得。200で配列(id昇順、bodyを含む。0件は `[]`) |
+| POST /api/recipes | レシピ新規作成。リクエスト `{"name","body"}`、201で作成したレシピ |
+| GET /api/recipes/{id} | レシピ1件取得。200 |
+| PUT /api/recipes/{id} | レシピ更新(全体置換)。リクエストは作成と同じ、200で更新後のレシピ |
+| DELETE /api/recipes/{id} | レシピ削除。204(ボディなし) |
 | GET / | ルートパスのみ `/recipes.html` へリダイレクト(302)。それ以外は静的ファイル配信(embed。`DEV_MODE=1` のときのみ `os.DirFS("web/static")` から配信) |
 
-エラー応答は `internal/handler/respond.go` で生成する。
+エラー応答は `internal/handler/respond.go` の `writeError` で `{"error": "メッセージ"}` として返す。
+
+| ステータス | 条件 | メッセージ |
+|---|---|---|
+| 400 | `{id}` が数値でない・1未満 | IDが不正です |
+| 400 | リクエストJSONが不正 | リクエストの形式が不正です |
+| 400 | `name` が空白除去後に空 | 名前を入力してください |
+| 404 | 対象IDのレシピが無い | レシピが見つかりません |
+| 500 | 上記以外(詳細はログのみ) | サーバー内部でエラーが発生しました |
 
 ## 4. 画面
 
@@ -68,5 +76,11 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 - **SQLiteの接続は1本に制限する**: `SetMaxOpenConns(1)` で書き込みを直列化し `SQLITE_BUSY` を避ける。単一プロセス・個人利用でRaspberryPi Zeroにも合う。PRAGMAは新規接続にも確実に効くようDSNの `_pragma` で指定する(接続後の `Exec` ではプールが作る新規接続に反映されないことがある)。
 - **マイグレーションは `internal/db` で直接embedする**: 読み込み側は `Migrate()` だけなので専用パッケージは分けない。
+- **serviceはrepositoryの具象型に依存する**: テストの差し替えなどインターフェースが必要になる場面がまだROADMAPに無いため、`*repository.RecipeRepository` を直接持つ。
+- **handlerはrepositoryをimportしない**: 依存を `handler → service → repository` に保つ。「見つからない」はrepositoryの `ErrNotFound` をserviceが自分の `ErrNotFound` に置き換えて伝える。ユーザー向けメッセージはserviceのエラー値に持たせ、handlerはHTTPステータスへの振り分けだけを行う。
+- **名前の入力チェックはserviceで行う**: 「前後の空白を除いて空なら不可」は業務ルールなのでserviceに置き、保存するのも空白を除いた後の値。`body` は自由テキストとして書かれたまま保存する。
+- **PUTは全体置換**: 項目が name と body だけなので部分更新(PATCH)は作らない。
+- **一覧はid昇順(登録順)でbodyも含めて返す**: SQLiteの文字列比較では日本語の名前がよみ順に並ばないため名前順は採らない。家庭内の規模なので一覧と詳細でレスポンスの形を分けない。
+- **ID存在確認は `RowsAffected` で行う**: UPDATE・DELETEの前にSELECTせず、影響行数0なら404とする。
 - **レシピ本文は構造化しない**: 材料・調味料・手順は `body` 1カラムの自由テキストに持たせる。名称+数量+単位での構造化やLLMによる抽出はROADMAPに項目が無い限り着手しない。
 - **在庫・献立・買い物リストは現時点のスコープ外**: 関連するテーブル・APIはROADMAPに項目が追加されるまで作らない。

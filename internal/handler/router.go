@@ -6,12 +6,17 @@ import (
 )
 
 // NewRouter はルーティングを登録したhttp.Handlerを返す。
-func NewRouter(staticFS fs.FS) http.Handler {
+func NewRouter(staticFS fs.FS, recipes *RecipeHandler) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+	mux.HandleFunc("GET /api/recipes", recipes.List)
+	mux.HandleFunc("POST /api/recipes", recipes.Create)
+	mux.HandleFunc("GET /api/recipes/{id}", recipes.Get)
+	mux.HandleFunc("PUT /api/recipes/{id}", recipes.Update)
+	mux.HandleFunc("DELETE /api/recipes/{id}", recipes.Delete)
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/recipes.html", http.StatusFound)
 	})
