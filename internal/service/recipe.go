@@ -48,10 +48,18 @@ func (s *RecipeService) Update(ctx context.Context, id int64, name, body string)
 	if name == "" {
 		return model.Recipe{}, ErrNameRequired
 	}
-	if err := s.repo.Update(ctx, id, name, body); err != nil {
-		return model.Recipe{}, convertErr(err)
-	}
-	return model.Recipe{ID: id, Name: name, Body: body}, nil
+	rec, err := s.repo.Update(ctx, id, name, body)
+	return rec, convertErr(err)
+}
+
+func (s *RecipeService) IncrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {
+	rec, err := s.repo.IncrementCookedCount(ctx, id)
+	return rec, convertErr(err)
+}
+
+func (s *RecipeService) DecrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {
+	rec, err := s.repo.DecrementCookedCount(ctx, id)
+	return rec, convertErr(err)
 }
 
 func (s *RecipeService) Delete(ctx context.Context, id int64) error {

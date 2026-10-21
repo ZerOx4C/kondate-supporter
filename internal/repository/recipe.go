@@ -11,6 +11,9 @@ import (
 // ErrNotFound は対象の行が存在しないことを表す。
 var ErrNotFound = errors.New("not found")
 
+// recipeColumns はmodel.Recipeの各フィールドに対応するSELECT/RETURNING列。
+const recipeColumns = `id, name, body, cooked_count`
+
 type RecipeRepository struct {
 	db *sql.DB
 }
@@ -21,7 +24,7 @@ func NewRecipeRepository(db *sql.DB) *RecipeRepository {
 
 // List はレシピをid昇順で返す。0件のときは空スライスを返す。
 func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name, body FROM recipes ORDER BY id`)
+	rows, err := r.db.QueryContext(ctx, `SELECT `+recipeColumns+` FROM recipes ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +33,7 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 	recipes := []model.Recipe{}
 	for rows.Next() {
 		var rec model.Recipe
-		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Body); err != nil {
+		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount); err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, rec)
@@ -40,8 +43,8 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.db.QueryRowContext(ctx, `SELECT id, name, body FROM recipes WHERE id = ?`, id).
-		Scan(&rec.ID, &rec.Name, &rec.Body)
+	err := r.db.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id).
+		Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Recipe{}, ErrNotFound
 	}
@@ -57,12 +60,32 @@ func (r *RecipeRepository) Create(ctx context.Context, name, body string) (int64
 	return res.LastInsertId()
 }
 
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string) error {
-	res, err := r.db.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ? WHERE id = ?`, name, body, id)
-	if err != nil {
-		return err
+// Update は名前と本文を更新し、更新後のレシピを返す。cooked_countは変更しない。
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx,
+		`UPDATE recipes SET name = ?, body = ? WHERE id = ? RETURNING `+recipeColumns, name, body, id))
+}
+
+// IncrementCookedCount は作った回数を1増やし、更新後のレシピを返す。
+func (r *RecipeRepository) IncrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx,
+		`UPDATE recipes SET cooked_count = cooked_count + 1 WHERE id = ? RETURNING `+recipeColumns, id))
+}
+
+// DecrementCookedCount は作った回数を1減らし(0未満にはしない)、更新後のレシピを返す。
+func (r *RecipeRepository) DecrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx,
+		`UPDATE recipes SET cooked_count = MAX(cooked_count - 1, 0) WHERE id = ? RETURNING `+recipeColumns, id))
+}
+
+// scanReturned はUPDATE ... RETURNINGの行を読む。行が無ければErrNotFoundを返す。
+func scanReturned(row *sql.Row) (model.Recipe, error) {
+	var rec model.Recipe
+	err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Recipe{}, ErrNotFound
 	}
-	return requireAffected(res)
+	return rec, err
 }
 
 func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {

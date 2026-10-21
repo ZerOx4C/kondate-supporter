@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"strconv"
 
+	"kondate-supporter/internal/model"
 	"kondate-supporter/internal/service"
 )
 
@@ -85,6 +87,27 @@ func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusNoContent, nil)
+}
+
+func (h *RecipeHandler) IncrementCooked(w http.ResponseWriter, r *http.Request) {
+	h.changeCooked(w, r, h.svc.IncrementCookedCount)
+}
+
+func (h *RecipeHandler) DecrementCooked(w http.ResponseWriter, r *http.Request) {
+	h.changeCooked(w, r, h.svc.DecrementCookedCount)
+}
+
+func (h *RecipeHandler) changeCooked(w http.ResponseWriter, r *http.Request, change func(context.Context, int64) (model.Recipe, error)) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	rec, err := change(r.Context(), id)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rec)
 }
 
 // parseID はパスの{id}を読む。不正ならエラー応答を書いてfalseを返す。

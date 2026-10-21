@@ -31,6 +31,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | id | INTEGER PRIMARY KEY |
 | name | TEXT NOT NULL(タイトル) |
 | body | TEXT NOT NULL DEFAULT ''(材料・調味料・手順を含む自由テキスト) |
+| cooked_count | INTEGER NOT NULL DEFAULT 0(作った回数) |
 
 ### `schema_migrations`(マイグレーション適用履歴)
 | カラム | 型/制約 |
@@ -42,7 +43,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 ## 3. APIエンドポイント
 
-ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。
+ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。レシピのJSONは `{"id","name","body","cooked_count"}`。PUTは `cooked_count` を受け付けず値も変えない。
 
 | メソッド パス | 概要 |
 |---|---|
@@ -52,6 +53,8 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | GET /api/recipes/{id} | レシピ1件取得。200 |
 | PUT /api/recipes/{id} | レシピ更新(全体置換)。リクエストは作成と同じ、200で更新後のレシピ |
 | DELETE /api/recipes/{id} | レシピ削除。204(ボディなし) |
+| POST /api/recipes/{id}/cooked | 作った回数を1増やす。200で更新後のレシピ |
+| DELETE /api/recipes/{id}/cooked | 作った回数を1減らす(0未満にはしない)。200で更新後のレシピ |
 | GET / | ルートパスのみ `/recipes.html` へリダイレクト(302)。それ以外は静的ファイル配信(embed。`DEV_MODE=1` のときのみ `os.DirFS("web/static")` から配信) |
 
 エラー応答は `internal/handler/respond.go` の `writeError` で `{"error": "メッセージ"}` として返す。
@@ -82,7 +85,9 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **名前の入力チェックはserviceで行う**: 「前後の空白を除いて空なら不可」は業務ルールなのでserviceに置き、保存するのも空白を除いた後の値。`body` は自由テキストとして書かれたまま保存する。
 - **PUTは全体置換**: 項目が name と body だけなので部分更新(PATCH)は作らない。
 - **一覧はid昇順(登録順)でbodyも含めて返す**: SQLiteの文字列比較では日本語の名前がよみ順に並ばないため名前順は採らない。家庭内の規模なので一覧と詳細でレスポンスの形を分けない。
-- **ID存在確認は `RowsAffected` で行う**: UPDATE・DELETEの前にSELECTせず、影響行数0なら404とする。
+- **ID存在確認は事前にSELECTしない**: DELETEは `RowsAffected` が0なら404とする。UPDATEは `RETURNING` で更新後の行をそのまま応答に使い、行が無ければ404とする(PUTの応答でも、受け付けない `cooked_count` の実際の値を返せる)。
+- **作った回数は専用エンドポイントでだけ変える**: PUTの全体置換に回数を含めると、編集中に別の端末で「作った」を押した場合、保存で回数が古い値に戻ってしまう。そのためPUTでは受け付けず、加算・減算はSQLの `cooked_count + 1` で行う(読んでから書く手順にしない)。
+- **減算は0で止め、エラーにしない**: `MAX(cooked_count - 1, 0)` で下限をSQLに任せる。0回で取り消しても200で0回のまま返し、画面側で回数を確かめなくて済むようにする。
 - **画面は1つのHTMLと同名のJSに分ける**: 画面固有CSSはHTMLの `<style>` に置く。画面が1つの間は共通CSS/JSを作らず、2つ目の画面を作る項目で切り出す。
 - **詳細は一覧のデータで表示する**: 一覧APIがbodyも返すので、カードを開くときに `GET /api/recipes/{id}` は呼ばない。保存・削除の後は一覧を丸ごと読み直す。
 - **詳細はまず閲覧表示にし、「編集」で入力フォームに切り替える**: 調理中の誤編集やキーボードの出現を防ぐため。本文は `textContent` と `white-space: pre-wrap` で書いたとおりの改行で表示する。
