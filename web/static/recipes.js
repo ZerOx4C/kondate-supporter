@@ -47,7 +47,10 @@ async function loadList() {
     return;
   }
   if (recipes.length === 0) {
-    message.textContent = "レシピがまだありません。「新規作成」から登録してください。";
+    const icon = document.createElement("i");
+    icon.className = "ti ti-plus";
+    icon.setAttribute("aria-hidden", "true");
+    message.append("レシピがまだありません。右上の ", icon, " ボタンから登録してください。");
     return;
   }
   for (const recipe of recipes) {

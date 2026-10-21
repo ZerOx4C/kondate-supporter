@@ -16,6 +16,7 @@ internal/service/        # ビジネスロジック層
 internal/handler/        # HTTPハンドラ層
 web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
 web/static/              # フロントエンド(画面ごとのHTMLと同名JS。recipes.html / recipes.js。embedでバイナリに焼き込み)
+web/static/vendor/       # 同梱した外部ライブラリ(配布ファイルのまま。tabler-icons/ にoutlineのCSS・woff2・LICENSE。版数はREADME)
 Makefile                 # make / make help(ターゲット一覧)/ make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド)
 bin/                     # ビルド成果物の出力先(Git管理外)
 scripts/                 # preview用サーバーの起動スクリプト(preview-server.ps1)
@@ -67,7 +68,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 | 画面 | 内容 | 状態 |
 |---|---|---|
-| `recipes.html`(レシピ) | 名前のみの縦積みカードリスト・新規作成・詳細(閲覧→「編集」で入力フォームへ切替)・削除。詳細/編集は `<dialog>`(name入力欄 + bodyのtextareaのみ)、削除・破棄の確認は専用の確認 `<dialog>` | 実装済み。ロジックは `recipes.js` |
+| `recipes.html`(レシピ) | 名前のみの縦積みカードリスト・新規作成・詳細(閲覧→「編集」で入力フォームへ切替)・削除。詳細/編集は `<dialog>`(name入力欄 + bodyのtextareaのみ)、削除・破棄の確認は専用の確認 `<dialog>`。ボタンはTabler Iconsのアイコン付き(新規作成・編集・閉じるはアイコンのみ) | 実装済み。ロジックは `recipes.js` |
 
 ## 5. 設計判断(逆行防止用)
 
@@ -97,5 +98,12 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **開発用・preview用・Windows常用のバイナリ名を分ける**: Windowsでは実行中のexeを上書きできないため。つなぎ運用のサーバーを動かしたまま開発用やpreview用をビルドしても失敗しないようにする。
 - **`make build-win` はRaspberryPiを用意するまでのつなぎ**: 開発用の `make run` とは別に、embed配信・シンボル除去済みの配置用exeを作る。GOARCHは指定せず、ビルドしたマシンに合わせる。
 - **RaspberryPi Zero向けは `GOARM=6`・`CGO_ENABLED=0`・`-trimpath -ldflags="-s -w"` でビルドする**: Pi Zero/Zero WはARMv6のため。SQLiteドライバがCGO不要なので静的バイナリ1つで配置でき、シンボルを除いて転送・保存のサイズを抑える。
+- **外部ライブラリはCDNを使わず `web/static/vendor/<名前>/` に無編集で同梱する**: LAN内でインターネットにつながらなくても画面が崩れないようにするため。embedでバイナリに入るので配置はファイル1つのまま。版数はREADMEに記録する。
+- **Tabler Iconsはoutline(3.49.0では無印の `tabler-icons.min.css` / `fonts/tabler-icons.woff2`)のCSSとwoff2だけを置く**: filled・200/300版、woff・ttfは使わない。CSSの `src` は先頭がwoff2で、対応ブラウザは後ろの形式を取りに行かないため、CSS内の残りの参照は書き換えずに放置する。
+- **アイコンだけのボタンには `aria-label` と `title` にもとの文言を入れる**: 読み上げで名前が分かり、PCではカーソルを合わせると意味が出るようにするため。アイコン自体は `aria-hidden="true"`。`icon-only` クラスで44px四方以上にしてタッチで押しやすくする。
+- **ボタンは `inline-flex` でアイコンと文字を並べる**: 縦位置と間隔を `align-items` と `gap` でそろえる。一覧カードのボタンだけは左寄せに戻す。
+- **確認ダイアログのボタンは文字だけにする**: OKボタンは「削除する」「破棄する」と文言を差し替えて使い回すため、アイコンを固定できない。
+- **空状態の案内には実物のアイコンを文中に出す**: 「新規作成」がアイコンだけのボタンになったため、文字で名前を書いても画面上で見つけられない。ボタンと同じ ti-plus を文中に入れて対応を分かりやすくする。
+- **静的ファイルにキャッシュ用の仕組みは作らない**: 画面が1枚でLAN内の通信なので、ROADMAPに項目が無い限り着手しない。
 - **デプロイは手作業とし、仕組みを作らない**: 転送や常駐化(systemd・Windowsのサービス化)の自動化は個人利用では必要性が薄いため、READMEの手順だけで運用する。
 - **在庫・献立・買い物リストは現時点のスコープ外**: 関連するテーブル・APIはROADMAPに項目が追加されるまで作らない。

@@ -15,6 +15,16 @@
 - Go 1.26 以上
 - make(Git Bash または WSL から実行)
 
+## 同梱ライブラリ
+
+CDNは使わず、配布ファイルを無編集のまま `web/static/vendor/` に置いてバイナリに焼き込む。
+
+| ライブラリ | 版 | ライセンス | 置き場所 |
+|---|---|---|---|
+| Tabler Icons Webfont(`@tabler/icons-webfont`。outline) | 3.49.0 | MIT | `web/static/vendor/tabler-icons/` |
+
+更新するときは、パッケージの `dist/tabler-icons.min.css`・`dist/fonts/tabler-icons.woff2`・`LICENSE` を差し替え、上の版数を書き換える。
+
 ## セットアップ・開発時の起動
 
 引数なしの `make`(または `make help`)でターゲットの一覧が出る。開発起動は `make run` を明示する。
