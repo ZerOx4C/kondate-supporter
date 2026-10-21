@@ -8,12 +8,40 @@
 
 - レシピ(タイトル+自由テキスト)の登録・一覧・詳細表示・編集・削除
 
-v1実装は未着手。今後の改修予定は [ROADMAP.md](ROADMAP.md) を参照。
+今後の改修予定は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 必要環境
 
 - Go 1.26 以上
+- make(Git Bash または WSL から実行)
 
 ## セットアップ・開発時の起動
 
-v1実装完了後にこの節を記載する。
+```bash
+make run
+```
+
+`http://localhost:8080/` を開く。DBは `data/kondate.db` に自動で作られる。HTML/JSは保存するだけで反映され、Goのコードを変えたときは再起動する。
+
+環境変数で設定を変えられる。
+
+| 変数 | 既定値 | 内容 |
+|---|---|---|
+| `KONDATE_ADDR` | `:8080` | 待ち受けアドレス |
+| `KONDATE_DB_PATH` | `data/kondate.db` | SQLiteファイルのパス |
+| `DEV_MODE` | (未設定) | `1` のとき画面ファイルをディスクから配信する。`make run` では自動で `1` |
+
+## Windowsでの稼働(RaspberryPiを用意するまでのつなぎ)
+
+1. `make build-win` を実行すると `bin/kondate-supporter-windows.exe` ができる。
+2. 任意のフォルダへコピーして実行する。画面はexeに含まれているので、コピーするのはexe1つだけでよい。
+3. 初回起動時のWindowsファイアウォールの確認で「プライベートネットワーク」を許可すると、LAN内のスマホ・タブレットから `http://<PCのIPアドレス>:8080/` で使える。
+4. DBは実行時のカレントディレクトリからの `data\kondate.db` に作られる。開発用DBと分けたいときや場所を固定したいときは `KONDATE_DB_PATH` を指定する。
+5. 開発用の `make run` も既定で `:8080` を使う。同時に動かすときは、どちらかの `KONDATE_ADDR` を変える。
+
+## RaspberryPi Zeroへのデプロイ
+
+1. `make build-rpi` を実行すると `bin/kondate-supporter-linux-armv6` ができる。
+2. scpなどでPiへコピーし、`chmod +x` してから実行する。
+3. DBの置き場所はWindowsの場合と同じ(カレントディレクトリからの `data/kondate.db`。固定したいときは `KONDATE_DB_PATH` に絶対パスを指定)。
+4. 常駐化(systemdなど)は各自で設定する。

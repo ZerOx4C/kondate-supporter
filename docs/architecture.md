@@ -3,8 +3,6 @@
 コード構成・DB・API・画面の現状と、逆行を防ぐための設計判断をまとめる。
 1〜4節は実装時に実態へ合わせて更新し、5節には `architect` の計画に含まれる設計判断を転記する。
 
-> v1実装着手前の計画段階の内容を含む。実装で変わった箇所は実態に合わせて書き換えること。
-
 ## 1. コード構成
 
 ```
@@ -18,7 +16,9 @@ internal/service/        # ビジネスロジック層
 internal/handler/        # HTTPハンドラ層
 web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
 web/static/              # フロントエンド(画面ごとのHTMLと同名JS。recipes.html / recipes.js。embedでバイナリに焼き込み)
-scripts/                 # ビルド・デプロイ補助スクリプト
+Makefile                 # make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド)
+bin/                     # ビルド成果物の出力先(Git管理外)
+scripts/                 # preview用サーバーの起動スクリプト(preview-server.ps1)
 data/                    # SQLiteファイルの実行時生成先(Git管理外)
 ```
 
@@ -89,4 +89,11 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **未保存の変更があれば、どの閉じ方でも確認する**: キャンセルボタン・Esc(`cancel` イベントを止める)・外側タップを同じ「閉じる要求」に通す。変更の有無は編集開始時の値との比較。外側タップは `pointerdown` と `click` の対象がどちらも `<dialog>` 自身のときだけとみなし、テキスト選択のドラッグで閉じないようにする。
 - **入力チェックはサーバーだけで行う**: クライアントに二重実装せず、APIの `error` メッセージをそのまま表示する。
 - **レシピ本文は構造化しない**: 材料・調味料・手順は `body` 1カラムの自由テキストに持たせる。名称+数量+単位での構造化やLLMによる抽出はROADMAPに項目が無い限り着手しない。
+- **Makefileはsh前提で書く**: 開発PCではGit Bash/WSLからmakeを実行する。cmd.exeでの動作は考えず、環境変数は `VAR=値 コマンド` の形で渡す。
+- **`make run` は固定パスへビルドしてから実行する**: `go run` は実行のたびに一時パスへバイナリを作るため、Windowsファイアウォールの許可を何度も求められ、許可ルールも増え続ける。
+- **`make run` は `DEV_MODE=1` で起動する**: 画面ファイルをディスクから配信し、HTML/JSの修正をビルドし直さずに確認できるようにする。
+- **開発用・preview用・Windows常用のバイナリ名を分ける**: Windowsでは実行中のexeを上書きできないため。つなぎ運用のサーバーを動かしたまま開発用やpreview用をビルドしても失敗しないようにする。
+- **`make build-win` はRaspberryPiを用意するまでのつなぎ**: 開発用の `make run` とは別に、embed配信・シンボル除去済みの配置用exeを作る。GOARCHは指定せず、ビルドしたマシンに合わせる。
+- **RaspberryPi Zero向けは `GOARM=6`・`CGO_ENABLED=0`・`-trimpath -ldflags="-s -w"` でビルドする**: Pi Zero/Zero WはARMv6のため。SQLiteドライバがCGO不要なので静的バイナリ1つで配置でき、シンボルを除いて転送・保存のサイズを抑える。
+- **デプロイは手作業とし、仕組みを作らない**: 転送や常駐化(systemd・Windowsのサービス化)の自動化は個人利用では必要性が薄いため、READMEの手順だけで運用する。
 - **在庫・献立・買い物リストは現時点のスコープ外**: 関連するテーブル・APIはROADMAPに項目が追加されるまで作らない。
