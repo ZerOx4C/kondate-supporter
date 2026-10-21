@@ -9,7 +9,7 @@
 
 ```
 cmd/server/main.go       # エントリポイント(DBオープン→マイグレーション適用→ルーティング登録→ListenAndServe)
-internal/config/         # 設定(ポート・DBパス等を環境変数で受け取る)
+internal/config/         # 設定(待ち受けアドレス・DBパス・開発モードを環境変数で受け取る)
 internal/db/             # sql.DBオープン、マイグレーション実行
 internal/db/migrations/  # SQLマイグレーションファイル(embedでバイナリに焼き込み)
 internal/model/          # ドメイン構造体
@@ -37,7 +37,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | name | TEXT PRIMARY KEY(マイグレーションファイル名) |
 | applied_at | TEXT NOT NULL DEFAULT (datetime('now')) |
 
-`internal/db/db.go` の `Migrate()` が `internal/db/migrations/*.sql` を未適用のものだけファイル名昇順・1ファイル1トランザクションで適用する。
+`internal/db/db.go` の `Migrate()` が `main.go` から起動時に呼ばれ、 `internal/db/migrations/*.sql` を未適用のものだけファイル名昇順・1ファイル1トランザクションで適用する。
 
 ## 3. APIエンドポイント
 
@@ -66,5 +66,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **モジュール名は `kondate-supporter`**: 外部へ公開せず `go install` もしないため、GitHubのパスにはしない。importを短く保ち、旧実装を参照するときの読み替えを無くす。
 - **ディレクトリは使う項目で作る**: `.gitkeep` などの目印ファイルは置かない。`internal/db`・`model`・`repository`・`service` は、そのコードを初めて書くROADMAP項目で作る。ヘルパー関数や設定項目も、使う項目で追加する。
 
+- **SQLiteの接続は1本に制限する**: `SetMaxOpenConns(1)` で書き込みを直列化し `SQLITE_BUSY` を避ける。単一プロセス・個人利用でRaspberryPi Zeroにも合う。PRAGMAは新規接続にも確実に効くようDSNの `_pragma` で指定する(接続後の `Exec` ではプールが作る新規接続に反映されないことがある)。
+- **マイグレーションは `internal/db` で直接embedする**: 読み込み側は `Migrate()` だけなので専用パッケージは分けない。
 - **レシピ本文は構造化しない**: 材料・調味料・手順は `body` 1カラムの自由テキストに持たせる。名称+数量+単位での構造化やLLMによる抽出はROADMAPに項目が無い限り着手しない。
 - **在庫・献立・買い物リストは現時点のスコープ外**: 関連するテーブル・APIはROADMAPに項目が追加されるまで作らない。

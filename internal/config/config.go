@@ -6,6 +6,8 @@ import "os"
 type Config struct {
 	// Addr は待ち受けアドレス(KONDATE_ADDR、既定 ":8080")。
 	Addr string
+	// DBPath はSQLiteファイルのパス(KONDATE_DB_PATH、既定 "data/kondate.db")。
+	DBPath string
 	// DevMode がtrueのとき、画面ファイルをembedではなくディスクから配信する(DEV_MODE=1)。
 	DevMode bool
 }
@@ -14,6 +16,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Addr:    getEnv("KONDATE_ADDR", ":8080"),
+		DBPath:  getEnv("KONDATE_DB_PATH", "data/kondate.db"),
 		DevMode: os.Getenv("DEV_MODE") == "1",
 	}
 }
