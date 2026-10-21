@@ -15,6 +15,9 @@ button.icon-only { min-width: 44px; padding: 0; }
 #recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; }
 #recipe-list li { margin-bottom: 0.5rem; }
 #recipe-list button { width: 100%; text-align: left; justify-content: flex-start; }
+.recipe-name { flex: 1; }
+.cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
+#cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
 .error { color: #c00; }
 .error:empty { display: none; }
 dialog { width: 40rem; padding: 0; }
@@ -42,6 +45,7 @@ input[type="text"], textarea { display: block; width: 100%; box-sizing: border-b
       <div id="view-body"></div>
       <p class="error" id="view-error"></p>
       <div class="actions">
+        <button type="button" id="cooked-button" aria-pressed="false" aria-label="作った" title="作った"></button>
         <button type="button" id="edit-button" class="icon-only" aria-label="編集" title="編集"><i class="ti ti-pencil" aria-hidden="true"></i></button>
         <button type="button" id="delete-button"><i class="ti ti-trash" aria-hidden="true"></i>削除</button>
         <button type="button" id="close-button" class="icon-only" aria-label="閉じる" title="閉じる"><i class="ti ti-x" aria-hidden="true"></i></button>

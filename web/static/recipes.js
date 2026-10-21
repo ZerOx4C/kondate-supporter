@@ -11,6 +11,19 @@ let current = null; // 表示中のレシピ。新規作成中はnull
 let mode = "view";
 let snapshot = { name: "", body: "" };
 let busy = false;
+let cookedPressed = false; // 開いているダイアログで「作った」を押した状態。閉じるとリセット
+
+// アイコンと回数(0回は数字なし)。一覧カードと「作った」ボタンで共用
+function cookedContent(count) {
+  const span = document.createElement("span");
+  span.className = "cooked";
+  const icon = document.createElement("i");
+  icon.className = "ti ti-chef-hat";
+  icon.setAttribute("aria-hidden", "true");
+  span.appendChild(icon);
+  if (count > 0) span.append(String(count));
+  return span;
+}
 
 async function api(method, path, body) {
   let res;
@@ -57,7 +70,10 @@ async function loadList() {
     const li = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = recipe.name;
+    const name = document.createElement("span");
+    name.className = "recipe-name";
+    name.textContent = recipe.name;
+    button.append(name, cookedContent(recipe.cooked_count));
     button.addEventListener("click", () => openView(recipe));
     li.appendChild(button);
     list.appendChild(li);
@@ -82,6 +98,8 @@ function showView(recipe) {
   clearErrors();
   $("view-name").textContent = recipe.name;
   $("view-body").textContent = recipe.body;
+  $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
+  $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
   viewMode.hidden = false;
   editMode.hidden = true;
 }
@@ -101,11 +119,13 @@ function showEdit(recipe) {
 }
 
 function openView(recipe) {
+  cookedPressed = false;
   showView(recipe);
   recipeDialog.showModal();
 }
 
 function openNew() {
+  cookedPressed = false;
   recipeDialog.showModal();
   showEdit(null);
 }
@@ -200,7 +220,24 @@ async function remove() {
   }
 }
 
+async function toggleCooked() {
+  if (busy) return;
+  clearErrors();
+  setBusy(true);
+  try {
+    const updated = await api(cookedPressed ? "DELETE" : "POST", "/api/recipes/" + current.id + "/cooked");
+    cookedPressed = !cookedPressed;
+    showView(updated);
+    await loadList();
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
 $("new-button").addEventListener("click", openNew);
+$("cooked-button").addEventListener("click", toggleCooked);
 $("edit-button").addEventListener("click", () => showEdit(current));
 $("delete-button").addEventListener("click", remove);
 $("close-button").addEventListener("click", requestClose);
