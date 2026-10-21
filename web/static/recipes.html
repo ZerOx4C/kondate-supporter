@@ -4,9 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>レシピ - kondate-supporter</title>
+<style>
+body { font-family: sans-serif; margin: 0 auto; padding: 1rem; max-width: 40rem; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { margin: 0; font-size: 1.4rem; }
+button { min-height: 44px; padding: 0 1rem; font-size: 1rem; }
+#recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; }
+#recipe-list li { margin-bottom: 0.5rem; }
+#recipe-list button { width: 100%; text-align: left; }
+.error { color: #c00; }
+.error:empty { display: none; }
+dialog { width: 40rem; padding: 0; }
+.dialog-inner { padding: 1rem; }
+#view-body { white-space: pre-wrap; margin: 1rem 0; }
+label { display: block; margin-bottom: 1rem; }
+input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+</style>
 </head>
 <body>
-<h1>レシピ</h1>
-<p>準備中です。</p>
+<header>
+  <h1>レシピ</h1>
+  <button id="new-button" type="button">新規作成</button>
+</header>
+<main>
+  <p id="list-message"></p>
+  <ul id="recipe-list"></ul>
+</main>
+
+<dialog id="recipe-dialog">
+  <div class="dialog-inner">
+    <section id="view-mode">
+      <h2 id="view-name"></h2>
+      <div id="view-body"></div>
+      <p class="error" id="view-error"></p>
+      <div class="actions">
+        <button type="button" id="edit-button">編集</button>
+        <button type="button" id="delete-button">削除</button>
+        <button type="button" id="close-button">閉じる</button>
+      </div>
+    </section>
+    <form id="edit-mode">
+      <label>名前 <input id="edit-name" type="text"></label>
+      <label>本文 <textarea id="edit-body" rows="15"></textarea></label>
+      <p class="error" id="edit-error"></p>
+      <div class="actions">
+        <button type="submit" id="save-button">保存</button>
+        <button type="button" id="cancel-button">キャンセル</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="confirm-dialog">
+  <div class="dialog-inner">
+    <p id="confirm-message"></p>
+    <div class="actions">
+      <button type="button" id="confirm-ok"></button>
+      <button type="button" id="confirm-cancel">キャンセル</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="recipes.js"></script>
 </body>
 </html>
