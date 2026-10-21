@@ -6,18 +6,25 @@ GOEXE := $(shell go env GOEXE)
 # 配置用ビルドの共通フラグ。CGOを使わず、配置しやすいようシンボルを除いて小さくする。
 RELEASE_FLAGS := -trimpath -ldflags="-s -w"
 
-.PHONY: run build-rpi build-win
+# 引数なしのmakeで開発サーバーが起動しないよう、ターゲットの一覧を出す。
+.DEFAULT_GOAL := help
+
+.PHONY: run build-rpi build-win help
 
 # 開発起動。go runは実行のたびにバイナリのパスが変わりWindowsファイアウォールの許可を何度も求められるため、固定パスへビルドしてから実行する。
 # DEV_MODE=1 で画面ファイルをディスクから配信し、HTML/JSの変更をビルドし直さずに反映する。
-run:
+run: ## 開発起動(DEV_MODE=1、:8080)
 	go build -o bin/kondate-supporter$(GOEXE) ./cmd/server
 	DEV_MODE=1 ./bin/kondate-supporter$(GOEXE)
 
 # RaspberryPi Zero(ARMv6)向けクロスコンパイル。
-build-rpi:
+build-rpi: ## RaspberryPi Zero(ARMv6)向けにビルドする
 	GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=0 go build $(RELEASE_FLAGS) -o bin/kondate-supporter-linux-armv6 ./cmd/server
 
 # RaspberryPiを用意するまでのつなぎとして、Windows上で常用するためのビルド。画面はembedから配信する。
-build-win:
+build-win: ## Windows常用(つなぎ)向けにビルドする
 	GOOS=windows CGO_ENABLED=0 go build $(RELEASE_FLAGS) -o bin/kondate-supporter-windows.exe ./cmd/server
+
+# ターゲット行末尾の「## 説明」を拾って一覧にする。ターゲットを増やしてもここは書き換えない。
+help: ## ターゲットの一覧を表示する
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-10s %s\n", $$1, $$2}' $(MAKEFILE_LIST)

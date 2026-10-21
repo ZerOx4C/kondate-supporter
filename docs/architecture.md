@@ -16,7 +16,7 @@ internal/service/        # ビジネスロジック層
 internal/handler/        # HTTPハンドラ層
 web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
 web/static/              # フロントエンド(画面ごとのHTMLと同名JS。recipes.html / recipes.js。embedでバイナリに焼き込み)
-Makefile                 # make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド)
+Makefile                 # make / make help(ターゲット一覧)/ make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド)
 bin/                     # ビルド成果物の出力先(Git管理外)
 scripts/                 # preview用サーバーの起動スクリプト(preview-server.ps1)
 data/                    # SQLiteファイルの実行時生成先(Git管理外)
@@ -90,6 +90,8 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **入力チェックはサーバーだけで行う**: クライアントに二重実装せず、APIの `error` メッセージをそのまま表示する。
 - **レシピ本文は構造化しない**: 材料・調味料・手順は `body` 1カラムの自由テキストに持たせる。名称+数量+単位での構造化やLLMによる抽出はROADMAPに項目が無い限り着手しない。
 - **Makefileはsh前提で書く**: 開発PCではGit Bash/WSLからmakeを実行する。cmd.exeでの動作は考えず、環境変数は `VAR=値 コマンド` の形で渡す。
+- **引数なしの `make` はhelpを表示する**: `.DEFAULT_GOAL := help` にして、`make` だけを打ったときに開発サーバーが起動しないようにする。どのターゲットがあるかもその場で分かる。
+- **helpの一覧はターゲット行末尾の `## 説明` から自動で作る**: `awk` で `$(MAKEFILE_LIST)` を読んで抜き出す。ターゲットを増やすときはその行に `## 説明` を書くだけでよく、help側を書き換えない。詳しい理由や注意は、これまでどおりターゲットの上の行に `#` コメントで書く。
 - **`make run` は固定パスへビルドしてから実行する**: `go run` は実行のたびに一時パスへバイナリを作るため、Windowsファイアウォールの許可を何度も求められ、許可ルールも増え続ける。
 - **`make run` は `DEV_MODE=1` で起動する**: 画面ファイルをディスクから配信し、HTML/JSの修正をビルドし直さずに確認できるようにする。
 - **開発用・preview用・Windows常用のバイナリ名を分ける**: Windowsでは実行中のexeを上書きできないため。つなぎ運用のサーバーを動かしたまま開発用やpreview用をビルドしても失敗しないようにする。
