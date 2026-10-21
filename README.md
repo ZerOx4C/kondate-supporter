@@ -2,13 +2,13 @@
 
 家庭内LAN限定・個人利用の献立管理ツール。RaspberryPi Zeroにデプロイして常時稼働させる想定。
 
-以前の実装を `kondate-supporter-old` として退避し、小さなマイルストーンを1つずつ完成させる方針で再構築中([CLAUDE.md](CLAUDE.md)参照)。
+以前の実装を `kondate-supporter-old` として退避し、ROADMAPの項目を1つずつ完成させる方針で再構築中([CLAUDE.md](CLAUDE.md)参照)。
 
 ## 現在の機能(v1: レシピ登録)
 
 - レシピ(タイトル+自由テキスト)の登録・一覧・詳細表示・編集・削除
 
-v1実装は未着手。進行中のマイルストーンは [ROADMAP.md](ROADMAP.md) を参照。
+v1実装は未着手。今後の改修予定は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 必要環境
 

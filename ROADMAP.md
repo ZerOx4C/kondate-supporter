@@ -1,7 +1,6 @@
 # ROADMAP
 
-改修予定を簡潔な箇条書きで記載する。
-消化していく際は全体から適切な作業順序を検討してから実施する。
+未着手の改修項目。1項目=1コミットで完結する粒度のフラットな箇条書きで書き、完了したら削除する。
 
 - プロジェクト初期構築(`go.mod`、`cmd/server`、`internal/{config,db,model,repository,service,handler}`、`web/static` のディレクトリ作成)
 - `recipes` テーブルのマイグレーション作成(`id`, `name`, `body`)
