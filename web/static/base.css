@@ -1,0 +1,25 @@
+body { font-family: sans-serif; margin: 0 auto; padding: 1rem; max-width: 40rem; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { margin: 0; font-size: 1.4rem; }
+button { min-height: 44px; padding: 0 1rem; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: #fff; color: #555; border: 1px solid #999; border-radius: 8px; cursor: pointer; }
+button.icon-only { min-width: 44px; padding: 0; }
+button.primary { color: #1a5fb4; border-color: #1a5fb4; }
+button.danger { color: #c01c28; border-color: #c01c28; }
+@media (hover: hover) {
+  button:not(:disabled):hover { background: #f0f0f0; }
+  button.primary:not(:disabled):hover { background: #e7f0fa; }
+  button.danger:not(:disabled):hover { background: #fbeaec; }
+}
+button:not(:disabled):active { background: #f0f0f0; }
+button.primary:not(:disabled):active { background: #e7f0fa; }
+button.danger:not(:disabled):active { background: #fbeaec; }
+button:disabled { opacity: 0.5; cursor: default; }
+.ti { font-size: 1.25rem; }
+label { display: block; margin-bottom: 1rem; }
+input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.error { color: #c00; }
+.error:empty { display: none; }
+dialog { width: 40rem; padding: 0; }
+.dialog-inner { padding: 1rem; }
+[hidden] { display: none !important; }
