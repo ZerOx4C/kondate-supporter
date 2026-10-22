@@ -4,6 +4,7 @@ let recipes = [];
 let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
 let nameKeyword = ""; // 名前検索のキーワード(前後の空白は除く)
+const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
 
 // 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
 function normalizeForSearch(s) {
@@ -142,8 +143,45 @@ function createTile(recipe) {
   cooked.classList.add("tile-cooked");
   visual.appendChild(cooked);
   link.appendChild(visual);
-  li.appendChild(link);
+  const bookmark = document.createElement("button");
+  bookmark.type = "button";
+  bookmark.className = "icon-only tile-bookmark";
+  bookmark.dataset.id = String(recipe.id);
+  bookmark.setAttribute("aria-pressed", String(recipe.bookmarked));
+  const label = "「" + recipe.name + "」をブックマーク";
+  bookmark.setAttribute("aria-label", label);
+  bookmark.title = label;
+  bookmark.innerHTML = '<i class="ti ti-bookmark" aria-hidden="true"></i>';
+  bookmark.disabled = bookmarkBusy.has(recipe.id);
+  bookmark.addEventListener("click", () => toggleBookmark(recipe.id, bookmark));
+  li.append(link, bookmark);
   return li;
+}
+
+function bookmarkButton(id) {
+  return $("recipe-list").querySelector('.tile-bookmark[data-id="' + id + '"]');
+}
+
+// 表示中の bookmarked を見て付け外しを選び、成功したら返ってきたレシピで一覧を描き直す
+async function toggleBookmark(id, button) {
+  const recipe = recipes.find((r) => r.id === id);
+  if (!recipe || bookmarkBusy.has(id)) return;
+  const hadFocus = document.activeElement === button;
+  $("list-error").textContent = "";
+  bookmarkBusy.add(id);
+  button.disabled = true;
+  try {
+    const updated = await api(recipe.bookmarked ? "DELETE" : "PUT", "/api/recipes/" + id + "/bookmark");
+    recipes = recipes.map((r) => (r.id === id ? updated : r));
+    bookmarkBusy.delete(id);
+    renderList();
+    if (hadFocus) bookmarkButton(id)?.focus();
+  } catch (e) {
+    bookmarkBusy.delete(id);
+    const current = bookmarkButton(id);
+    if (current) current.disabled = false;
+    $("list-error").textContent = e.message;
+  }
 }
 
 // 1行に収まらないタグを末尾から隠し、隠した数を「+N」にまとめる
