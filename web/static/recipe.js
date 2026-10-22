@@ -201,6 +201,7 @@ function showView(recipe) {
   renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
+  $("bookmark-button").setAttribute("aria-pressed", String(recipe.bookmarked));
   $("back-link").hidden = false;
   $("cancel-button").hidden = true;
   $("view-actions").hidden = false;
@@ -348,6 +349,20 @@ async function toggleCooked() {
   }
 }
 
+// ブックマークはサーバーが持つ状態なので、表示中の bookmarked を見て付け外しを選ぶ
+async function toggleBookmark() {
+  if (busy) return;
+  clearErrors();
+  setBusy(true);
+  try {
+    showView(await api(current.bookmarked ? "DELETE" : "PUT", "/api/recipes/" + current.id + "/bookmark"));
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
 async function load() {
   const id = new URLSearchParams(location.search).get("id");
   if (id === null) {
@@ -374,6 +389,7 @@ $("back-link").addEventListener("click", (e) => {
     history.back();
   }
 });
+$("bookmark-button").addEventListener("click", toggleBookmark);
 $("cooked-button").addEventListener("click", toggleCooked);
 $("edit-button").addEventListener("click", () => showEdit(current));
 $("delete-button").addEventListener("click", remove);
