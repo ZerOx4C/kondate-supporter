@@ -117,10 +117,11 @@ function createTile(recipe) {
   }
   const footer = document.createElement("div");
   footer.className = "tile-footer";
-  if (recipe.tags.length > 0) {
+  const tags = recipe.tags.filter((t) => !selectedTags.includes(t));
+  if (tags.length > 0) {
     const ul = document.createElement("ul");
     ul.className = "tile-tags";
-    for (const t of recipe.tags) {
+    for (const t of tags) {
       const tag = document.createElement("li");
       tag.className = "tag";
       tag.textContent = t;
