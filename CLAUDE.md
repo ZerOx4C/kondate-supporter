@@ -63,4 +63,4 @@
 
 ## 動作検証
 
-preview系ツールは `.claude/launch.json` により `:8081` / `data/kondate-preview.db` を使い、ユーザーの開発サーバー(`make run`, `:8080`, `data/kondate.db`)と分離済み。ファイル保存先(レシピ画像など)を追加する場合はpreview側も分離すること(旧実装で未分離による事故あり)。previewで起動したサーバーは、検証が終わったら `preview_stop` で必ず止める(次のセッションがポートを取れなくなるため)。
+preview系ツールは `.claude/launch.json` により `:8081` / `data/kondate-preview.db` を使い、ユーザーの開発サーバー(`make run`, `:8082`, `data/kondate.db`)と分離済み。ファイル保存先(レシピ画像など)を追加する場合はpreview側も分離すること(旧実装で未分離による事故あり)。previewで起動したサーバーは、検証が終わったら `preview_stop` で必ず止める(次のセッションがポートを取れなくなるため)。

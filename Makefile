@@ -13,9 +13,10 @@ RELEASE_LDFLAGS := -s -w
 
 # 開発起動。go runは実行のたびにバイナリのパスが変わりWindowsファイアウォールの許可を何度も求められるため、固定パスへビルドしてから実行する。
 # DEV_MODE=1 で画面ファイルをディスクから配信し、HTML/JSの変更をビルドし直さずに反映する。
-run: ## 開発起動(DEV_MODE=1、:8080)
+# KONDATE_ADDR=:8082 で、既定の:8080で動かす常駐運用(make build-winのexe)やpreview(:8081)とポートを分ける。
+run: ## 開発起動(DEV_MODE=1、:8082)
 	go build -o bin/kondate-supporter$(GOEXE) ./cmd/server
-	DEV_MODE=1 ./bin/kondate-supporter$(GOEXE)
+	DEV_MODE=1 KONDATE_ADDR=:8082 ./bin/kondate-supporter$(GOEXE)
 
 # RaspberryPi Zero(ARMv6)向けクロスコンパイル。
 build-rpi: ## RaspberryPi Zero(ARMv6)向けにビルドする
