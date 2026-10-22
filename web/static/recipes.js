@@ -285,4 +285,5 @@ window.addEventListener("pageshow", (e) => {
   if (e.persisted) loadList();
 });
 
+setupScrollTop($("scroll-top-button"));
 loadList();

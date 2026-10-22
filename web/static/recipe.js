@@ -386,4 +386,6 @@ window.addEventListener("beforeunload", (e) => {
 // bfcacheから戻ったときは、離れる前の遷移中の印を消す
 window.addEventListener("pageshow", (e) => { if (e.persisted) leaving = false; });
 
+setupScrollTop($("scroll-top-button"));
+
 load();

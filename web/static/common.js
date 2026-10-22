@@ -65,6 +65,18 @@ async function toJpeg(file) {
   return blob;
 }
 
+// ページの先頭から下へスクロールしているときだけボタンを出し、押すと先頭へ戻す
+function setupScrollTop(button) {
+  const update = () => { button.hidden = window.scrollY <= 0; };
+  update();
+  window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("pageshow", update);
+  button.addEventListener("click", () => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  });
+}
+
 // ダイアログ自身(外側)で pointerdown と click の両方が起きたときだけ外側タップとみなす
 function onOutsideTap(dialog, handler) {
   let downOnDialog = false;
