@@ -177,6 +177,7 @@ function showView(recipe) {
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
   $("view-actions").hidden = false;
+  $("edit-actions").hidden = true;
   viewMode.hidden = false;
   editMode.hidden = true;
 }
@@ -197,6 +198,7 @@ function showEdit(recipe) {
   clearImageChange();
   renderEditImage();
   $("view-actions").hidden = true;
+  $("edit-actions").hidden = false;
   viewMode.hidden = true;
   editMode.hidden = false;
   $("edit-name").focus();
