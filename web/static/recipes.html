@@ -14,7 +14,11 @@
 .tile-image { display: block; width: 100%; height: 100%; object-fit: cover; }
 .tile-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; background: #eee; color: #bbb; }
 .tile-placeholder .ti { font-size: 3rem; }
-.tile-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.3rem 0.5rem; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-footer { position: absolute; left: 0; right: 0; bottom: 0; }
+.tile-tags { display: flex; flex-wrap: nowrap; gap: 0.2rem; overflow: hidden; margin: 0; padding: 0 0.3rem 0.3rem; list-style: none; }
+.tile-tags .tag { display: block; flex-shrink: 0; font-size: 0.7rem; padding: 0 0.3rem; background: rgba(255, 255, 255, 0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-tags .tag.shrink { flex-shrink: 1; min-width: 0; }
+.tile-name { display: block; padding: 0.3rem 0.5rem; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-cooked { position: absolute; top: 0.3rem; right: 0.3rem; padding: 0.1rem 0.4rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.85); font-size: 0.9rem; line-height: 1rem; }
 .tile-cooked .ti { font-size: 1rem; }
 .tile-add .tile-visual { border: 2px dashed #999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; color: #555; }
@@ -23,6 +27,15 @@
 @media (hover: hover) { .tile-add:hover .tile-visual { background: #f0f0f0; } }
 .tile-add:active .tile-visual { background: #f0f0f0; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+#selected-tags:empty { display: none; }
+#filter-empty { margin: 1rem 0 0; color: #555; }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.dialog-header h2 { margin: 0; font-size: 1.1rem; }
+#tag-options { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; padding: 0; }
+#tag-options button { max-width: 100%; overflow-wrap: anywhere; }
+#tag-options button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; color: #1a5fb4; }
+#tag-options-empty { margin: 1rem 0 0; color: #555; }
 </style>
 </head>
 <body>
@@ -30,9 +43,26 @@
   <h1>レシピ</h1>
 </header>
 <main>
+  <div id="filter-bar" class="filter-bar" hidden>
+    <button type="button" id="tag-filter-button"><i class="ti ti-filter" aria-hidden="true"></i>タグ</button>
+    <ul id="selected-tags" class="tags removable"></ul>
+  </div>
   <p class="error" id="list-error"></p>
   <ul id="recipe-list"></ul>
+  <p id="filter-empty" hidden>条件に合うレシピがありません</p>
 </main>
+
+<dialog id="tag-dialog" aria-labelledby="tag-dialog-title">
+  <div class="dialog-inner">
+    <div class="dialog-header">
+      <h2 id="tag-dialog-title">タグで絞り込む</h2>
+      <button type="button" id="tag-dialog-close" class="icon-only" aria-label="閉じる" title="閉じる" autofocus><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <input id="tag-search" type="text" autocomplete="off" placeholder="タグを探す" aria-label="タグを探す">
+    <ul id="tag-options"></ul>
+    <p id="tag-options-empty" hidden></p>
+  </div>
+</dialog>
 
 <script src="common.js"></script>
 <script src="recipes.js"></script>

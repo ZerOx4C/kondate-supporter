@@ -1,5 +1,69 @@
 "use strict";
 
+let recipes = [];
+let allTags = []; // id昇順
+let selectedTags = []; // 常にallTagsと同じ並び
+
+// 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
+function normalizeForSearch(s) {
+  return s
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+
+function matchesKeyword(text, keyword) {
+  return normalizeForSearch(text).includes(normalizeForSearch(keyword));
+}
+
+function readSelectedFromUrl() {
+  const names = new URLSearchParams(location.search).getAll("tag");
+  return allTags.filter((t) => names.includes(t));
+}
+
+function writeUrl() {
+  const params = new URLSearchParams();
+  for (const t of selectedTags) params.append("tag", t);
+  const qs = params.toString();
+  history.replaceState(null, "", qs ? "?" + qs : location.pathname);
+}
+
+function filteredRecipes() {
+  return recipes.filter((r) => selectedTags.every((t) => r.tags.includes(t)));
+}
+
+function setSelected(name, on) {
+  const set = new Set(selectedTags);
+  if (on) set.add(name);
+  else set.delete(name);
+  selectedTags = allTags.filter((t) => set.has(t));
+  applyFilter();
+}
+
+function applyFilter() {
+  writeUrl();
+  renderSelectedTags();
+  renderList();
+  if ($("tag-dialog").open) renderTagOptions();
+}
+
+function renderSelectedTags() {
+  $("selected-tags").replaceChildren(...selectedTags.map((name) => {
+    const li = document.createElement("li");
+    li.className = "tag";
+    li.append(name);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "icon-only";
+    button.setAttribute("aria-label", "「" + name + "」を外す");
+    button.title = "「" + name + "」を外す";
+    button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    button.addEventListener("click", () => setSelected(name, false));
+    li.appendChild(button);
+    return li;
+  }));
+}
+
 function createAddPanel() {
   const li = document.createElement("li");
   const link = document.createElement("a");
@@ -19,54 +83,168 @@ function createAddPanel() {
   return li;
 }
 
+function createTile(recipe) {
+  const li = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "tile";
+  link.href = "recipe.html?id=" + recipe.id;
+  link.title = recipe.name;
+  const visual = document.createElement("div");
+  visual.className = "tile-visual";
+  if (recipe.image_url) {
+    const img = document.createElement("img");
+    img.className = "tile-image";
+    img.src = recipe.image_url;
+    img.alt = "";
+    img.loading = "lazy";
+    visual.appendChild(img);
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.className = "tile-placeholder";
+    const icon = document.createElement("i");
+    icon.className = "ti ti-photo-off";
+    icon.setAttribute("aria-hidden", "true");
+    placeholder.appendChild(icon);
+    visual.appendChild(placeholder);
+  }
+  const footer = document.createElement("div");
+  footer.className = "tile-footer";
+  if (recipe.tags.length > 0) {
+    const ul = document.createElement("ul");
+    ul.className = "tile-tags";
+    for (const t of recipe.tags) {
+      const tag = document.createElement("li");
+      tag.className = "tag";
+      tag.textContent = t;
+      ul.appendChild(tag);
+    }
+    const more = document.createElement("li");
+    more.className = "tag tile-tags-more";
+    more.hidden = true;
+    ul.appendChild(more);
+    footer.appendChild(ul);
+  }
+  const name = document.createElement("span");
+  name.className = "tile-name";
+  name.textContent = recipe.name;
+  footer.appendChild(name);
+  visual.appendChild(footer);
+  const cooked = cookedContent(recipe.cooked_count);
+  cooked.classList.add("tile-cooked");
+  visual.appendChild(cooked);
+  link.appendChild(visual);
+  li.appendChild(link);
+  return li;
+}
+
+// 1行に収まらないタグを末尾から隠し、隠した数を「+N」にまとめる
+function fitTileTags(ul) {
+  const tags = [...ul.querySelectorAll(".tag:not(.tile-tags-more)")];
+  const more = ul.querySelector(".tile-tags-more");
+  for (const t of tags) {
+    t.hidden = false;
+    t.classList.remove("shrink");
+  }
+  more.hidden = true;
+  let visible = tags.length;
+  while (ul.scrollWidth > ul.clientWidth && visible > 1) {
+    visible--;
+    tags[visible].hidden = true;
+    more.textContent = "+" + (tags.length - visible);
+    more.hidden = false;
+  }
+  if (ul.scrollWidth > ul.clientWidth) tags[0].classList.add("shrink");
+}
+
+function fitAllTileTags() {
+  for (const ul of document.querySelectorAll(".tile-tags")) fitTileTags(ul);
+}
+
+let fitScheduled = false;
+window.addEventListener("resize", () => {
+  if (fitScheduled) return;
+  fitScheduled = true;
+  requestAnimationFrame(() => {
+    fitScheduled = false;
+    fitAllTileTags();
+  });
+});
+
+function renderList() {
+  const list = $("recipe-list");
+  const shown = filteredRecipes();
+  list.replaceChildren(createAddPanel(), ...shown.map(createTile));
+  $("filter-empty").hidden = !(selectedTags.length > 0 && shown.length === 0);
+  fitAllTileTags();
+}
+
+function renderTagOptions() {
+  const keyword = $("tag-search").value.trim();
+  const coTags = new Set(filteredRecipes().flatMap((r) => r.tags));
+  const shown = allTags.filter((t) => selectedTags.includes(t) || (coTags.has(t) && matchesKeyword(t, keyword)));
+  const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.tag : undefined;
+  $("tag-options").replaceChildren(...shown.map((name) => {
+    const li = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.tag = name;
+    const pressed = selectedTags.includes(name);
+    button.setAttribute("aria-pressed", String(pressed));
+    if (pressed) {
+      const icon = document.createElement("i");
+      icon.className = "ti ti-check";
+      icon.setAttribute("aria-hidden", "true");
+      button.appendChild(icon);
+    }
+    button.append(name);
+    button.addEventListener("click", () => setSelected(name, !pressed));
+    li.appendChild(button);
+    return li;
+  }));
+  const empty = $("tag-options-empty");
+  if (shown.every((t) => selectedTags.includes(t))) {
+    empty.textContent = keyword
+      ? "「" + keyword + "」を含む、一緒に選べるタグはありません"
+      : "一緒に選べるタグはありません";
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+  }
+  if (focused !== undefined) {
+    const same = [...$("tag-options").querySelectorAll("button")].find((b) => b.dataset.tag === focused);
+    (same || $("tag-dialog-close")).focus();
+  }
+}
+
+const tagDialog = $("tag-dialog");
+$("tag-filter-button").addEventListener("click", () => {
+  $("tag-search").value = "";
+  renderTagOptions();
+  tagDialog.showModal();
+});
+$("tag-dialog-close").addEventListener("click", () => tagDialog.close());
+onOutsideTap(tagDialog, () => tagDialog.close());
+$("tag-search").addEventListener("input", renderTagOptions);
+
 async function loadList() {
   const error = $("list-error");
-  const list = $("recipe-list");
-  list.textContent = "";
   error.textContent = "";
-  let recipes;
   try {
-    recipes = await api("GET", "/api/recipes");
+    [recipes, allTags] = await Promise.all([api("GET", "/api/recipes"), api("GET", "/api/tags")]);
   } catch (e) {
+    recipes = [];
+    allTags = [];
+    selectedTags = [];
+    $("recipe-list").replaceChildren();
+    $("selected-tags").replaceChildren();
+    $("filter-bar").hidden = true;
+    $("filter-empty").hidden = true;
     error.textContent = "一覧を読み込めませんでした: " + e.message;
     return;
   }
-  list.appendChild(createAddPanel());
-  for (const recipe of recipes) {
-    const li = document.createElement("li");
-    const link = document.createElement("a");
-    link.className = "tile";
-    link.href = "recipe.html?id=" + recipe.id;
-    link.title = recipe.name;
-    const visual = document.createElement("div");
-    visual.className = "tile-visual";
-    if (recipe.image_url) {
-      const img = document.createElement("img");
-      img.className = "tile-image";
-      img.src = recipe.image_url;
-      img.alt = "";
-      img.loading = "lazy";
-      visual.appendChild(img);
-    } else {
-      const placeholder = document.createElement("div");
-      placeholder.className = "tile-placeholder";
-      const icon = document.createElement("i");
-      icon.className = "ti ti-photo-off";
-      icon.setAttribute("aria-hidden", "true");
-      placeholder.appendChild(icon);
-      visual.appendChild(placeholder);
-    }
-    const name = document.createElement("span");
-    name.className = "tile-name";
-    name.textContent = recipe.name;
-    visual.appendChild(name);
-    const cooked = cookedContent(recipe.cooked_count);
-    cooked.classList.add("tile-cooked");
-    visual.appendChild(cooked);
-    link.appendChild(visual);
-    li.appendChild(link);
-    list.appendChild(li);
-  }
+  $("filter-bar").hidden = false;
+  selectedTags = readSelectedFromUrl();
+  applyFilter();
 }
 
 // ブラウザの戻るでキャッシュから復元されたときは、詳細ページでの変更を反映するため読み直す

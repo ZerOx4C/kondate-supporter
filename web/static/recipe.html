@@ -28,8 +28,6 @@
 #edit-tags:not(:empty) { margin: 0.5rem 0; }
 .tag-input-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .tag-input-row input { flex: 1; }
-#edit-tags .tag { padding: 0 0 0 0.75rem; font-size: 1rem; }
-#edit-tags .tag button { min-height: 44px; border: none; background: transparent; }
 </style>
 </head>
 <body>
@@ -54,7 +52,7 @@
     <label>名前 <input id="edit-name" type="text"></label>
     <div class="tag-field">
       <span>タグ</span>
-      <ul id="edit-tags" class="tags"></ul>
+      <ul id="edit-tags" class="tags removable"></ul>
       <div class="tag-input-row">
         <input id="tag-input" type="text" list="tag-options" enterkeyhint="enter" autocomplete="off" aria-label="追加するタグ">
         <button type="button" id="add-tag-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
