@@ -9,8 +9,7 @@
 <style>
 #recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
 #recipe-list li { min-width: 0; }
-.tile { display: block; width: 100%; min-height: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-button.tile, button.tile:hover, button.tile:active { background: none; border: none; border-radius: 0; }
+.tile { display: block; color: inherit; text-decoration: none; }
 .tile-visual { position: relative; aspect-ratio: 1 / 1; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
 .tile-image { display: block; width: 100%; height: 100%; object-fit: cover; }
 .tile-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; background: #eee; color: #bbb; }
@@ -19,80 +18,17 @@ button.tile, button.tile:hover, button.tile:active { background: none; border: n
 .tile-cooked { position: absolute; top: 0.3rem; right: 0.3rem; padding: 0.1rem 0.4rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.85); font-size: 0.9rem; line-height: 1rem; }
 .tile-cooked .ti { font-size: 1rem; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
-#cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
-#view-body { white-space: pre-wrap; margin: 1rem 0; }
-.recipe-image { display: block; width: 100%; max-height: 50vh; object-fit: cover; margin: 0.5rem 0; border-radius: 8px; }
-.image-field { margin-bottom: 1rem; }
-.image-preview { position: relative; margin: 0.5rem 0; }
-.image-preview .recipe-image { margin: 0; }
-#remove-image-button { position: absolute; right: 0.5rem; bottom: 0.5rem; }
-.no-image { position: relative; height: 10rem; margin: 0.5rem 0; }
-.paste-area { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding-top: 1.5rem; box-sizing: border-box; border: 1px dashed #999; border-radius: 8px; color: #666; caret-color: transparent; cursor: text; }
-.paste-area small { font-size: 0.8rem; }
-.paste-area:focus { outline: 2px solid #4a90e2; outline-offset: 1px; }
-.no-image-actions { position: absolute; left: 0; right: 0; bottom: 1.5rem; display: flex; justify-content: center; pointer-events: none; }
-.no-image-actions button { pointer-events: auto; }
 </style>
 </head>
 <body>
 <header>
   <h1>レシピ</h1>
-  <button id="new-button" type="button" class="icon-only" aria-label="新規作成" title="新規作成"><i class="ti ti-plus" aria-hidden="true"></i></button>
+  <a id="new-link" class="button icon-only" href="recipe.html" aria-label="新規作成" title="新規作成"><i class="ti ti-plus" aria-hidden="true"></i></a>
 </header>
 <main>
   <p id="list-message"></p>
   <ul id="recipe-list"></ul>
 </main>
-
-<dialog id="recipe-dialog">
-  <div class="dialog-inner">
-    <section id="view-mode">
-      <h2 id="view-name"></h2>
-      <img id="view-image" class="recipe-image" alt="" hidden>
-      <div id="view-body"></div>
-      <p class="error" id="view-error"></p>
-      <div class="actions">
-        <button type="button" id="cooked-button" aria-pressed="false" aria-label="作った" title="作った"></button>
-        <button type="button" id="edit-button" class="icon-only" aria-label="編集" title="編集"><i class="ti ti-pencil" aria-hidden="true"></i></button>
-        <button type="button" id="delete-button" class="danger"><i class="ti ti-trash" aria-hidden="true"></i>削除</button>
-        <button type="button" id="close-button" class="icon-only" aria-label="閉じる" title="閉じる"><i class="ti ti-x" aria-hidden="true"></i></button>
-      </div>
-    </section>
-    <form id="edit-mode">
-      <label>名前 <input id="edit-name" type="text"></label>
-      <div class="image-field">
-        <span>画像</span>
-        <div id="edit-preview" class="image-preview" hidden>
-          <img id="edit-image" class="recipe-image" alt="">
-          <button type="button" id="remove-image-button" class="icon-only" aria-label="画像を外す" title="画像を外す"><i class="ti ti-photo-off" aria-hidden="true"></i></button>
-        </div>
-        <div id="edit-no-image" class="no-image">
-          <div id="paste-area" class="paste-area" contenteditable="true" inputmode="none" spellcheck="false" role="textbox" aria-label="画像をここに貼り付け"><span>画像なし</span><small>Ctrl+V・長押しで貼り付け</small></div>
-          <div class="no-image-actions">
-            <button type="button" id="pick-image-button"><i class="ti ti-photo" aria-hidden="true"></i>画像を選ぶ</button>
-          </div>
-        </div>
-        <input type="file" id="image-input" accept="image/*" hidden>
-      </div>
-      <label>本文 <textarea id="edit-body" rows="15"></textarea></label>
-      <p class="error" id="edit-error"></p>
-      <div class="actions">
-        <button type="submit" id="save-button" class="primary"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
-        <button type="button" id="cancel-button"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>キャンセル</button>
-      </div>
-    </form>
-  </div>
-</dialog>
-
-<dialog id="confirm-dialog">
-  <div class="dialog-inner">
-    <p id="confirm-message"></p>
-    <div class="actions">
-      <button type="button" id="confirm-ok" class="danger"></button>
-      <button type="button" id="confirm-cancel">キャンセル</button>
-    </div>
-  </div>
-</dialog>
 
 <script src="common.js"></script>
 <script src="recipes.js"></script>
