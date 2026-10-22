@@ -27,7 +27,7 @@
 .no-image-actions button { pointer-events: auto; }
 #view-tags { margin-bottom: 0.5rem; }
 .tag-field { margin-bottom: 1rem; }
-#edit-tags:not(:empty) { margin: 0.5rem 0; }
+#edit-tags:not(:empty) { margin-top: 0.5rem; }
 .tag-input-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .tag-input-row input { flex: 1; }
 </style>
@@ -59,11 +59,11 @@
     <label>名前 <input id="edit-name" type="text"></label>
     <div class="tag-field">
       <span>タグ</span>
-      <ul id="edit-tags" class="tags removable"></ul>
       <div class="tag-input-row">
         <input id="tag-input" type="text" list="tag-options" enterkeyhint="enter" autocomplete="off" aria-label="追加するタグ">
         <button type="button" id="add-tag-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
       </div>
+      <ul id="edit-tags" class="tags removable"></ul>
       <datalist id="tag-options"></datalist>
     </div>
     <div class="image-field">
