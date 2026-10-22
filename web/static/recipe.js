@@ -105,6 +105,31 @@ function onPaste(e) {
   setPendingImage(file);
 }
 
+// 本文中のURL。http:// か https:// から、空白やASCII以外の文字の手前まで
+const URL_PATTERN = /https?:\/\/[!-~]+/g;
+// URLの末尾から外す句読点・閉じ括弧
+const URL_TRAILING = /[.,:;!?'")\]}>]+$/;
+
+// 本文をテキストノードとリンクに分けて入れる(書かれたHTMLを解釈させないためinnerHTMLは使わない)
+function renderBody(el, text) {
+  const nodes = [];
+  let last = 0;
+  for (const m of text.matchAll(URL_PATTERN)) {
+    const url = m[0].replace(URL_TRAILING, "");
+    if (url.length <= url.indexOf("://") + 3) continue; // 中身が残らないものはリンクにしない
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    const a = document.createElement("a");
+    a.href = url;
+    a.textContent = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    nodes.push(a);
+    last = m.index + url.length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  el.replaceChildren(...nodes);
+}
+
 // ulにタグの札を並べる。removableなら札ごとに「外す」ボタンを付ける
 function renderTags(ul, names, removable) {
   ul.replaceChildren(...names.map((name) => {
@@ -173,7 +198,7 @@ function showView(recipe) {
   if (recipe.image_url) viewImage.src = recipe.image_url;
   else viewImage.removeAttribute("src");
   viewImage.hidden = !recipe.image_url;
-  $("view-body").textContent = recipe.body;
+  renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
   $("view-actions").hidden = false;
