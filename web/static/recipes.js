@@ -121,7 +121,12 @@ function createAddPanel() {
   return li;
 }
 
-function createTile(recipe) {
+// 作った回数の段階(1〜5)。回数÷最大値を20%ごとに切り上げる。0回は0
+function cookedLevel(count, max) {
+  return count > 0 ? Math.ceil(count * 5 / max) : 0;
+}
+
+function createTile(recipe, maxCooked) {
   const li = document.createElement("li");
   const link = document.createElement("a");
   link.className = "tile";
@@ -168,9 +173,12 @@ function createTile(recipe) {
   name.textContent = recipe.name;
   footer.appendChild(name);
   visual.appendChild(footer);
-  const cooked = cookedContent(recipe.cooked_count);
-  cooked.classList.add("tile-cooked");
-  visual.appendChild(cooked);
+  if (recipe.cooked_count > 0) {
+    const cooked = cookedContent(recipe.cooked_count);
+    cooked.classList.add("tile-cooked");
+    cooked.dataset.level = String(cookedLevel(recipe.cooked_count, maxCooked));
+    visual.appendChild(cooked);
+  }
   link.appendChild(visual);
   const bookmark = document.createElement("button");
   bookmark.type = "button";
@@ -258,7 +266,8 @@ window.addEventListener("resize", () => {
 function renderList() {
   const list = $("recipe-list");
   const shown = filteredRecipes();
-  list.replaceChildren(createAddPanel(), ...shown.map(createTile));
+  const maxCooked = recipes.reduce((m, r) => Math.max(m, r.cooked_count), 0);
+  list.replaceChildren(createAddPanel(), ...shown.map((r) => createTile(r, maxCooked)));
   $("filter-empty").hidden = !((bookmarkOnly || selectedTags.length > 0 || nameKeyword !== "") && shown.length === 0);
   fitAllTileTags();
 }
