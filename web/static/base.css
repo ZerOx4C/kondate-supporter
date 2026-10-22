@@ -1,4 +1,4 @@
-body { font-family: sans-serif; margin: 0 auto; padding: 1rem 1rem calc(2rem + 44px); max-width: 40rem; }
+body { font-family: sans-serif; margin: 0 auto; padding: 1rem 1rem calc(2rem + 44px); max-width: 40rem; -webkit-user-select: none; user-select: none; }
 header { display: flex; justify-content: space-between; align-items: center; }
 h1 { margin: 0; font-size: 1.4rem; }
 button, a.button { min-height: 44px; padding: 0 1rem; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; background: #fff; color: #555; border: 1px solid #999; border-radius: 8px; cursor: pointer; }
@@ -19,6 +19,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 .ti { font-size: 1.25rem; }
 label { display: block; margin-bottom: 1rem; }
 input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 0.5rem; border: 1px solid #999; border-radius: 8px; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
 input[type="text"] { min-height: 44px; }
 textarea { resize: vertical; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
