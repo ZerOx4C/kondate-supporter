@@ -1,24 +1,37 @@
 "use strict";
 
+function createAddPanel() {
+  const li = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "tile tile-add";
+  link.href = "recipe.html";
+  const visual = document.createElement("div");
+  visual.className = "tile-visual";
+  const icon = document.createElement("i");
+  icon.className = "ti ti-plus";
+  icon.setAttribute("aria-hidden", "true");
+  const label = document.createElement("span");
+  label.className = "tile-add-label";
+  label.textContent = "追加";
+  visual.append(icon, label);
+  link.appendChild(visual);
+  li.appendChild(link);
+  return li;
+}
+
 async function loadList() {
-  const message = $("list-message");
+  const error = $("list-error");
   const list = $("recipe-list");
   list.textContent = "";
-  message.textContent = "";
+  error.textContent = "";
   let recipes;
   try {
     recipes = await api("GET", "/api/recipes");
   } catch (e) {
-    message.textContent = "一覧を読み込めませんでした: " + e.message;
+    error.textContent = "一覧を読み込めませんでした: " + e.message;
     return;
   }
-  if (recipes.length === 0) {
-    const icon = document.createElement("i");
-    icon.className = "ti ti-plus";
-    icon.setAttribute("aria-hidden", "true");
-    message.append("レシピがまだありません。右上の ", icon, " ボタンから登録してください。");
-    return;
-  }
+  list.appendChild(createAddPanel());
   for (const recipe of recipes) {
     const li = document.createElement("li");
     const link = document.createElement("a");
