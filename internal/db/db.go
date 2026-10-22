@@ -27,7 +27,8 @@ func Open(path string) (*sql.DB, error) {
 	// modernc.org/sqliteはコネクションプールが新規接続を作るたびにDSNの
 	// _pragmaパラメータを適用する。conn.Exec()による事後設定だと、プールが
 	// 新規接続を作った場合に設定が反映されないことがあるため、DSNに埋め込む。
-	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)", path)
+	// foreign_keysはON DELETE CASCADEを効かせるために有効にする。
+	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", path)
 
 	conn, err := sql.Open("sqlite", dsn)
 	if err != nil {

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"kondate-supporter/internal/model"
@@ -13,7 +14,9 @@ var ErrNotFound = errors.New("not found")
 
 // recipeColumns はmodel.Recipeの各フィールドに対応するSELECT/RETURNING列。
 // typeof(image)は列の型だけを見るので、画像の本体は読まない。
-const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version`
+// 末尾はタグ名のJSON配列(タグのid昇順、無ければ"[]")で、scanRecipeが読む。
+const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version,
+	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id)`
 
 type RecipeRepository struct {
 	db *sql.DB
@@ -33,8 +36,8 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 
 	recipes := []model.Recipe{}
 	for rows.Next() {
-		var rec model.Recipe
-		if err := rows.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion); err != nil {
+		rec, err := scanRecipe(rows)
+		if err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, rec)
@@ -43,28 +46,49 @@ func (r *RecipeRepository) List(ctx context.Context) ([]model.Recipe, error) {
 }
 
 func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, error) {
+	return scanReturned(r.db.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
+}
+
+// Create はレシピとタグを追加し、追加後のレシピを返す。
+func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags []string) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.db.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id).
-		Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion)
-	if errors.Is(err, sql.ErrNoRows) {
-		return model.Recipe{}, ErrNotFound
-	}
+	err := r.inTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `INSERT INTO recipes (name, body) VALUES (?, ?)`, name, body)
+		if err != nil {
+			return err
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			return err
+		}
+		if err := replaceTags(ctx, tx, id, tags); err != nil {
+			return err
+		}
+		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
+		return err
+	})
 	return rec, err
 }
 
-// Create はレシピを追加し、採番されたidを返す。
-func (r *RecipeRepository) Create(ctx context.Context, name, body string) (int64, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO recipes (name, body) VALUES (?, ?)`, name, body)
-	if err != nil {
-		return 0, err
-	}
-	return res.LastInsertId()
-}
-
-// Update は名前と本文を更新し、更新後のレシピを返す。cooked_countは変更しない。
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string) (model.Recipe, error) {
-	return scanReturned(r.db.QueryRowContext(ctx,
-		`UPDATE recipes SET name = ?, body = ? WHERE id = ? RETURNING `+recipeColumns, name, body, id))
+// Update は名前・本文・タグを更新し、更新後のレシピを返す。cooked_countは変更しない。
+// タグは丸ごと置き換える。存在しないidにタグを付けると外部キー違反になるため、UPDATEを先に行う。
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string) (model.Recipe, error) {
+	var rec model.Recipe
+	err := r.inTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ? WHERE id = ?`, name, body, id)
+		if err != nil {
+			return err
+		}
+		if err := requireAffected(res); err != nil {
+			return err
+		}
+		if err := replaceTags(ctx, tx, id, tags); err != nil {
+			return err
+		}
+		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
+		return err
+	})
+	return rec, err
 }
 
 // IncrementCookedCount は作った回数を1増やし、更新後のレシピを返す。
@@ -101,22 +125,102 @@ func (r *RecipeRepository) GetImage(ctx context.Context, id int64) ([]byte, erro
 	return data, err
 }
 
-// scanReturned はUPDATE ... RETURNINGの行を読む。行が無ければErrNotFoundを返す。
-func scanReturned(row *sql.Row) (model.Recipe, error) {
+// rowScanner は *sql.Row と *sql.Rows の両方を受けるためのScan部分。
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+// scanRecipe はrecipeColumnsの順に並んだ1行を読む。
+func scanRecipe(row rowScanner) (model.Recipe, error) {
 	var rec model.Recipe
-	err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion)
+	var tags string
+	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &tags); err != nil {
+		return model.Recipe{}, err
+	}
+	if err := json.Unmarshal([]byte(tags), &rec.Tags); err != nil {
+		return model.Recipe{}, err
+	}
+	return rec, nil
+}
+
+// scanReturned は1行を読む(SELECTでもRETURNINGでもよい)。行が無ければErrNotFoundを返す。
+func scanReturned(row *sql.Row) (model.Recipe, error) {
+	rec, err := scanRecipe(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Recipe{}, ErrNotFound
 	}
 	return rec, err
 }
 
+// Delete はレシピを消し、どのレシピにも付いていないタグを消す。recipe_tagsはCASCADEで消える。
 func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM recipes WHERE id = ?`, id)
+	return r.inTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `DELETE FROM recipes WHERE id = ?`, id)
+		if err != nil {
+			return err
+		}
+		if err := requireAffected(res); err != nil {
+			return err
+		}
+		return deleteUnusedTags(ctx, tx)
+	})
+}
+
+// ListTags は使われているタグ名をid昇順で返す。0件のときは空スライスを返す。
+func (r *RecipeRepository) ListTags(ctx context.Context) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT name FROM tags ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tags := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		tags = append(tags, name)
+	}
+	return tags, rows.Err()
+}
+
+// inTx はfnをトランザクション内で実行する。fnがエラーを返せばロールバックする。
+// 接続は1本に制限しているため、fnの中では必ず引数のtxを使うこと。r.dbを使うと
+// 空き接続を待ち続けて止まる。
+func (r *RecipeRepository) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	return requireAffected(res)
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+// replaceTags はレシピのタグをnamesに置き換える。紐付けを全部消して付け直した後に、
+// どのレシピにも付いていないタグを消す(付けたままのタグのidを変えないため)。
+func replaceTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_tags WHERE recipe_id = ?`, recipeID); err != nil {
+		return err
+	}
+	for _, name := range names {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO tags (name) VALUES (?) ON CONFLICT(name) DO NOTHING`, name); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO recipe_tags (recipe_id, tag_id) SELECT ?, id FROM tags WHERE name = ?`, recipeID, name); err != nil {
+			return err
+		}
+	}
+	return deleteUnusedTags(ctx, tx)
+}
+
+func deleteUnusedTags(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM recipe_tags)`)
+	return err
 }
 
 // requireAffected は影響行数が0のときErrNotFoundを返す。

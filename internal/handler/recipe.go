@@ -25,6 +25,8 @@ func NewRecipeHandler(svc *service.RecipeService) *RecipeHandler {
 type recipeRequest struct {
 	Name string `json:"name"`
 	Body string `json:"body"`
+	// Tagsは無い・nullのときは空として扱い、タグを全部外す。
+	Tags []string `json:"tags"`
 }
 
 // maxImageSize はアップロードできる画像の上限(2MB)。
@@ -76,7 +78,7 @@ func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Create(r.Context(), req.Name, req.Body)
+	rec, err := h.svc.Create(r.Context(), req.Name, req.Body, req.Tags)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -93,12 +95,21 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body)
+	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body, req.Tags)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
+}
+
+func (h *RecipeHandler) ListTags(w http.ResponseWriter, r *http.Request) {
+	tags, err := h.svc.ListTags(r.Context())
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, tags)
 }
 
 func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {

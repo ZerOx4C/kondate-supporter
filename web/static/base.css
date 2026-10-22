@@ -19,6 +19,8 @@ button:disabled { opacity: 0.5; cursor: default; }
 label { display: block; margin-bottom: 1rem; }
 input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 0.5rem; border: 1px solid #999; border-radius: 8px; }
 input[type="text"] { min-height: 44px; }
+.tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.tag { display: inline-flex; align-items: center; font-size: 0.85rem; line-height: 1.4; padding: 0.1rem 0.5rem; color: #555; background: #f0f0f0; border: 1px solid #999; border-radius: 8px; overflow-wrap: anywhere; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .error { color: #c00; }
 .error:empty { display: none; }

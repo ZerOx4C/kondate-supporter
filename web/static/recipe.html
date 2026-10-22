@@ -23,6 +23,13 @@
 .paste-area:focus { outline: 2px solid #4a90e2; outline-offset: 1px; }
 .no-image-actions { position: absolute; left: 0; right: 0; bottom: 1.5rem; display: flex; justify-content: center; pointer-events: none; }
 .no-image-actions button { pointer-events: auto; }
+#view-tags { margin-bottom: 0.5rem; }
+.tag-field { margin-bottom: 1rem; }
+#edit-tags:not(:empty) { margin: 0.5rem 0; }
+.tag-input-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.tag-input-row input { flex: 1; }
+#edit-tags .tag { padding: 0 0 0 0.75rem; font-size: 1rem; }
+#edit-tags .tag button { min-height: 44px; border: none; background: transparent; }
 </style>
 </head>
 <body>
@@ -39,11 +46,21 @@
   <section id="view-mode" hidden>
     <p class="error" id="view-error"></p>
     <h1 id="view-name"></h1>
+    <ul id="view-tags" class="tags" hidden></ul>
     <img id="view-image" class="recipe-image" alt="" hidden>
     <div id="view-body"></div>
   </section>
   <form id="edit-mode" hidden>
     <label>名前 <input id="edit-name" type="text"></label>
+    <div class="tag-field">
+      <span>タグ</span>
+      <ul id="edit-tags" class="tags"></ul>
+      <div class="tag-input-row">
+        <input id="tag-input" type="text" list="tag-options" enterkeyhint="enter" autocomplete="off" aria-label="追加するタグ">
+        <button type="button" id="add-tag-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
+      </div>
+      <datalist id="tag-options"></datalist>
+    </div>
     <div class="image-field">
       <span>画像</span>
       <div id="edit-preview" class="image-preview" hidden>

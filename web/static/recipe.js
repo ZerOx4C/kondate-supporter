@@ -6,7 +6,9 @@ const editMode = $("edit-mode");
 
 let current = null; // 表示中のレシピ。新規作成中はnull
 let mode = "view";
-let snapshot = { name: "", body: "" };
+let snapshot = { name: "", body: "", tags: [] };
+let editTags = []; // 編集中のタグ名
+let tagOptions = []; // タグ入力欄の候補(GET /api/tags)
 let busy = false;
 let cookedPressed = false; // このページで「作った」を押した状態。ページを読み込み直すと戻る
 let leaving = false; // 画面内で確認済みの遷移中。trueの間はbeforeunloadで確認しない
@@ -103,6 +105,58 @@ function onPaste(e) {
   setPendingImage(file);
 }
 
+// ulにタグの札を並べる。removableなら札ごとに「外す」ボタンを付ける
+function renderTags(ul, names, removable) {
+  ul.replaceChildren(...names.map((name) => {
+    const li = document.createElement("li");
+    li.className = "tag";
+    li.append(name);
+    if (removable) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "icon-only";
+      button.setAttribute("aria-label", "「" + name + "」を外す");
+      button.title = "「" + name + "」を外す";
+      button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+      button.addEventListener("click", () => {
+        editTags = editTags.filter((t) => t !== name);
+        renderEditTags();
+      });
+      li.append(button);
+    }
+    return li;
+  }));
+}
+
+// 編集中の札と、まだ付けていないタグだけの候補を描き直す
+function renderEditTags() {
+  renderTags($("edit-tags"), editTags, true);
+  $("tag-options").replaceChildren(...tagOptions
+    .filter((name) => !editTags.includes(name))
+    .map((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      return option;
+    }));
+}
+
+// 入力欄の文字をタグとして足す(サーバーの正規化と同じく、前後の空白を除き重複は足さない)
+function commitTagInput() {
+  const name = $("tag-input").value.trim();
+  if (name === "") return;
+  if (!editTags.includes(name)) editTags.push(name);
+  $("tag-input").value = "";
+  renderEditTags();
+}
+
+// 候補は入力の補助なので、取れなくても手で打てばよく、失敗は無視する
+async function loadTagOptions() {
+  try {
+    tagOptions = await api("GET", "/api/tags");
+    renderEditTags();
+  } catch {}
+}
+
 function showLoadError(message) {
   $("load-error").textContent = message;
 }
@@ -113,6 +167,8 @@ function showView(recipe) {
   clearErrors();
   document.title = recipe.name + " - kondate-supporter";
   $("view-name").textContent = recipe.name;
+  renderTags($("view-tags"), recipe.tags, false);
+  $("view-tags").hidden = recipe.tags.length === 0;
   const viewImage = $("view-image");
   if (recipe.image_url) viewImage.src = recipe.image_url;
   else viewImage.removeAttribute("src");
@@ -131,9 +187,13 @@ function showEdit(recipe) {
   clearErrors();
   const name = recipe ? recipe.name : "";
   const body = recipe ? recipe.body : "";
-  snapshot = { name, body };
+  editTags = recipe ? recipe.tags.slice() : [];
+  snapshot = { name, body, tags: editTags.slice() };
   $("edit-name").value = name;
   $("edit-body").value = body;
+  $("tag-input").value = "";
+  renderEditTags();
+  loadTagOptions();
   clearImageChange();
   renderEditImage();
   $("view-actions").hidden = true;
@@ -146,6 +206,8 @@ function isDirty() {
   return (
     $("edit-name").value !== snapshot.name ||
     $("edit-body").value !== snapshot.body ||
+    editTags.join("\n") !== snapshot.tags.join("\n") ||
+    $("tag-input").value.trim() !== "" ||
     imageChange !== null
   );
 }
@@ -185,7 +247,8 @@ async function save(event) {
   event.preventDefault();
   if (busy) return;
   clearErrors();
-  const body = { name: $("edit-name").value, body: $("edit-body").value };
+  commitTagInput();
+  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags };
   setBusy(true);
   let saved = null;
   try {
@@ -208,9 +271,11 @@ async function save(event) {
     if (saved) {
       // 名前と本文は保存済み。画像の変更を残したまま編集フォームにとどまる
       current = saved;
-      snapshot = { name: saved.name, body: saved.body };
+      editTags = saved.tags.slice();
+      snapshot = { name: saved.name, body: saved.body, tags: saved.tags.slice() };
       $("edit-name").value = saved.name;
       $("edit-body").value = saved.body;
+      renderEditTags();
     }
     showError(e.message);
   } finally {
@@ -290,6 +355,16 @@ $("image-input").addEventListener("change", (e) => {
   if (file) setPendingImage(file);
 });
 $("remove-image-button").addEventListener("click", removeImage);
+$("add-tag-button").addEventListener("click", () => {
+  commitTagInput();
+  $("tag-input").focus();
+});
+$("tag-input").addEventListener("keydown", (e) => {
+  // 日本語入力の変換を確定するEnterではタグを足さない(keyCode 229はSafari向け)
+  if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+  e.preventDefault(); // フォームの送信を止める
+  commitTagInput();
+});
 pasteArea.addEventListener("paste", onPaste);
 // キー入力・削除・ドロップなどで欄の中身を変えさせない
 pasteArea.addEventListener("beforeinput", (e) => e.preventDefault());
