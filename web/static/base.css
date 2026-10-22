@@ -29,6 +29,6 @@ textarea { resize: vertical; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .error { color: #c00; }
 .error:empty { display: none; }
-dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; }
+dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }
 .dialog-inner { padding: 1rem; }
 [hidden] { display: none !important; }
