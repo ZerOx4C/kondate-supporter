@@ -35,6 +35,7 @@
 .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 #bookmark-filter-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
 #selected-tags:empty { display: none; }
+#sort-select { margin-left: auto; }
 #filter-empty { margin: 1rem 0 0; color: #555; }
 .dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .dialog-header h2 { margin: 0; font-size: 1.1rem; }
@@ -58,6 +59,12 @@
     <button type="button" id="bookmark-filter-button" class="icon-only" aria-pressed="false" aria-label="ブックマークで絞り込む" title="ブックマークで絞り込む"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
     <button type="button" id="tag-filter-button"><i class="ti ti-filter" aria-hidden="true"></i>タグ</button>
     <ul id="selected-tags" class="tags removable"></ul>
+    <select id="sort-select" aria-label="並び順">
+      <option value="new">新着順</option>
+      <option value="name">名前順</option>
+      <option value="cooked-desc">作った回数が多い順</option>
+      <option value="cooked-asc">作った回数が少ない順</option>
+    </select>
   </div>
   <p class="error" id="list-error"></p>
   <ul id="recipe-list"></ul>

@@ -18,6 +18,7 @@ button.danger:not(:disabled):active { background: #fbeaec; }
 button:disabled { opacity: 0.5; cursor: default; }
 .ti { font-size: 1.25rem; }
 input[type="text"], textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 0.5rem; border: 1px solid #999; border-radius: 8px; }
+select { min-height: 44px; font: inherit; padding: 0 0.5rem; color: #555; background: #fff; border: 1px solid #999; border-radius: 8px; cursor: pointer; }
 input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
 input[type="text"] { min-height: 44px; }
 textarea { resize: vertical; }

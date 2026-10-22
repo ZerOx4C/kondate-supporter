@@ -5,7 +5,18 @@ let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
 let nameKeyword = ""; // 名前検索のキーワード(前後の空白は除く)
 let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
+let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
 const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
+
+const nameCollator = new Intl.Collator("ja");
+function compareNew(a, b) { return b.id - a.id; }
+function compareName(a, b) { return nameCollator.compare(a.name, b.name) || compareNew(a, b); }
+const SORT_COMPARATORS = {
+  new: compareNew,
+  name: compareName,
+  "cooked-desc": (a, b) => b.cooked_count - a.cooked_count || compareName(a, b),
+  "cooked-asc": (a, b) => a.cooked_count - b.cooked_count || compareName(a, b),
+};
 
 // 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
 function normalizeForSearch(s) {
@@ -34,17 +45,24 @@ function readBookmarkFromUrl() {
   return new URLSearchParams(location.search).get("bookmark") === "1";
 }
 
+// 知らない値・new は新着順として扱う
+function readSortFromUrl() {
+  const v = new URLSearchParams(location.search).get("sort");
+  return v !== null && v !== "new" && Object.hasOwn(SORT_COMPARATORS, v) ? v : "new";
+}
+
 function writeUrl() {
   const params = new URLSearchParams();
   if (nameKeyword !== "") params.set("q", nameKeyword);
   if (bookmarkOnly) params.set("bookmark", "1");
+  if (sortOrder !== "new") params.set("sort", sortOrder);
   for (const t of selectedTags) params.append("tag", t);
   const qs = params.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
 }
 
 function filteredRecipes() {
-  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword));
+  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword)).sort(SORT_COMPARATORS[sortOrder]);
 }
 
 function setSelected(name, on) {
@@ -288,6 +306,11 @@ $("bookmark-filter-button").addEventListener("click", () => {
   applyFilter();
 });
 
+$("sort-select").addEventListener("change", (e) => {
+  sortOrder = e.target.value;
+  applyFilter();
+});
+
 const tagDialog = $("tag-dialog");
 $("tag-filter-button").addEventListener("click", () => {
   $("tag-search").value = "";
@@ -343,6 +366,8 @@ async function loadList() {
   updateClearButton();
   selectedTags = readSelectedFromUrl();
   bookmarkOnly = readBookmarkFromUrl();
+  sortOrder = readSortFromUrl();
+  $("sort-select").value = sortOrder;
   applyFilter();
 }
 
