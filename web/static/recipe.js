@@ -201,6 +201,8 @@ function showView(recipe) {
   renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
+  $("back-link").hidden = false;
+  $("cancel-button").hidden = true;
   $("view-actions").hidden = false;
   $("edit-actions").hidden = true;
   viewMode.hidden = false;
@@ -222,6 +224,8 @@ function showEdit(recipe) {
   loadTagOptions();
   clearImageChange();
   renderEditImage();
+  $("back-link").hidden = true;
+  $("cancel-button").hidden = false;
   $("view-actions").hidden = true;
   $("edit-actions").hidden = false;
   viewMode.hidden = true;
@@ -402,7 +406,7 @@ $("confirm-ok").addEventListener("click", () => confirmDialog.close("ok"));
 $("confirm-cancel").addEventListener("click", () => confirmDialog.close("cancel"));
 onOutsideTap(confirmDialog, () => confirmDialog.close("cancel"));
 
-// 編集中に未保存の変更があれば、戻る・再読み込み・タブを閉じる・一覧へ戻るボタンでの離脱を確認する
+// 編集中に未保存の変更があれば、戻る・再読み込み・タブを閉じるでの離脱を確認する
 window.addEventListener("beforeunload", (e) => {
   if (leaving || mode !== "edit" || !isDirty()) return;
   e.preventDefault();

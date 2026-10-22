@@ -35,6 +35,7 @@
 <body>
 <header>
   <a id="back-link" class="button icon-only" href="recipes.html" aria-label="一覧へ戻る" title="一覧へ戻る"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+  <button type="button" id="cancel-button" hidden><i class="ti ti-arrow-back-up" aria-hidden="true"></i>キャンセル</button>
   <div id="view-actions" class="actions" hidden>
     <button type="button" id="cooked-button" aria-pressed="false" aria-label="作った" title="作った"></button>
     <button type="button" id="edit-button" class="icon-only" aria-label="編集" title="編集"><i class="ti ti-pencil" aria-hidden="true"></i></button>
@@ -42,7 +43,6 @@
   </div>
   <div id="edit-actions" class="actions" hidden>
     <button type="submit" id="save-button" class="primary" form="edit-mode"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
-    <button type="button" id="cancel-button"><i class="ti ti-arrow-back-up" aria-hidden="true"></i>キャンセル</button>
   </div>
 </header>
 <main>
