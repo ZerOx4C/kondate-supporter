@@ -188,14 +188,23 @@ func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RecipeHandler) IncrementCooked(w http.ResponseWriter, r *http.Request) {
-	h.changeCooked(w, r, h.svc.IncrementCookedCount)
+	h.changeRecipe(w, r, h.svc.IncrementCookedCount)
 }
 
 func (h *RecipeHandler) DecrementCooked(w http.ResponseWriter, r *http.Request) {
-	h.changeCooked(w, r, h.svc.DecrementCookedCount)
+	h.changeRecipe(w, r, h.svc.DecrementCookedCount)
 }
 
-func (h *RecipeHandler) changeCooked(w http.ResponseWriter, r *http.Request, change func(context.Context, int64) (model.Recipe, error)) {
+func (h *RecipeHandler) PutBookmark(w http.ResponseWriter, r *http.Request) {
+	h.changeRecipe(w, r, h.svc.SetBookmark)
+}
+
+func (h *RecipeHandler) DeleteBookmark(w http.ResponseWriter, r *http.Request) {
+	h.changeRecipe(w, r, h.svc.DeleteBookmark)
+}
+
+// changeRecipe はパスのidのレシピにchangeを適用し、更新後のレシピを200で返す。
+func (h *RecipeHandler) changeRecipe(w http.ResponseWriter, r *http.Request, change func(context.Context, int64) (model.Recipe, error)) {
 	id, ok := parseID(w, r)
 	if !ok {
 		return

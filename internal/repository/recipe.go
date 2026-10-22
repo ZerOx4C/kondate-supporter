@@ -14,8 +14,9 @@ var ErrNotFound = errors.New("not found")
 
 // recipeColumns はmodel.Recipeの各フィールドに対応するSELECT/RETURNING列。
 // typeof(image)は列の型だけを見るので、画像の本体は読まない。
-// 末尾はタグ名のJSON配列(タグのid昇順、無ければ"[]")で、scanRecipeが読む。
+// EXISTSはブックマークの有無。末尾はタグ名のJSON配列(タグのid昇順、無ければ"[]")で、scanRecipeが読む。
 const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version,
+	EXISTS (SELECT 1 FROM recipe_bookmarks b WHERE b.recipe_id = recipes.id),
 	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id)`
 
 type RecipeRepository struct {
@@ -129,6 +130,36 @@ func (r *RecipeRepository) DecrementCookedCount(ctx context.Context, id int64) (
 		`UPDATE recipes SET cooked_count = MAX(cooked_count - 1, 0) WHERE id = ? RETURNING `+recipeColumns, id))
 }
 
+// SetBookmark はブックマークを付け(付いていれば何もしない)、更新後のレシピを返す。
+// 存在しないidにはVALUESで入れると外部キー違反になるため、recipesから選んで入れる。
+func (r *RecipeRepository) SetBookmark(ctx context.Context, id int64) (model.Recipe, error) {
+	var rec model.Recipe
+	err := r.inTx(ctx, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx,
+			`INSERT INTO recipe_bookmarks (recipe_id) SELECT id FROM recipes WHERE id = ? ON CONFLICT(recipe_id) DO NOTHING`, id)
+		if err != nil {
+			return err
+		}
+		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
+		return err
+	})
+	return rec, err
+}
+
+// DeleteBookmark はブックマークを外し(付いていなければ何もしない)、更新後のレシピを返す。
+func (r *RecipeRepository) DeleteBookmark(ctx context.Context, id int64) (model.Recipe, error) {
+	var rec model.Recipe
+	err := r.inTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_bookmarks WHERE recipe_id = ?`, id); err != nil {
+			return err
+		}
+		var err error
+		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
+		return err
+	})
+	return rec, err
+}
+
 // SetImage は画像を保存してimage_versionを1増やし、更新後のレシピを返す。
 func (r *RecipeRepository) SetImage(ctx context.Context, id int64, data []byte) (model.Recipe, error) {
 	return scanReturned(r.db.QueryRowContext(ctx,
@@ -160,7 +191,7 @@ type rowScanner interface {
 func scanRecipe(row rowScanner) (model.Recipe, error) {
 	var rec model.Recipe
 	var tags string
-	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &tags); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &rec.Bookmarked, &tags); err != nil {
 		return model.Recipe{}, err
 	}
 	if err := json.Unmarshal([]byte(tags), &rec.Tags); err != nil {

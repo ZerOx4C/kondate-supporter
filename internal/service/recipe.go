@@ -148,6 +148,16 @@ func (s *RecipeService) DecrementCookedCount(ctx context.Context, id int64) (mod
 	return rec, convertErr(err)
 }
 
+func (s *RecipeService) SetBookmark(ctx context.Context, id int64) (model.Recipe, error) {
+	rec, err := s.repo.SetBookmark(ctx, id)
+	return rec, convertErr(err)
+}
+
+func (s *RecipeService) DeleteBookmark(ctx context.Context, id int64) (model.Recipe, error) {
+	rec, err := s.repo.DeleteBookmark(ctx, id)
+	return rec, convertErr(err)
+}
+
 func (s *RecipeService) SetImage(ctx context.Context, id int64, data []byte) (model.Recipe, error) {
 	rec, err := s.repo.SetImage(ctx, id, data)
 	return rec, convertErr(err)

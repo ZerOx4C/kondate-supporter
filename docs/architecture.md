@@ -50,6 +50,13 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 主キーは `(recipe_id, tag_id)`。どのレシピにも付いていないタグはレシピの保存・削除と同じトランザクションで消すので、`tags` には使われているタグだけが残る。
 
+### `recipe_bookmarks`(ブックマーク)
+| カラム | 型/制約 |
+|---|---|
+| recipe_id | INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE |
+
+行があればブックマーク中。レシピを消すとCASCADEで消える。
+
 ### `schema_migrations`(マイグレーション適用履歴)
 | カラム | 型/制約 |
 |---|---|
@@ -60,7 +67,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 
 ## 3. APIエンドポイント
 
-ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。レシピのJSONは `{"id","name","body","cooked_count","tags","image_url"}`(`tags` はタグ名の配列でタグのid昇順、無ければ `[]`。`image_url` は画像があれば `/api/recipes/{id}/image?v={image_version}`、無ければnull)。POST/PUTのリクエストは `{"name","body","tags"}` で、`tags` が無い・nullなら空として扱い、そのレシピのタグを丸ごと置き換える(前後の空白を除き、空は捨て、完全一致の重複はまとめ、同じ名前のタグが無ければ作る)。PUTは `cooked_count` も画像も受け付けず値も変えない。
+ルーティングは `internal/handler/router.go` の `NewRouter()` に集約する(Go 1.22以降のメソッド付きパターン)。レシピのJSONは `{"id","name","body","cooked_count","tags","bookmarked","image_url"}`(`tags` はタグ名の配列でタグのid昇順、無ければ `[]`。`bookmarked` はブックマーク中ならtrue。`image_url` は画像があれば `/api/recipes/{id}/image?v={image_version}`、無ければnull)。POST/PUTのリクエストは `{"name","body","tags"}` で、`tags` が無い・nullなら空として扱い、そのレシピのタグを丸ごと置き換える(前後の空白を除き、空は捨て、完全一致の重複はまとめ、同じ名前のタグが無ければ作る)。PUTは `cooked_count`・`bookmarked`・画像を受け付けず値も変えない。
 
 | メソッド パス | 概要 |
 |---|---|
@@ -68,12 +75,14 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | GET /api/recipes | レシピ一覧取得。200で配列(id昇順、bodyとtagsを含む。0件は `[]`) |
 | GET /api/tags | 使われているタグ名の配列(id昇順、0件は `[]`) |
 | POST /api/recipes | レシピ新規作成。リクエスト `{"name","body"}`、201で作成したレシピ |
-| POST /api/recipes/import | レシピをまとめて登録。リクエストは配列 `[{"title","body","tags","cooked_count"}, ...]`(`title` 以外は省略・null可。`body` は空文字、`tags` は空、`cooked_count` は0)。全件を1トランザクションで配列の順に登録し、201で `{"count": 件数}`。上限5MB。画像は扱わない |
+| POST /api/recipes/import | レシピをまとめて登録。リクエストは配列 `[{"title","body","tags","cooked_count"}, ...]`(`title` 以外は省略・null可。`body` は空文字、`tags` は空、`cooked_count` は0)。全件を1トランザクションで配列の順に登録し、201で `{"count": 件数}`。上限5MB。画像とブックマークは扱わない(取り込んだレシピはブックマークなし) |
 | GET /api/recipes/{id} | レシピ1件取得。200 |
 | PUT /api/recipes/{id} | レシピ更新(全体置換)。リクエストは作成と同じ、200で更新後のレシピ |
 | DELETE /api/recipes/{id} | レシピ削除。204(ボディなし) |
 | POST /api/recipes/{id}/cooked | 作った回数を1増やす。200で更新後のレシピ |
 | DELETE /api/recipes/{id}/cooked | 作った回数を1減らす(0未満にはしない)。200で更新後のレシピ |
+| PUT /api/recipes/{id}/bookmark | ブックマークを付ける。すでに付いていても200で更新後のレシピ |
+| DELETE /api/recipes/{id}/bookmark | ブックマークを外す。付いていなくても200で更新後のレシピ |
 | PUT /api/recipes/{id}/image | 画像を保存(`image_version` を1増やす)。ボディはJPEGのバイト列そのまま(上限2MB)。200で更新後のレシピ |
 | DELETE /api/recipes/{id}/image | 画像を外す。画像が無くても200で更新後のレシピ |
 | GET /api/recipes/{id}/image | 画像のバイト列。`Content-Type: image/jpeg`、`Cache-Control: public, max-age=31536000, immutable`。`?v=` は見ない |
@@ -116,9 +125,15 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **名前の入力チェックはserviceで行う**: 「前後の空白を除いて空なら不可」は業務ルールなのでserviceに置き、保存するのも空白を除いた後の値。`body` は自由テキストとして書かれたまま保存する。
 - **PUTは全体置換**: 項目が name・body・tags だけなので部分更新(PATCH)は作らない。
 - **一覧はid昇順(登録順)でbodyとtagsも含めて返す**: SQLiteの文字列比較では日本語の名前がよみ順に並ばないため名前順は採らない。家庭内の規模なので一覧と詳細でレスポンスの形を分けない。
-- **ID存在確認は事前にSELECTしない**: DELETEは `RowsAffected` が0なら404とする。作った回数・画像のUPDATEは `RETURNING` で更新後の行をそのまま応答に使い、行が無ければ404とする。PUTはタグを付け替えた後の値を返すため、UPDATEの `RowsAffected` が0なら404とし、保存後にSELECTで読み直す(受け付けない `cooked_count` の実際の値も返せる)。
+- **ID存在確認は事前にSELECTしない**: DELETEは `RowsAffected` が0なら404とする。作った回数・画像のUPDATEは `RETURNING` で更新後の行をそのまま応答に使い、行が無ければ404とする。PUTはタグを付け替えた後の値を返すため、UPDATEの `RowsAffected` が0なら404とし、保存後にSELECTで読み直す(受け付けない `cooked_count` の実際の値も返せる)。ブックマークの付け外しは、書き込みの後にSELECTで読み直し、行が無ければ404とする。
 - **作った回数は専用エンドポイントでだけ変える**: PUTの全体置換に回数を含めると、編集中に別の端末で「作った」を押した場合、保存で回数が古い値に戻ってしまう。そのためPUTでは受け付けず、加算・減算はSQLの `cooked_count + 1` で行う(読んでから書く手順にしない)。
 - **減算は0で止め、エラーにしない**: `MAX(cooked_count - 1, 0)` で下限をSQLに任せる。0回で取り消しても200で0回のまま返し、画面側で回数を確かめなくて済むようにする。
+- **ブックマークは `recipes` の列にせず、`recipe_bookmarks` に行があるかどうかで持つ**: `ALTER TABLE ... ADD COLUMN` は列を末尾に足すので、`image` を最後の列にする決まりを破ってしまう。別テーブルなら外すときは行を消すだけで済み、レシピを消せばCASCADEで一緒に消える。
+- **ブックマークは専用エンドポイントでだけ変え、PUTの全体置換と取り込みでは受け付けない**: 作った回数と同じく、編集中に別の端末で付け外しすると保存で古い状態に戻ってしまうため。取り込んだレシピはブックマークなしで登録する。
+- **ブックマークの付け外しは PUT/DELETE にし、すでにその状態でも200で更新後のレシピを返す**: 回数ではなく状態を決める操作なので、何度送っても結果が同じになる形にする。別の端末で先に変わっていても失敗せず、画面は返ってきた `bookmarked` で表示を合わせればよい。
+- **ブックマークを付けるときは `INSERT ... SELECT id FROM recipes WHERE id = ? ON CONFLICT DO NOTHING` にし、その後のSELECTで存在を確かめる**: `VALUES (?)` で存在しないidを入れると外部キー違反のエラーになり、404と見分けにくいため。外すときのDELETEは行が無くてもエラーにならないので、どちらも読み直しのSELECTで行が無ければ404にする。2つの文は1つのトランザクションにまとめる。
+- **`bookmarked` は `recipeColumns` の `EXISTS` サブクエリで読む**: タグと同じく、一覧・1件取得・`RETURNING` まで、レシピを返すすべての応答に同じ形で入る。
+- **handlerの `changeRecipe` は作った回数とブックマークで共用する**: どちらも「IDを読み、serviceを呼び、200で更新後のレシピを返す」だけの同じ処理のため。
 - **「作った」は押すたびに切り替わる1つのボタンにし、取り消し専用のボタンは置かない**: SNSの「いいね」と同じく、押すと回数が増えて押した状態になり、もう一度押すと減って元に戻る。続けて押しても回数が重ねて増えず、取り消すと必ず開いたときの回数に戻る。
 - **「作った」の押した状態は画面のJSだけで持ち、詳細ページを読み込むたびに押す前に戻す**: 記録したいのは回数で、誰がいつ押したかではないのでDBには持たない。編集に切り替えてもページを離れるまでは保つので、閲覧表示に戻ったあとも取り消せる。
 - **作った回数はアイコンと数字だけで表し、0回は数字を出さない**: 一覧で作ったことのあるレシピが見分けやすく、文言を切り替える処理も要らない。一覧タイルでは画像(画像なしでは枠)の右上に重ねて位置をそろえる。
