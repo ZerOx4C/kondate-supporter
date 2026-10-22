@@ -4,6 +4,7 @@ let recipes = [];
 let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
 let nameKeyword = ""; // 名前検索のキーワード(前後の空白は除く)
+let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
 
 // 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
@@ -29,16 +30,21 @@ function readKeywordFromUrl() {
   return new URLSearchParams(location.search).get("q") ?? "";
 }
 
+function readBookmarkFromUrl() {
+  return new URLSearchParams(location.search).get("bookmark") === "1";
+}
+
 function writeUrl() {
   const params = new URLSearchParams();
   if (nameKeyword !== "") params.set("q", nameKeyword);
+  if (bookmarkOnly) params.set("bookmark", "1");
   for (const t of selectedTags) params.append("tag", t);
   const qs = params.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
 }
 
 function filteredRecipes() {
-  return recipes.filter((r) => selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword));
+  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword));
 }
 
 function setSelected(name, on) {
@@ -51,9 +57,14 @@ function setSelected(name, on) {
 
 function applyFilter() {
   writeUrl();
+  renderBookmarkFilter();
   renderSelectedTags();
   renderList();
   if ($("tag-dialog").open) renderTagOptions();
+}
+
+function renderBookmarkFilter() {
+  $("bookmark-filter-button").setAttribute("aria-pressed", String(bookmarkOnly));
 }
 
 function renderSelectedTags() {
@@ -167,6 +178,7 @@ async function toggleBookmark(id, button) {
   const recipe = recipes.find((r) => r.id === id);
   if (!recipe || bookmarkBusy.has(id)) return;
   const hadFocus = document.activeElement === button;
+  const index = filteredRecipes().findIndex((r) => r.id === id);
   $("list-error").textContent = "";
   bookmarkBusy.add(id);
   button.disabled = true;
@@ -175,7 +187,15 @@ async function toggleBookmark(id, button) {
     recipes = recipes.map((r) => (r.id === id ? updated : r));
     bookmarkBusy.delete(id);
     renderList();
-    if (hadFocus) bookmarkButton(id)?.focus();
+    if (hadFocus) {
+      // 絞り込みでタイルが消えたときは、詰めてきた隣のタイルへフォーカスを移す
+      const shown = filteredRecipes();
+      const target = bookmarkButton(id)
+        ?? (shown[index] && bookmarkButton(shown[index].id))
+        ?? (shown[index - 1] && bookmarkButton(shown[index - 1].id))
+        ?? $("bookmark-filter-button");
+      target.focus();
+    }
   } catch (e) {
     bookmarkBusy.delete(id);
     const current = bookmarkButton(id);
@@ -221,7 +241,7 @@ function renderList() {
   const list = $("recipe-list");
   const shown = filteredRecipes();
   list.replaceChildren(createAddPanel(), ...shown.map(createTile));
-  $("filter-empty").hidden = !((selectedTags.length > 0 || nameKeyword !== "") && shown.length === 0);
+  $("filter-empty").hidden = !((bookmarkOnly || selectedTags.length > 0 || nameKeyword !== "") && shown.length === 0);
   fitAllTileTags();
 }
 
@@ -263,6 +283,11 @@ function renderTagOptions() {
   }
 }
 
+$("bookmark-filter-button").addEventListener("click", () => {
+  bookmarkOnly = !bookmarkOnly;
+  applyFilter();
+});
+
 const tagDialog = $("tag-dialog");
 $("tag-filter-button").addEventListener("click", () => {
   $("tag-search").value = "";
@@ -302,6 +327,7 @@ async function loadList() {
     recipes = [];
     allTags = [];
     selectedTags = [];
+    bookmarkOnly = false;
     $("recipe-list").replaceChildren();
     $("selected-tags").replaceChildren();
     $("search-box").hidden = true;
@@ -316,6 +342,7 @@ async function loadList() {
   nameKeyword = nameSearch.value.trim();
   updateClearButton();
   selectedTags = readSelectedFromUrl();
+  bookmarkOnly = readBookmarkFromUrl();
   applyFilter();
 }
 
