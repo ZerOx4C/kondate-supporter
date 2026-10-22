@@ -9,6 +9,7 @@ let mode = "view";
 let snapshot = { name: "", body: "" };
 let busy = false;
 let cookedPressed = false; // このページで「作った」を押した状態。ページを読み込み直すと戻る
+let leaving = false; // 画面内で確認済みの遷移中。trueの間はbeforeunloadで確認しない
 let imageChange = null; // 編集中の画像の変更。null=変更なし / {blob,url}=新しい画像 / "remove"=外す
 
 // 一覧から来たときだけブラウザの戻るで一覧へ戻る(一覧の絞り込み条件などをURLごと残すため)
@@ -22,6 +23,7 @@ const cameFromList = (() => {
 })();
 
 function leaveToList(replace) {
+  leaving = true;
   if (cameFromList) history.back();
   else if (replace) location.replace("recipes.html");
   else location.href = "recipes.html";
@@ -297,5 +299,14 @@ pasteArea.addEventListener("input", resetPasteArea);
 $("confirm-ok").addEventListener("click", () => confirmDialog.close("ok"));
 $("confirm-cancel").addEventListener("click", () => confirmDialog.close("cancel"));
 onOutsideTap(confirmDialog, () => confirmDialog.close("cancel"));
+
+// 編集中に未保存の変更があれば、戻る・再読み込み・タブを閉じる・一覧へ戻るボタンでの離脱を確認する
+window.addEventListener("beforeunload", (e) => {
+  if (leaving || mode !== "edit" || !isDirty()) return;
+  e.preventDefault();
+  e.returnValue = ""; // preventDefaultだけでは確認を出さない古いブラウザ向け
+});
+// bfcacheから戻ったときは、離れる前の遷移中の印を消す
+window.addEventListener("pageshow", (e) => { if (e.persisted) leaving = false; });
 
 load();
