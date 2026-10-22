@@ -1,7 +1,5 @@
 "use strict";
 
-const $ = (id) => document.getElementById(id);
-
 const recipeDialog = $("recipe-dialog");
 const confirmDialog = $("confirm-dialog");
 const viewMode = $("view-mode");
@@ -13,43 +11,6 @@ let snapshot = { name: "", body: "" };
 let busy = false;
 let cookedPressed = false; // 開いているダイアログで「作った」を押した状態。閉じるとリセット
 let imageChange = null; // 編集中の画像の変更。null=変更なし / {blob,url}=新しい画像 / "remove"=外す
-
-const MAX_IMAGE_SIDE = 800;
-
-// アイコンと回数(0回は数字なし)。一覧タイルと「作った」ボタンで共用
-function cookedContent(count) {
-  const span = document.createElement("span");
-  span.className = "cooked";
-  const icon = document.createElement("i");
-  icon.className = "ti ti-chef-hat";
-  icon.setAttribute("aria-hidden", "true");
-  span.appendChild(icon);
-  if (count > 0) span.append(String(count));
-  return span;
-}
-
-async function api(method, path, body) {
-  let res;
-  const isBlob = body instanceof Blob;
-  try {
-    res = await fetch(path, {
-      method,
-      headers: body ? { "Content-Type": isBlob ? "image/jpeg" : "application/json" } : {},
-      body: body ? (isBlob ? body : JSON.stringify(body)) : undefined,
-    });
-  } catch {
-    throw new Error("サーバーに接続できません");
-  }
-  if (res.status === 204) return null;
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    // 本文なし・JSONでない場合は下でステータスを使う
-  }
-  if (!res.ok) throw new Error((data && data.error) || "HTTP " + res.status);
-  return data;
-}
 
 async function loadList() {
   const message = $("list-message");
@@ -136,31 +97,6 @@ function renderEditImage() {
   else img.removeAttribute("src");
   $("edit-preview").hidden = !src;
   $("edit-no-image").hidden = !!src;
-}
-
-// 画像を長辺800px以下のJPEGにする。透過部分は白で塗る
-async function toJpeg(file) {
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  try {
-    img.src = url;
-    await img.decode();
-  } catch {
-    throw new Error("画像を読み込めませんでした");
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-  if (!blob) throw new Error("画像を変換できませんでした");
-  return blob;
 }
 
 async function setPendingImage(file) {
@@ -286,18 +222,6 @@ function confirmAction(message, okLabel) {
     confirmDialog.returnValue = "";
     confirmDialog.addEventListener("close", onClose);
     confirmDialog.showModal();
-  });
-}
-
-// ダイアログ自身(外側)で pointerdown と click の両方が起きたときだけ外側タップとみなす
-function onOutsideTap(dialog, handler) {
-  let downOnDialog = false;
-  dialog.addEventListener("pointerdown", (e) => {
-    downOnDialog = e.target === dialog;
-  });
-  dialog.addEventListener("click", (e) => {
-    if (e.target === dialog && downOnDialog) handler();
-    downOnDialog = false;
   });
 }
 
