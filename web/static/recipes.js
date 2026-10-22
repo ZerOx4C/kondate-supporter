@@ -180,7 +180,7 @@ function createTile(recipe) {
   const label = "「" + recipe.name + "」をブックマーク";
   bookmark.setAttribute("aria-label", label);
   bookmark.title = label;
-  bookmark.innerHTML = '<i class="ti ti-bookmark" aria-hidden="true"></i>';
+  bookmark.innerHTML = '<span class="tile-bookmark-mark"><i class="ti ti-bookmark" aria-hidden="true"></i></span>';
   bookmark.disabled = bookmarkBusy.has(recipe.id);
   bookmark.addEventListener("click", () => toggleBookmark(recipe.id, bookmark));
   li.append(link, bookmark);
