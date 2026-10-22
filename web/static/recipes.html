@@ -27,7 +27,12 @@
 @media (hover: hover) { .tile-add:hover .tile-visual { background: #f0f0f0; } }
 .tile-add:active .tile-visual { background: #f0f0f0; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
-.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.search-box { position: relative; margin-top: 1rem; }
+#name-search { padding-right: 44px; }
+#name-search-clear { position: absolute; top: 0; right: 0; height: 100%; border: none; background: transparent; }
+@media (hover: hover) { #name-search-clear:hover { background: #f0f0f0; } }
+#name-search-clear:active { background: #f0f0f0; }
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 #selected-tags:empty { display: none; }
 #filter-empty { margin: 1rem 0 0; color: #555; }
 .dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
@@ -43,6 +48,10 @@
   <h1>レシピ</h1>
 </header>
 <main>
+  <div id="search-box" class="search-box" hidden>
+    <input id="name-search" type="text" autocomplete="off" enterkeyhint="search" placeholder="名前で探す" aria-label="名前で探す">
+    <button type="button" id="name-search-clear" class="icon-only" aria-label="キーワードを消す" title="キーワードを消す" hidden><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>
   <div id="filter-bar" class="filter-bar" hidden>
     <button type="button" id="tag-filter-button"><i class="ti ti-filter" aria-hidden="true"></i>タグ</button>
     <ul id="selected-tags" class="tags removable"></ul>

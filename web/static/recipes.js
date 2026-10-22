@@ -3,6 +3,7 @@
 let recipes = [];
 let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
+let nameKeyword = ""; // 名前検索のキーワード(前後の空白は除く)
 
 // 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
 function normalizeForSearch(s) {
@@ -12,8 +13,10 @@ function normalizeForSearch(s) {
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 }
 
+// キーワードを空白で区切り、すべての語を含むときに一致とする(語が無ければ常に一致)
 function matchesKeyword(text, keyword) {
-  return normalizeForSearch(text).includes(normalizeForSearch(keyword));
+  const target = normalizeForSearch(text);
+  return normalizeForSearch(keyword).split(/\s+/).filter(Boolean).every((w) => target.includes(w));
 }
 
 function readSelectedFromUrl() {
@@ -21,15 +24,20 @@ function readSelectedFromUrl() {
   return allTags.filter((t) => names.includes(t));
 }
 
+function readKeywordFromUrl() {
+  return new URLSearchParams(location.search).get("q") ?? "";
+}
+
 function writeUrl() {
   const params = new URLSearchParams();
+  if (nameKeyword !== "") params.set("q", nameKeyword);
   for (const t of selectedTags) params.append("tag", t);
   const qs = params.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
 }
 
 function filteredRecipes() {
-  return recipes.filter((r) => selectedTags.every((t) => r.tags.includes(t)));
+  return recipes.filter((r) => selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword));
 }
 
 function setSelected(name, on) {
@@ -174,7 +182,7 @@ function renderList() {
   const list = $("recipe-list");
   const shown = filteredRecipes();
   list.replaceChildren(createAddPanel(), ...shown.map(createTile));
-  $("filter-empty").hidden = !(selectedTags.length > 0 && shown.length === 0);
+  $("filter-empty").hidden = !((selectedTags.length > 0 || nameKeyword !== "") && shown.length === 0);
   fitAllTileTags();
 }
 
@@ -226,6 +234,26 @@ $("tag-dialog-close").addEventListener("click", () => tagDialog.close());
 onOutsideTap(tagDialog, () => tagDialog.close());
 $("tag-search").addEventListener("input", renderTagOptions);
 
+const nameSearch = $("name-search");
+function updateClearButton() {
+  $("name-search-clear").hidden = nameSearch.value === "";
+}
+nameSearch.addEventListener("input", () => {
+  nameKeyword = nameSearch.value.trim();
+  updateClearButton();
+  applyFilter();
+});
+nameSearch.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) nameSearch.blur();
+});
+$("name-search-clear").addEventListener("click", () => {
+  nameSearch.value = "";
+  nameKeyword = "";
+  updateClearButton();
+  applyFilter();
+  nameSearch.focus();
+});
+
 async function loadList() {
   const error = $("list-error");
   error.textContent = "";
@@ -237,12 +265,17 @@ async function loadList() {
     selectedTags = [];
     $("recipe-list").replaceChildren();
     $("selected-tags").replaceChildren();
+    $("search-box").hidden = true;
     $("filter-bar").hidden = true;
     $("filter-empty").hidden = true;
     error.textContent = "一覧を読み込めませんでした: " + e.message;
     return;
   }
+  $("search-box").hidden = false;
   $("filter-bar").hidden = false;
+  nameSearch.value = readKeywordFromUrl();
+  nameKeyword = nameSearch.value.trim();
+  updateClearButton();
   selectedTags = readSelectedFromUrl();
   applyFilter();
 }
