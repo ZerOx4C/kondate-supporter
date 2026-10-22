@@ -17,14 +17,16 @@ function cookedContent(count) {
   return span;
 }
 
+// bodyはBlobならJPEG、文字列ならJSON文字列としてそのまま、それ以外はJSONにして送る
 async function api(method, path, body) {
   let res;
   const isBlob = body instanceof Blob;
+  const isRaw = typeof body === "string";
   try {
     res = await fetch(path, {
       method,
       headers: body ? { "Content-Type": isBlob ? "image/jpeg" : "application/json" } : {},
-      body: body ? (isBlob ? body : JSON.stringify(body)) : undefined,
+      body: body ? (isBlob || isRaw ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     throw new Error("サーバーに接続できません");
