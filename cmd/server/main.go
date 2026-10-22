@@ -16,6 +16,7 @@ import (
 
 func main() {
 	cfg := config.Load()
+	setupLogOutput(cfg.DBPath)
 
 	conn, err := db.Open(cfg.DBPath)
 	if err != nil {

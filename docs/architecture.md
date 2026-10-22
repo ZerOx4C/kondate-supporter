@@ -6,7 +6,8 @@
 ## 1. コード構成
 
 ```
-cmd/server/main.go       # エントリポイント(DBオープン→マイグレーション適用→ルーティング登録→ListenAndServe)
+cmd/server/main.go       # エントリポイント(ログ出力先の設定→DBオープン→マイグレーション適用→ルーティング登録→ListenAndServe)
+cmd/server/logfile_*.go  # setupLogOutput の切り替え(logfile_gui.go は windowsgui タグのときだけログを kondate.log へ、logfile_console.go は何もしない)
 internal/config/         # 設定(待ち受けアドレス・DBパス・開発モードを環境変数で受け取る)
 internal/db/             # sql.DBオープン、マイグレーション実行
 internal/db/migrations/  # SQLマイグレーションファイル(embedでバイナリに焼き込み)
@@ -17,7 +18,7 @@ internal/handler/        # HTTPハンドラ層
 web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
 web/static/              # フロントエンド(画面ごとのHTMLと同名JS。一覧 recipes.html / recipes.js、詳細 recipe.html / recipe.js、取り込み import.html / import.js。画面によらないJS部品 common.js。全画面共通の既定スタイル base.css。embedでバイナリに焼き込み)
 web/static/vendor/       # 同梱した外部ライブラリ(配布ファイルのまま。tabler-icons/ にoutlineのCSS・woff2・LICENSE。版数はREADME)
-Makefile                 # make / make help(ターゲット一覧)/ make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド)
+Makefile                 # make / make help(ターゲット一覧)/ make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド。コンソールなし・ログは kondate.log)
 bin/                     # ビルド成果物の出力先(Git管理外)
 scripts/                 # preview用サーバーの起動スクリプト(preview-server.ps1)
 data/                    # SQLiteファイルの実行時生成先(Git管理外)
@@ -173,6 +174,12 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 - **`make run` は `DEV_MODE=1` で起動する**: 画面ファイルをディスクから配信し、HTML/JSの修正をビルドし直さずに確認できるようにする。
 - **開発用・preview用・Windows常用のバイナリ名を分ける**: Windowsでは実行中のexeを上書きできないため。つなぎ運用のサーバーを動かしたまま開発用やpreview用をビルドしても失敗しないようにする。
 - **`make build-win` はRaspberryPiを用意するまでのつなぎ**: 開発用の `make run` とは別に、embed配信・シンボル除去済みの配置用exeを作る。GOARCHは指定せず、ビルドしたマシンに合わせる。
+- **`make build-win` は `-H windowsgui` でビルドし、コンソールウィンドウを出さない**: 常用中にコンソールを誤って閉じるとサーバーが止まるため。止めるのはタスクマネージャーか `taskkill /F` で、手順はREADMEに書く。終了処理は作らない(SQLiteはトランザクション単位で書き込みが確定するので、強制終了でもDBは壊れない)。
+- **ログをファイルへ出すのはビルドタグ `windowsgui` のときだけ**: `cmd/server/logfile_gui.go`(`//go:build windowsgui`)と `logfile_console.go`(`//go:build !windowsgui`)の `setupLogOutput` で切り替え、Makefileの `-tags` で選ぶ。`make run`・preview・RaspberryPi向けは今までどおりコンソールに出す。環境変数で切り替えないのは、コンソールが無いビルドとログの出し先を必ず組にするため。
+- **ログは `log.SetOutput` で既定のloggerの出し先を替えるだけ**: 起動メッセージ・`log.Fatalf` の起動失敗・handlerの500の詳細・`net/http` のエラーがどれも既定のloggerを通るので、呼び出し側を書き換えずに全部ファイルへ入る。ロガーのパッケージや構造化ログは作らない。
+- **ログファイルはDBと同じフォルダの `kondate.log` に追記するだけで、分割しない**: DBのパスを場所の設定として使っているので、ログもその隣に置けば設定が増えない。書くのは起動時とエラーのときだけで、個人利用なら大きくならない。
+- **ログファイルを開けなくてもサーバーは起動を続け、ダイアログでも知らせない**: ログが無くても画面は使えるため。フォルダに書けないならDBも作れず、起動自体が止まる。
+- **`-ldflags` は `RELEASE_LDFLAGS` にまとめ、build-winでだけ `-H windowsgui` を足す**: `-ldflags` は2回書くと後の方だけが効くため。
 - **RaspberryPi Zero向けは `GOARM=6`・`CGO_ENABLED=0`・`-trimpath -ldflags="-s -w"` でビルドする**: Pi Zero/Zero WはARMv6のため。SQLiteドライバがCGO不要なので静的バイナリ1つで配置でき、シンボルを除いて転送・保存のサイズを抑える。
 - **外部ライブラリはCDNを使わず `web/static/vendor/<名前>/` に無編集で同梱する**: LAN内でインターネットにつながらなくても画面が崩れないようにするため。embedでバイナリに入るので配置はファイル1つのまま。版数はREADMEに記録する。
 - **Tabler Iconsはoutline(3.49.0では無印の `tabler-icons.min.css` / `fonts/tabler-icons.woff2`)のCSSとwoff2だけを置く**: filled・200/300版、woff・ttfは使わない。CSSの `src` は先頭がwoff2で、対応ブラウザは後ろの形式を取りに行かないため、CSS内の残りの参照は書き換えずに放置する。

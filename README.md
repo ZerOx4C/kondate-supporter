@@ -45,11 +45,15 @@ make run
 
 ## Windowsでの稼働(RaspberryPiを用意するまでのつなぎ)
 
-1. `make build-win` を実行すると `bin/kondate-supporter-windows.exe` ができる。
-2. 任意のフォルダへコピーして実行する。画面はexeに含まれているので、コピーするのはexe1つだけでよい。
+1. `make build-win` を実行すると `bin/kondate-supporter-windows.exe` ができる。動かしている間は上書きできないので、先に止めておく。
+2. 任意のフォルダへコピーして実行する。画面はexeに含まれているので、コピーするのはexe1つだけでよい。コンソールウィンドウは出ず、バックグラウンドで動く。
 3. 初回起動時のWindowsファイアウォールの確認で「プライベートネットワーク」を許可すると、LAN内のスマホ・タブレットから `http://<PCのIPアドレス>:8080/` で使える。
 4. DBは実行時のカレントディレクトリからの `data\kondate.db` に作られる。開発用DBと分けたいときや場所を固定したいときは `KONDATE_DB_PATH` を指定する。
 5. 開発用の `make run` も既定で `:8080` を使う。同時に動かすときは、どちらかの `KONDATE_ADDR` を変える。
+
+- **ログ**: DBと同じフォルダの `kondate.log`(既定では `data\kondate.log`)に、起動メッセージ・サーバーエラーの詳細・起動に失敗した理由を追記する。ブラウザで開けないときは、まずこのファイルの末尾を見る(ポート使用中などの理由もここに出る)。
+- **止め方**: ウィンドウが無いので、タスクマネージャーの「詳細」タブで `kondate-supporter-windows.exe` を選んで「タスクの終了」を押すか、`taskkill /F /IM kondate-supporter-windows.exe` を実行する。
+- **ログオン時の自動起動**: `Win+R` で `shell:startup` を開き、exeのショートカットを置く。ショートカットのプロパティの「作業フォルダー」に、exeを置いたフォルダを指定する(DBとログが毎回同じ場所にできるようにするため)。
 
 ## RaspberryPi Zeroへのデプロイ
 

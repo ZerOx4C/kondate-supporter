@@ -3,8 +3,8 @@
 # WindowsではGOEXEが ".exe"、Linux(WSL含む)では空になる。
 GOEXE := $(shell go env GOEXE)
 
-# 配置用ビルドの共通フラグ。CGOを使わず、配置しやすいようシンボルを除いて小さくする。
-RELEASE_FLAGS := -trimpath -ldflags="-s -w"
+# 配置用ビルドの共通リンカフラグ。シンボルを除いて小さくする。-ldflagsは2回書くと後の方だけが効くため、ターゲット固有のフラグはこの後ろに足す。
+RELEASE_LDFLAGS := -s -w
 
 # 引数なしのmakeで開発サーバーが起動しないよう、ターゲットの一覧を出す。
 .DEFAULT_GOAL := help
@@ -19,11 +19,12 @@ run: ## 開発起動(DEV_MODE=1、:8080)
 
 # RaspberryPi Zero(ARMv6)向けクロスコンパイル。
 build-rpi: ## RaspberryPi Zero(ARMv6)向けにビルドする
-	GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=0 go build $(RELEASE_FLAGS) -o bin/kondate-supporter-linux-armv6 ./cmd/server
+	GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=0 go build -trimpath -ldflags="$(RELEASE_LDFLAGS)" -o bin/kondate-supporter-linux-armv6 ./cmd/server
 
 # RaspberryPiを用意するまでのつなぎとして、Windows上で常用するためのビルド。画面はembedから配信する。
-build-win: ## Windows常用(つなぎ)向けにビルドする
-	GOOS=windows CGO_ENABLED=0 go build $(RELEASE_FLAGS) -o bin/kondate-supporter-windows.exe ./cmd/server
+# 誤って閉じないよう -H windowsgui でコンソールを出さない。ログを見る場所が無くなるので、-tags windowsgui のときだけログをDBと同じフォルダの kondate.log に追記する。
+build-win: ## Windows常用(つなぎ)向けにビルドする(コンソールなし)
+	GOOS=windows CGO_ENABLED=0 go build -trimpath -tags windowsgui -ldflags="$(RELEASE_LDFLAGS) -H windowsgui" -o bin/kondate-supporter-windows.exe ./cmd/server
 
 # ターゲット行末尾の「## 説明」を拾って一覧にする。ターゲットを増やしてもここは書き換えない。
 help: ## ターゲットの一覧を表示する
