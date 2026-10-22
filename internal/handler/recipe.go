@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,20 @@ type recipeRequest struct {
 	// Tagsは無い・nullのときは空として扱い、タグを全部外す。
 	Tags []string `json:"tags"`
 }
+
+// importItemRequest は取り込む1件のJSON。title以外は省略・null可。
+// cooked_countは整数のリテラルだけを受け付けるため、生のまま受けて自分で読む。
+type importItemRequest struct {
+	Title       string          `json:"title"`
+	Body        string          `json:"body"`
+	Tags        []string        `json:"tags"`
+	CookedCount json.RawMessage `json:"cooked_count"`
+}
+
+var errImportItemFormat = errors.New("形式が不正です")
+
+// maxImportSize は取り込みのボディの上限(5MB)。
+const maxImportSize = 5 << 20
 
 // maxImageSize はアップロードできる画像の上限(2MB)。
 const maxImageSize = 2 << 20
@@ -101,6 +116,54 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toRecipeResponse(rec))
+}
+
+// Import はJSON配列のレシピをまとめて登録する。
+func (h *RecipeHandler) Import(w http.ResponseWriter, r *http.Request) {
+	var raws []json.RawMessage
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxImportSize)).Decode(&raws); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusBadRequest, "リクエストが大きすぎます")
+		} else {
+			writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		}
+		return
+	}
+	if raws == nil {
+		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		return
+	}
+	items := make([]service.ImportItem, len(raws))
+	for i, raw := range raws {
+		items[i] = decodeImportItem(raw)
+	}
+	n, err := h.svc.Import(r.Context(), items)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]int{"count": n})
+}
+
+// decodeImportItem は取り込む1件を読む。読めなければ理由をErrに入れる。
+func decodeImportItem(raw json.RawMessage) service.ImportItem {
+	if !bytes.HasPrefix(bytes.TrimSpace(raw), []byte("{")) {
+		return service.ImportItem{Err: errImportItemFormat}
+	}
+	var req importItemRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return service.ImportItem{Err: errImportItemFormat}
+	}
+	item := service.ImportItem{Recipe: model.Recipe{Name: req.Title, Body: req.Body, Tags: req.Tags}}
+	if cc := bytes.TrimSpace(req.CookedCount); len(cc) > 0 && string(cc) != "null" {
+		n, err := strconv.ParseInt(string(cc), 10, 64)
+		if err != nil {
+			item.Err = service.ErrCookedCountInvalid
+		}
+		item.Recipe.CookedCount = n
+	}
+	return item
 }
 
 func (h *RecipeHandler) ListTags(w http.ResponseWriter, r *http.Request) {
@@ -225,8 +288,11 @@ func decodeRecipeRequest(w http.ResponseWriter, r *http.Request) (recipeRequest,
 
 // writeServiceError はserviceのエラーをHTTPステータスに振り分けて書き出す。
 func writeServiceError(w http.ResponseWriter, err error) {
+	var importErr *service.ImportError
 	switch {
-	case errors.Is(err, service.ErrNameRequired):
+	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrImportEmpty):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.As(err, &importErr):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrNotFound), errors.Is(err, service.ErrImageNotFound):
 		writeError(w, http.StatusNotFound, err.Error())

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"kondate-supporter/internal/model"
@@ -14,7 +15,45 @@ var (
 	ErrNameRequired = errors.New("名前を入力してください")
 
 	ErrImageNotFound = errors.New("画像が見つかりません")
+
+	ErrImportEmpty        = errors.New("取り込むレシピがありません")
+	ErrCookedCountInvalid = errors.New("作った回数は0以上の整数にしてください")
 )
+
+// maxReportedImportErrors はエラー文言に並べる不正な件の上限。
+const maxReportedImportErrors = 10
+
+// ImportItem は取り込む1件。Err はhandlerがその件を読めなかったときの理由で、読めたらnil。
+type ImportItem struct {
+	Recipe model.Recipe
+	Err    error
+}
+
+// ImportItemError は不正だった1件。Index は1始まり。
+type ImportItemError struct {
+	Index int
+	Err   error
+}
+
+// ImportError は取り込みで不正だった件の一覧。
+type ImportError struct {
+	Items []ImportItemError
+}
+
+func (e *ImportError) Error() string {
+	var sb strings.Builder
+	for i, item := range e.Items {
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
+		if i == maxReportedImportErrors {
+			fmt.Fprintf(&sb, "ほか%d件", len(e.Items)-maxReportedImportErrors)
+			break
+		}
+		fmt.Fprintf(&sb, "%d件目: %s", item.Index, item.Err)
+	}
+	return sb.String()
+}
 
 type RecipeService struct {
 	repo *repository.RecipeRepository
@@ -48,6 +87,34 @@ func (s *RecipeService) Update(ctx context.Context, id int64, name, body string,
 	}
 	rec, err := s.repo.Update(ctx, id, name, body, normalizeTags(tags))
 	return rec, convertErr(err)
+}
+
+// Import は全件を検査してから、配列の順に1つのトランザクションで登録する。
+// 1件でも不正なら何も登録せず *ImportError を返す。
+func (s *RecipeService) Import(ctx context.Context, items []ImportItem) (int, error) {
+	if len(items) == 0 {
+		return 0, ErrImportEmpty
+	}
+	recs := make([]model.Recipe, len(items))
+	var bad []ImportItemError
+	for i, item := range items {
+		rec := item.Recipe
+		rec.Name = strings.TrimSpace(rec.Name)
+		rec.Tags = normalizeTags(rec.Tags)
+		switch {
+		case item.Err != nil:
+			bad = append(bad, ImportItemError{Index: i + 1, Err: item.Err})
+		case rec.Name == "":
+			bad = append(bad, ImportItemError{Index: i + 1, Err: ErrNameRequired})
+		case rec.CookedCount < 0:
+			bad = append(bad, ImportItemError{Index: i + 1, Err: ErrCookedCountInvalid})
+		}
+		recs[i] = rec
+	}
+	if len(bad) > 0 {
+		return 0, &ImportError{Items: bad}
+	}
+	return s.repo.Import(ctx, recs)
 }
 
 // ListTags は使われているタグ名をid昇順で返す。

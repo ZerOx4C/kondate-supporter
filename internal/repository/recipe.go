@@ -70,6 +70,32 @@ func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags [
 	return rec, err
 }
 
+// Import はレシピを配列の順に1つのトランザクションで追加し、追加した件数を返す。
+// タグは足すだけで外さないため、未使用のタグは生まれず deleteUnusedTags は呼ばない。
+func (r *RecipeRepository) Import(ctx context.Context, recs []model.Recipe) (int, error) {
+	err := r.inTx(ctx, func(tx *sql.Tx) error {
+		for _, rec := range recs {
+			res, err := tx.ExecContext(ctx,
+				`INSERT INTO recipes (name, body, cooked_count) VALUES (?, ?, ?)`, rec.Name, rec.Body, rec.CookedCount)
+			if err != nil {
+				return err
+			}
+			id, err := res.LastInsertId()
+			if err != nil {
+				return err
+			}
+			if err := addTags(ctx, tx, id, rec.Tags); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return len(recs), nil
+}
+
 // Update は名前・本文・タグを更新し、更新後のレシピを返す。cooked_countは変更しない。
 // タグは丸ごと置き換える。存在しないidにタグを付けると外部キー違反になるため、UPDATEを先に行う。
 func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string) (model.Recipe, error) {
@@ -206,6 +232,14 @@ func replaceTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string
 	if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_tags WHERE recipe_id = ?`, recipeID); err != nil {
 		return err
 	}
+	if err := addTags(ctx, tx, recipeID, names); err != nil {
+		return err
+	}
+	return deleteUnusedTags(ctx, tx)
+}
+
+// addTags はレシピにnamesのタグを付ける。タグが無ければ作る。
+func addTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string) error {
 	for _, name := range names {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO tags (name) VALUES (?) ON CONFLICT(name) DO NOTHING`, name); err != nil {
 			return err
@@ -215,7 +249,7 @@ func replaceTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string
 			return err
 		}
 	}
-	return deleteUnusedTags(ctx, tx)
+	return nil
 }
 
 func deleteUnusedTags(ctx context.Context, tx *sql.Tx) error {
