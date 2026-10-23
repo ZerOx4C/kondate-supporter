@@ -43,7 +43,7 @@
 1. プランモードで、依頼原文を `architect` に渡し、実装計画の作成を依頼する(質問は中継する)
 2. 計画が返ってきたら、`ExitPlanMode` の前に `set_session_title` でセッションタイトルを項目の短い名前(ROADMAP項目の要約。例: 「プロジェクト初期構築」)に変える。その後、計画を `ExitPlanMode` で提示して承認を得る
 3. 承認後、計画どおりに実装し、`go build ./...` と `go vet ./...` を通す。画面に関わる変更はpreviewで動作確認する
-4. [docs/architecture.md](docs/architecture.md) を更新する(1〜4節は実態に合わせ、5節「設計判断」には計画の設計判断を転記する)
+4. [docs/architecture.md](docs/architecture.md) を更新する(1〜4節は実態に合わせ、計画の設計判断は5節「設計判断」の該当する見出しの下へ転記する)
 5. ROADMAP.mdから完了項目を削除し、変更一式を1コミットにまとめる(メッセージは「<理由>のため<内容>した」形式の日本語1〜2文)
 6. 「ドキュメント保守」を行い、`EnterPlanMode` でプランモードへ戻る
 7. 実装の細部を次の項目に持ち越さないため、ROADMAPに項目が残っていれば、次の項目を新しいセッションで始めるカードを `start_session`(`initiation` は `own_initiative`、`context` は `fresh`、briefは「作業を始めましょう」)で提案する
