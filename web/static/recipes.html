@@ -40,12 +40,12 @@
 .tile-add:active .tile-visual { background: #f0f0f0; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
 .search-box { margin-top: 1rem; border: 1px solid #999; border-radius: 8px; }
-#search-scope-button { width: 100%; min-height: 32px; padding: 0 0.5rem; justify-content: flex-start; gap: 0.3rem; border: none; border-radius: 7px 7px 0 0; background: transparent; font-size: 0.85rem; }
+#search-scope-button { width: 100%; min-height: 0; padding: 0 0.5rem; justify-content: flex-start; gap: 0.3rem; border: none; border-radius: 7px 7px 0 0; background: transparent; font-size: 0.85rem; }
 #search-scope-button .ti { font-size: 1rem; }
 #search-scope-label { text-decoration: underline; }
 .search-input-row { position: relative; }
-#search-input { border: none; border-radius: 0 0 7px 7px; padding-right: 44px; background: transparent; }
-#search-clear { position: absolute; top: 0; right: 0; height: 100%; border: none; background: transparent; }
+#search-input { min-height: 36px; padding: 0 44px 0 0.5rem; border: none; border-radius: 0 0 7px 7px; background: transparent; }
+#search-clear { position: absolute; top: 0; right: 0; min-height: 0; height: 100%; border: none; background: transparent; }
 .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 #bookmark-filter-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
 #selected-tags:empty { display: none; }
