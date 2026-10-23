@@ -18,7 +18,11 @@
 #recipe-list .tile-bookmark[aria-pressed="true"] .tile-bookmark-mark { background: #1a5fb4; color: #fff; }
 .tile { display: block; color: inherit; text-decoration: none; }
 .tile-visual { position: relative; aspect-ratio: 1 / 1; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
-.tile-visual.popular { border-color: #ffffff; box-shadow: 0 0 6px 2px rgba(230, 73, 128, 0.6); }
+.tile-visual.popular { border: 0; }
+.tile-visual.popular::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 7px; box-shadow: inset 0 0 1px 4px #ff8000; mix-blend-mode: plus-lighter; animation: popular-pulse 2s ease-in-out infinite; }
+.tile-visual.popular .tile-cooked { top: calc(0.3rem + 1px); }
+@keyframes popular-pulse { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tile-visual.popular::after { animation: none; opacity: 1; } }
 .tile-popular-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .tile-image { display: block; width: 100%; height: 100%; object-fit: cover; }
 .tile-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; background: #eee; color: #bbb; }
