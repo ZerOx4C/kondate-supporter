@@ -82,7 +82,7 @@ data/                    # SQLiteファイルの実行時生成先(Git管理外)
 | GET /dev-mode.css | 画面の背景の模様のCSS。`DEV_MODE=1` のときは `body` に白の背景色と dev-mode.svg の繰り返しを指定し、そうでないときは中身が空。どちらも200・`text/css` |
 | GET /api/recipes | レシピ一覧取得。200で配列(id昇順、bodyとtagsを含む。0件は `[]`) |
 | GET /api/tags | 使われているタグ名の配列(id昇順、0件は `[]`) |
-| POST /api/recipes | レシピ新規作成。リクエスト `{"name","body"}`、201で作成したレシピ |
+| POST /api/recipes | レシピ新規作成。リクエスト `{"name","body","tags"}`、201で作成したレシピ |
 | POST /api/recipes/import | レシピをまとめて登録。リクエストは配列 `[{"title","body","tags","cooked_count"}, ...]`(`title` 以外は省略・null可。`body` は空文字、`tags` は空、`cooked_count` は0)。全件を1トランザクションで配列の順に登録し、201で `{"count": 件数}`。上限5MB。画像とブックマークは扱わない(取り込んだレシピはブックマークなし) |
 | GET /api/recipes/{id} | レシピ1件取得。200 |
 | PUT /api/recipes/{id} | レシピ更新(全体置換)。リクエストは作成と同じ、200で更新後のレシピ |
