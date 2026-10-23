@@ -39,9 +39,13 @@
 @media (hover: hover) { .tile-add:hover .tile-visual { background: #f0f0f0; } }
 .tile-add:active .tile-visual { background: #f0f0f0; }
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
-.search-box { position: relative; margin-top: 1rem; }
-#name-search { padding-right: 44px; }
-#name-search-clear { position: absolute; top: 0; right: 0; height: 100%; border: none; background: transparent; }
+.search-box { margin-top: 1rem; border: 1px solid #999; border-radius: 8px; }
+#search-scope-button { width: 100%; min-height: 32px; padding: 0 0.5rem; justify-content: flex-start; gap: 0.3rem; border: none; border-radius: 7px 7px 0 0; background: transparent; font-size: 0.85rem; }
+#search-scope-button .ti { font-size: 1rem; }
+#search-scope-label { text-decoration: underline; }
+.search-input-row { position: relative; }
+#search-input { border: none; border-radius: 0 0 7px 7px; padding-right: 44px; background: transparent; }
+#search-clear { position: absolute; top: 0; right: 0; height: 100%; border: none; background: transparent; }
 .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 #bookmark-filter-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
 #selected-tags:empty { display: none; }
@@ -62,8 +66,11 @@
 </header>
 <main>
   <div id="search-box" class="search-box" hidden>
-    <input id="name-search" type="text" autocomplete="off" enterkeyhint="search" placeholder="名前で探す" aria-label="名前で探す">
-    <button type="button" id="name-search-clear" class="icon-only" aria-label="キーワードを消す" title="キーワードを消す" hidden><i class="ti ti-x" aria-hidden="true"></i></button>
+    <button type="button" id="search-scope-button" title="探す対象を切り替える"><i class="ti ti-repeat" aria-hidden="true"></i><span id="search-scope-label">名前で探す</span></button>
+    <div class="search-input-row">
+      <input id="search-input" type="text" autocomplete="off" enterkeyhint="search" placeholder="キーワード" aria-label="名前で探す">
+      <button type="button" id="search-clear" class="icon-only" aria-label="キーワードを消す" title="キーワードを消す" hidden><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
   </div>
   <div id="filter-bar" class="filter-bar" hidden>
     <button type="button" id="bookmark-filter-button" class="icon-only" aria-pressed="false" aria-label="ブックマークで絞り込む" title="ブックマークで絞り込む"><i class="ti ti-bookmark" aria-hidden="true"></i></button>

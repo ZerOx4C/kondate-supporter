@@ -3,7 +3,8 @@
 let recipes = [];
 let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
-let nameKeyword = ""; // 名前検索のキーワード(前後の空白は除く)
+let searchKeyword = ""; // 検索のキーワード(前後の空白は除く)
+let searchScope = "name"; // 探す対象(name / body)
 let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
 const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
@@ -41,6 +42,11 @@ function readKeywordFromUrl() {
   return new URLSearchParams(location.search).get("q") ?? "";
 }
 
+// body 以外(知らない値・name)は名前のみとして扱う
+function readScopeFromUrl() {
+  return new URLSearchParams(location.search).get("scope") === "body" ? "body" : "name";
+}
+
 function readBookmarkFromUrl() {
   return new URLSearchParams(location.search).get("bookmark") === "1";
 }
@@ -53,7 +59,8 @@ function readSortFromUrl() {
 
 function writeUrl() {
   const params = new URLSearchParams();
-  if (nameKeyword !== "") params.set("q", nameKeyword);
+  if (searchKeyword !== "") params.set("q", searchKeyword);
+  if (searchScope === "body") params.set("scope", "body");
   if (bookmarkOnly) params.set("bookmark", "1");
   if (sortOrder !== "new") params.set("sort", sortOrder);
   for (const t of selectedTags) params.append("tag", t);
@@ -61,8 +68,13 @@ function writeUrl() {
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
 }
 
+// 名前と本文は改行でつないで1回比べる。語は空白を含まないので、語ごとに名前か本文のどちらかに含まれていれば一致になる
+function matchesSearch(recipe) {
+  return matchesKeyword(searchScope === "body" ? recipe.name + "\n" + recipe.body : recipe.name, searchKeyword);
+}
+
 function filteredRecipes() {
-  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesKeyword(r.name, nameKeyword)).sort(SORT_COMPARATORS[sortOrder]);
+  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesSearch(r)).sort(SORT_COMPARATORS[sortOrder]);
 }
 
 function setSelected(name, on) {
@@ -268,7 +280,7 @@ function renderList() {
   const shown = filteredRecipes();
   const maxCooked = recipes.reduce((m, r) => Math.max(m, r.cooked_count), 0);
   list.replaceChildren(createAddPanel(), ...shown.map((r) => createTile(r, maxCooked)));
-  $("filter-empty").hidden = !((bookmarkOnly || selectedTags.length > 0 || nameKeyword !== "") && shown.length === 0);
+  $("filter-empty").hidden = !((bookmarkOnly || selectedTags.length > 0 || searchKeyword !== "") && shown.length === 0);
   fitAllTileTags();
 }
 
@@ -330,24 +342,34 @@ $("tag-dialog-close").addEventListener("click", () => tagDialog.close());
 onOutsideTap(tagDialog, () => tagDialog.close());
 $("tag-search").addEventListener("input", renderTagOptions);
 
-const nameSearch = $("name-search");
-function updateClearButton() {
-  $("name-search-clear").hidden = nameSearch.value === "";
+const SCOPE_LABELS = { name: "名前で探す", body: "名前と本文で探す" };
+const searchInput = $("search-input");
+function renderSearchScope() {
+  $("search-scope-label").textContent = SCOPE_LABELS[searchScope];
+  searchInput.setAttribute("aria-label", SCOPE_LABELS[searchScope]);
 }
-nameSearch.addEventListener("input", () => {
-  nameKeyword = nameSearch.value.trim();
+function updateClearButton() {
+  $("search-clear").hidden = searchInput.value === "";
+}
+$("search-scope-button").addEventListener("click", () => {
+  searchScope = searchScope === "name" ? "body" : "name";
+  renderSearchScope();
+  applyFilter();
+});
+searchInput.addEventListener("input", () => {
+  searchKeyword = searchInput.value.trim();
   updateClearButton();
   applyFilter();
 });
-nameSearch.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) nameSearch.blur();
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) searchInput.blur();
 });
-$("name-search-clear").addEventListener("click", () => {
-  nameSearch.value = "";
-  nameKeyword = "";
+$("search-clear").addEventListener("click", () => {
+  searchInput.value = "";
+  searchKeyword = "";
   updateClearButton();
   applyFilter();
-  nameSearch.focus();
+  searchInput.focus();
 });
 
 async function loadList() {
@@ -370,9 +392,11 @@ async function loadList() {
   }
   $("search-box").hidden = false;
   $("filter-bar").hidden = false;
-  nameSearch.value = readKeywordFromUrl();
-  nameKeyword = nameSearch.value.trim();
+  searchInput.value = readKeywordFromUrl();
+  searchKeyword = searchInput.value.trim();
   updateClearButton();
+  searchScope = readScopeFromUrl();
+  renderSearchScope();
   selectedTags = readSelectedFromUrl();
   bookmarkOnly = readBookmarkFromUrl();
   sortOrder = readSortFromUrl();
