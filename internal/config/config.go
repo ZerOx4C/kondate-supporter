@@ -8,7 +8,7 @@ type Config struct {
 	Addr string
 	// DBPath はSQLiteファイルのパス(KONDATE_DB_PATH、既定 "data/kondate.db")。
 	DBPath string
-	// DevMode がtrueのとき、画面ファイルをembedではなくディスクから配信する(DEV_MODE=1)。
+	// DevMode がtrueのとき、画面ファイルをembedではなくディスクから配信し、画面の背景に開発モードの模様を出す(DEV_MODE=1)。
 	DevMode bool
 }
 

@@ -5,13 +5,17 @@ import (
 	"net/http"
 )
 
+// devModeStyle は開発モードの画面の背景に敷く模様のCSS。
+const devModeStyle = "body { background: #fff url(\"dev-mode.svg\") repeat; }\n"
+
 // NewRouter はルーティングを登録したhttp.Handlerを返す。
-func NewRouter(staticFS fs.FS, recipes *RecipeHandler) http.Handler {
+func NewRouter(staticFS fs.FS, recipes *RecipeHandler, devMode bool) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+	mux.HandleFunc("GET /dev-mode.css", devModeCSS(devMode))
 	mux.HandleFunc("GET /api/recipes", recipes.List)
 	mux.HandleFunc("POST /api/recipes", recipes.Create)
 	mux.HandleFunc("POST /api/recipes/import", recipes.Import)
@@ -32,4 +36,15 @@ func NewRouter(staticFS fs.FS, recipes *RecipeHandler) http.Handler {
 	mux.Handle("GET /", http.FileServerFS(staticFS))
 
 	return mux
+}
+
+// devModeCSS は開発モードの背景の模様を指定するCSSを返す。開発モードでないときは、画面を開くたびに
+// 読み込みエラーがコンソールに出ないよう、中身が空のCSSを200で返す。
+func devModeCSS(devMode bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		if devMode {
+			_, _ = w.Write([]byte(devModeStyle))
+		}
+	}
 }

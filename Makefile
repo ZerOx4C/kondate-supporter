@@ -12,7 +12,7 @@ RELEASE_LDFLAGS := -s -w
 .PHONY: run build-rpi build-win help
 
 # 開発起動。go runは実行のたびにバイナリのパスが変わりWindowsファイアウォールの許可を何度も求められるため、固定パスへビルドしてから実行する。
-# DEV_MODE=1 で画面ファイルをディスクから配信し、HTML/JSの変更をビルドし直さずに反映する。
+# DEV_MODE=1 で画面ファイルをディスクから配信し、HTML/JSの変更をビルドし直さずに反映する。画面の背景には開発用だと分かる模様が出る。
 # KONDATE_ADDR=:8082 で、既定の:8080で動かす常駐運用(make build-winのexe)やpreview(:8081)とポートを分ける。
 run: ## 開発起動(DEV_MODE=1、:8082)
 	go build -o bin/kondate-supporter$(GOEXE) ./cmd/server
