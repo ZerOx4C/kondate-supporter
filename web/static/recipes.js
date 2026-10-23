@@ -8,6 +8,7 @@ let searchScope = "name"; // 探す対象(name / body)
 let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
 const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
+const POPULAR_TAG = "好評"; // 一覧タイルを強調するタグ名(完全一致)
 
 const nameCollator = new Intl.Collator("ja");
 function compareNew(a, b) { return b.id - a.id; }
@@ -146,6 +147,7 @@ function createTile(recipe, maxCooked) {
   link.title = recipe.name;
   const visual = document.createElement("div");
   visual.className = "tile-visual";
+  if (recipe.tags.includes(POPULAR_TAG)) visual.classList.add("popular");
   if (recipe.image_url) {
     const img = document.createElement("img");
     img.className = "tile-image";
@@ -164,7 +166,14 @@ function createTile(recipe, maxCooked) {
   }
   const footer = document.createElement("div");
   footer.className = "tile-footer";
-  const tags = recipe.tags.filter((t) => !selectedTags.includes(t));
+  const selectable = recipe.tags.filter((t) => !selectedTags.includes(t));
+  const tags = selectable.filter((t) => t !== POPULAR_TAG);
+  if (selectable.length > tags.length) {
+    const popular = document.createElement("span");
+    popular.className = "tile-popular-label";
+    popular.textContent = POPULAR_TAG;
+    footer.appendChild(popular);
+  }
   if (tags.length > 0) {
     const ul = document.createElement("ul");
     ul.className = "tile-tags";
