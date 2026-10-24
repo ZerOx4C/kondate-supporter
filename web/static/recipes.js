@@ -159,7 +159,7 @@ function createTile(recipe, maxCooked) {
     const placeholder = document.createElement("div");
     placeholder.className = "tile-placeholder";
     const icon = document.createElement("i");
-    icon.className = "ti ti-photo-off";
+    icon.className = "ti ti-bowl-spoon";
     icon.setAttribute("aria-hidden", "true");
     placeholder.appendChild(icon);
     visual.appendChild(placeholder);
