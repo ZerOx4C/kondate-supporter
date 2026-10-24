@@ -180,6 +180,7 @@ function createTile(recipe, maxCooked) {
     for (const t of tags) {
       const tag = document.createElement("li");
       tag.className = "tag";
+      tag.dataset.tag = t;
       tag.textContent = t;
       ul.appendChild(tag);
     }
@@ -350,6 +351,15 @@ $("tag-filter-button").addEventListener("click", () => {
 $("tag-dialog-close").addEventListener("click", () => tagDialog.close());
 onOutsideTap(tagDialog, () => tagDialog.close());
 $("tag-search").addEventListener("input", renderTagOptions);
+
+// タイル上の札を押したら詳細へ移らず、そのタグを絞り込みに加えて先頭へ移る(「+N」と札の外は詳細へ移る)
+$("recipe-list").addEventListener("click", (e) => {
+  const tag = e.target.closest(".tile-tags .tag[data-tag]");
+  if (!tag) return;
+  e.preventDefault();
+  setSelected(tag.dataset.tag, true);
+  window.scrollTo(0, 0);
+});
 
 const SCOPE_LABELS = { name: "名前で探す", body: "名前と本文で探す" };
 const searchInput = $("search-input");
