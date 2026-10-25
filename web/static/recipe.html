@@ -28,6 +28,9 @@
 .no-image-actions { position: absolute; left: 0; right: 0; bottom: 1.5rem; display: flex; justify-content: center; pointer-events: none; }
 .no-image-actions button { pointer-events: auto; }
 #view-tags { margin-bottom: 0.5rem; }
+#view-tags a.tag { text-decoration: none; }
+@media (hover: hover) { #view-tags a.tag:hover { background: #e0e0e0; } }
+#view-tags a.tag:active { background: #e0e0e0; }
 #edit-tags:not(:empty) { margin-top: 0.5rem; }
 .tag-input-row { display: flex; gap: 0.5rem; }
 .tag-input-row input { flex: 1; }

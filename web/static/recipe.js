@@ -130,32 +130,38 @@ function renderBody(el, text) {
   el.replaceChildren(...nodes);
 }
 
-// ulにタグの札を並べる。removableなら札ごとに「外す」ボタンを付ける
-function renderTags(ul, names, removable) {
-  ul.replaceChildren(...names.map((name) => {
+// 閲覧表示の札は、そのタグ1つだけで絞り込んだ一覧へのリンクにする
+function renderViewTags(names) {
+  $("view-tags").replaceChildren(...names.map((name) => {
     const li = document.createElement("li");
-    li.className = "tag";
-    li.append(name);
-    if (removable) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "icon-only";
-      button.setAttribute("aria-label", "「" + name + "」を外す");
-      button.title = "「" + name + "」を外す";
-      button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
-      button.addEventListener("click", () => {
-        editTags = editTags.filter((t) => t !== name);
-        renderEditTags();
-      });
-      li.append(button);
-    }
+    const a = document.createElement("a");
+    a.className = "tag";
+    a.href = "recipes.html?" + new URLSearchParams({ tag: name });
+    a.textContent = name;
+    li.append(a);
     return li;
   }));
 }
 
-// 編集中の札と、まだ付けていないタグだけの候補を描き直す
+// 編集中の札と、まだ付けていないタグだけの候補を描き直す。札ごとに「外す」ボタンを付ける
 function renderEditTags() {
-  renderTags($("edit-tags"), editTags, true);
+  $("edit-tags").replaceChildren(...editTags.map((name) => {
+    const li = document.createElement("li");
+    li.className = "tag";
+    li.append(name);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "icon-only";
+    button.setAttribute("aria-label", "「" + name + "」を外す");
+    button.title = "「" + name + "」を外す";
+    button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    button.addEventListener("click", () => {
+      editTags = editTags.filter((t) => t !== name);
+      renderEditTags();
+    });
+    li.append(button);
+    return li;
+  }));
   $("tag-options").replaceChildren(...tagOptions
     .filter((name) => !editTags.includes(name))
     .map((name) => {
@@ -192,7 +198,7 @@ function showView(recipe) {
   clearErrors();
   document.title = recipe.name + " - kondate-supporter";
   $("view-name").textContent = recipe.name;
-  renderTags($("view-tags"), recipe.tags, false);
+  renderViewTags(recipe.tags);
   $("view-tags").hidden = recipe.tags.length === 0;
   const viewImage = $("view-image");
   if (recipe.image_url) viewImage.src = recipe.image_url;
