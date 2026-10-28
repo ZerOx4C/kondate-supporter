@@ -79,6 +79,11 @@ function setupScrollTop(button) {
   });
 }
 
+// 書式に数量を当てはめて量の文字列に戻す。数量がnullなら書式のまま
+function formatAmount(format, quantity) {
+  return quantity === null ? format : format.replace("{0}", () => String(quantity));
+}
+
 // ダイアログ自身(外側)で pointerdown と click の両方が起きたときだけ外側タップとみなす
 function onOutsideTap(dialog, handler) {
   let downOnDialog = false;

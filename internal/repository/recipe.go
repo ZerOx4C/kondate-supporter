@@ -14,10 +14,13 @@ var ErrNotFound = errors.New("not found")
 
 // recipeColumns はmodel.Recipeの各フィールドに対応するSELECT/RETURNING列。
 // typeof(image)は列の型だけを見るので、画像の本体は読まない。
-// EXISTSはブックマークの有無。末尾はタグ名のJSON配列(タグのid昇順、無ければ"[]")で、scanRecipeが読む。
+// EXISTSはブックマークの有無。その後ろはタグ名のJSON配列(タグのid昇順、無ければ"[]")、
+// 末尾は材料のJSON配列(並び順どおり、無ければ"[]")で、scanRecipeが読む。
 const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version,
 	EXISTS (SELECT 1 FROM recipe_bookmarks b WHERE b.recipe_id = recipes.id),
-	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id)`
+	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id),
+	(SELECT json_group_array(json_object('name', i.name, 'quantity', i.quantity, 'format', i.format) ORDER BY i.position)
+		FROM recipe_ingredients i WHERE i.recipe_id = recipes.id)`
 
 type RecipeRepository struct {
 	db *sql.DB
@@ -50,8 +53,8 @@ func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, err
 	return scanReturned(r.db.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
 }
 
-// Create はレシピとタグを追加し、追加後のレシピを返す。
-func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags []string) (model.Recipe, error) {
+// Create はレシピ・タグ・材料を追加し、追加後のレシピを返す。
+func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
 	err := r.inTx(ctx, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, `INSERT INTO recipes (name, body) VALUES (?, ?)`, name, body)
@@ -63,6 +66,9 @@ func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags [
 			return err
 		}
 		if err := replaceTags(ctx, tx, id, tags); err != nil {
+			return err
+		}
+		if err := replaceIngredients(ctx, tx, id, ingredients); err != nil {
 			return err
 		}
 		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
@@ -97,9 +103,9 @@ func (r *RecipeRepository) Import(ctx context.Context, recs []model.Recipe) (int
 	return len(recs), nil
 }
 
-// Update は名前・本文・タグを更新し、更新後のレシピを返す。cooked_countは変更しない。
-// タグは丸ごと置き換える。存在しないidにタグを付けると外部キー違反になるため、UPDATEを先に行う。
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string) (model.Recipe, error) {
+// Update は名前・本文・タグ・材料を更新し、更新後のレシピを返す。cooked_countは変更しない。
+// タグと材料は丸ごと置き換える。存在しないidに付けると外部キー違反になるため、UPDATEを先に行う。
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
 	err := r.inTx(ctx, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ? WHERE id = ?`, name, body, id)
@@ -110,6 +116,9 @@ func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body stri
 			return err
 		}
 		if err := replaceTags(ctx, tx, id, tags); err != nil {
+			return err
+		}
+		if err := replaceIngredients(ctx, tx, id, ingredients); err != nil {
 			return err
 		}
 		rec, err = scanReturned(tx.QueryRowContext(ctx, `SELECT `+recipeColumns+` FROM recipes WHERE id = ?`, id))
@@ -190,11 +199,14 @@ type rowScanner interface {
 // scanRecipe はrecipeColumnsの順に並んだ1行を読む。
 func scanRecipe(row rowScanner) (model.Recipe, error) {
 	var rec model.Recipe
-	var tags string
-	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &rec.Bookmarked, &tags); err != nil {
+	var tags, ingredients string
+	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &rec.Bookmarked, &tags, &ingredients); err != nil {
 		return model.Recipe{}, err
 	}
 	if err := json.Unmarshal([]byte(tags), &rec.Tags); err != nil {
+		return model.Recipe{}, err
+	}
+	if err := json.Unmarshal([]byte(ingredients), &rec.Ingredients); err != nil {
 		return model.Recipe{}, err
 	}
 	return rec, nil
@@ -267,6 +279,21 @@ func replaceTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string
 		return err
 	}
 	return deleteUnusedTags(ctx, tx)
+}
+
+// replaceIngredients はレシピの材料をingsに置き換える。全部消して、並び順を表すpositionを0から振って入れ直す。
+func replaceIngredients(ctx context.Context, tx *sql.Tx, recipeID int64, ings []model.Ingredient) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_ingredients WHERE recipe_id = ?`, recipeID); err != nil {
+		return err
+	}
+	for i, ing := range ings {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO recipe_ingredients (recipe_id, position, name, quantity, format) VALUES (?, ?, ?, ?, ?)`,
+			recipeID, i, ing.Name, ing.Quantity, ing.Format); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // addTags はレシピにnamesのタグを付ける。タグが無ければ作る。

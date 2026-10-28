@@ -286,7 +286,9 @@ async function save(event) {
   if (busy) return;
   clearErrors();
   commitTagInput();
-  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags };
+  // 画面に材料欄が無い間も保存で材料が消えないよう、読み込んだ材料を量の文字列に戻して送り返す
+  const ingredients = current ? current.ingredients.map((i) => ({ name: i.name, amount: formatAmount(i.format, i.quantity) })) : [];
+  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags, ingredients };
   setBusy(true);
   let saved = null;
   try {

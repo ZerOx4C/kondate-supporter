@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"kondate-supporter/internal/model"
@@ -18,7 +21,34 @@ var (
 
 	ErrImportEmpty        = errors.New("取り込むレシピがありません")
 	ErrCookedCountInvalid = errors.New("作った回数は0以上の整数にしてください")
+
+	ErrAmountTooManyNumbers = errors.New("量に書ける数は1つまでです(分数・範囲・桁区切りは使えません)")
+	ErrAmountTooLarge       = errors.New("量の数が大きすぎます")
 )
+
+// IngredientInput は受け取る材料1行。Amountは量の文字列。
+type IngredientInput struct {
+	Name   string
+	Amount string
+}
+
+// IngredientError は不正だった材料の行。Rowは送られた配列での1始まりの行番号。
+// Unwrapを持たせないのは、ErrNameRequiredを包んでもレシピ名のエラーとして扱われないようにするため。
+type IngredientError struct {
+	Row int
+	Err error
+}
+
+func (e *IngredientError) Error() string {
+	return fmt.Sprintf("材料%d行目: %s", e.Row, e.Err)
+}
+
+// amountNumber は量の中の数(半角・全角の数字の並びで、間に小数点が1つあってもよい)。
+// unicode.IsDigitは他の文字体系の数字も含むため使わない。
+var amountNumber = regexp.MustCompile(`[0-9０-９]+(?:[.．][0-9０-９]+)?`)
+
+var halfWidth = strings.NewReplacer("０", "0", "１", "1", "２", "2", "３", "3", "４", "4",
+	"５", "5", "６", "6", "７", "7", "８", "8", "９", "9", "．", ".")
 
 // maxReportedImportErrors はエラー文言に並べる不正な件の上限。
 const maxReportedImportErrors = 10
@@ -72,20 +102,28 @@ func (s *RecipeService) Get(ctx context.Context, id int64) (model.Recipe, error)
 	return rec, convertErr(err)
 }
 
-func (s *RecipeService) Create(ctx context.Context, name, body string, tags []string) (model.Recipe, error) {
+func (s *RecipeService) Create(ctx context.Context, name, body string, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return model.Recipe{}, ErrNameRequired
 	}
-	return s.repo.Create(ctx, name, body, normalizeTags(tags))
+	ings, err := normalizeIngredients(ingredients)
+	if err != nil {
+		return model.Recipe{}, err
+	}
+	return s.repo.Create(ctx, name, body, normalizeTags(tags), ings)
 }
 
-func (s *RecipeService) Update(ctx context.Context, id int64, name, body string, tags []string) (model.Recipe, error) {
+func (s *RecipeService) Update(ctx context.Context, id int64, name, body string, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return model.Recipe{}, ErrNameRequired
 	}
-	rec, err := s.repo.Update(ctx, id, name, body, normalizeTags(tags))
+	ings, err := normalizeIngredients(ingredients)
+	if err != nil {
+		return model.Recipe{}, err
+	}
+	rec, err := s.repo.Update(ctx, id, name, body, normalizeTags(tags), ings)
 	return rec, convertErr(err)
 }
 
@@ -136,6 +174,47 @@ func normalizeTags(tags []string) []string {
 		out = append(out, t)
 	}
 	return out
+}
+
+// normalizeIngredients は名前と量の前後の空白を除き、両方空の行を捨て、量から数量と書式を取り出す。
+// 不正な行があれば、先頭の1件を *IngredientError で返す。
+func normalizeIngredients(in []IngredientInput) ([]model.Ingredient, error) {
+	out := make([]model.Ingredient, 0, len(in))
+	for i, item := range in {
+		name := strings.TrimSpace(item.Name)
+		amount := strings.TrimSpace(item.Amount)
+		if name == "" && amount == "" {
+			continue
+		}
+		if name == "" {
+			return nil, &IngredientError{Row: i + 1, Err: ErrNameRequired}
+		}
+		quantity, format, err := parseAmount(amount)
+		if err != nil {
+			return nil, &IngredientError{Row: i + 1, Err: err}
+		}
+		out = append(out, model.Ingredient{Name: name, Quantity: quantity, Format: format})
+	}
+	return out, nil
+}
+
+// parseAmount は量の文字列から数量と書式を取り出す。数が無ければ数量はnilで、書式は量そのもの。
+func parseAmount(amount string) (*float64, string, error) {
+	locs := amountNumber.FindAllStringIndex(amount, -1)
+	switch {
+	case len(locs) == 0:
+		return nil, amount, nil
+	case len(locs) > 1:
+		return nil, "", ErrAmountTooManyNumbers
+	}
+	start, end := locs[0][0], locs[0][1]
+	// 正規表現を通った文字列なので、構文エラーは起こらない。残るのは範囲外だけで、
+	// 大きすぎれば無限大、小さすぎれば0になる。
+	q, _ := strconv.ParseFloat(halfWidth.Replace(amount[start:end]), 64)
+	if math.IsInf(q, 0) {
+		return nil, "", ErrAmountTooLarge
+	}
+	return &q, amount[:start] + "{0}" + amount[end:], nil
 }
 
 func (s *RecipeService) IncrementCookedCount(ctx context.Context, id int64) (model.Recipe, error) {

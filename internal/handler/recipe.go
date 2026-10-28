@@ -28,6 +28,22 @@ type recipeRequest struct {
 	Body string `json:"body"`
 	// Tagsは無い・nullのときは空として扱い、タグを全部外す。
 	Tags []string `json:"tags"`
+	// Ingredientsも無い・nullのときは空として扱い、材料を全部外す。
+	Ingredients []ingredientRequest `json:"ingredients"`
+}
+
+// ingredientRequest は材料1行のJSON。amountは量の文字列。
+type ingredientRequest struct {
+	Name   string `json:"name"`
+	Amount string `json:"amount"`
+}
+
+func (r recipeRequest) ingredientInputs() []service.IngredientInput {
+	out := make([]service.IngredientInput, len(r.Ingredients))
+	for i, ing := range r.Ingredients {
+		out[i] = service.IngredientInput{Name: ing.Name, Amount: ing.Amount}
+	}
+	return out
 }
 
 // importItemRequest は取り込む1件のJSON。title以外は省略・null可。
@@ -93,7 +109,7 @@ func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Create(r.Context(), req.Name, req.Body, req.Tags)
+	rec, err := h.svc.Create(r.Context(), req.Name, req.Body, req.Tags, req.ingredientInputs())
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -110,7 +126,7 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body, req.Tags)
+	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body, req.Tags, req.ingredientInputs())
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -298,10 +314,11 @@ func decodeRecipeRequest(w http.ResponseWriter, r *http.Request) (recipeRequest,
 // writeServiceError はserviceのエラーをHTTPステータスに振り分けて書き出す。
 func writeServiceError(w http.ResponseWriter, err error) {
 	var importErr *service.ImportError
+	var ingErr *service.IngredientError
 	switch {
 	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrImportEmpty):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.As(err, &importErr):
+	case errors.As(err, &importErr), errors.As(err, &ingErr):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrNotFound), errors.Is(err, service.ErrImageNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
