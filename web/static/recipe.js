@@ -6,7 +6,7 @@ const editMode = $("edit-mode");
 
 let current = null; // 表示中のレシピ。新規作成中はnull
 let mode = "view";
-let snapshot = { name: "", body: "", tags: [] };
+let snapshot = { name: "", body: "", tags: [], ingredients: [] };
 let editTags = []; // 編集中のタグ名
 let tagOptions = []; // タグ入力欄の候補(GET /api/tags)
 let busy = false;
@@ -201,6 +201,100 @@ async function loadTagOptions() {
   } catch {}
 }
 
+// 編集フォームの材料の行の値は入力欄を正とする(入力のたびに描き直すとフォーカスとIMEの変換が切れるため)
+function createIngredientRow(name, amount) {
+  const li = document.createElement("li");
+  li.className = "ingredient-row";
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "ingredient-name";
+  nameInput.placeholder = "材料";
+  nameInput.setAttribute("aria-label", "材料の名前");
+  nameInput.autocomplete = "off";
+  nameInput.enterKeyHint = "next";
+  nameInput.value = name;
+  nameInput.addEventListener("input", updateIngredientLabels);
+  nameInput.addEventListener("keydown", onIngredientEnter);
+  const amountInput = document.createElement("input");
+  amountInput.type = "text";
+  amountInput.className = "ingredient-amount";
+  amountInput.placeholder = "量";
+  amountInput.setAttribute("aria-label", "量");
+  amountInput.autocomplete = "off";
+  amountInput.enterKeyHint = "next";
+  amountInput.value = amount;
+  amountInput.addEventListener("keydown", onIngredientEnter);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "icon-only";
+  button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+  button.addEventListener("click", () => removeIngredientRow(li));
+  li.append(nameInput, amountInput, button);
+  return li;
+}
+
+function renderEditIngredients(ingredients) {
+  const rows = ingredients.map((i) => createIngredientRow(i.name, formatAmount(i.format, i.quantity)));
+  if (rows.length === 0) rows.push(createIngredientRow("", ""));
+  $("edit-ingredients").replaceChildren(...rows);
+  updateIngredientLabels();
+}
+
+// 外すボタンの名前は、名前のある行は「「名前」を外す」、名前の無い行は区別のため「N行目の材料を外す」にする
+function updateIngredientLabels() {
+  Array.from($("edit-ingredients").children).forEach((li, index) => {
+    const name = li.querySelector(".ingredient-name").value.trim();
+    const label = name === "" ? (index + 1) + "行目の材料を外す" : "「" + name + "」を外す";
+    const button = li.querySelector("button");
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  });
+}
+
+function addIngredientRow() {
+  const li = createIngredientRow("", "");
+  $("edit-ingredients").append(li);
+  updateIngredientLabels();
+  li.querySelector(".ingredient-name").focus();
+}
+
+// 外した行のあとはフォーカスを落とさず、詰めてきた同じ位置の行(末尾なら1つ前、無ければ「追加」)へ移す
+function removeIngredientRow(li) {
+  const list = $("edit-ingredients");
+  const index = Array.from(list.children).indexOf(li);
+  li.remove();
+  updateIngredientLabels();
+  const next = list.children[Math.min(index, list.children.length - 1)];
+  (next ? next.querySelector("button") : $("add-ingredient-button")).focus();
+}
+
+// 日本語入力の変換を確定するEnterでは移らない。名前→同じ行の量→次の行の名前へ移り、最後の行なら行を足す
+function onIngredientEnter(e) {
+  if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+  e.preventDefault(); // フォームの送信を止める
+  const li = e.target.closest("li");
+  if (e.target.classList.contains("ingredient-name")) {
+    li.querySelector(".ingredient-amount").focus();
+    return;
+  }
+  const next = li.nextElementSibling;
+  if (next) next.querySelector(".ingredient-name").focus();
+  else addIngredientRow();
+}
+
+// 画面の順の材料。名前も量も空の行も含める(サーバーの「材料N行目」を画面の行と合わせるため)
+function readIngredientRows() {
+  return Array.from($("edit-ingredients").children, (li) => ({
+    name: li.querySelector(".ingredient-name").value,
+    amount: li.querySelector(".ingredient-amount").value,
+  }));
+}
+
+// 名前も量も空の行は保存で捨てられるので、未保存の変更の判定からは除く
+function meaningfulIngredients(rows) {
+  return rows.filter((r) => r.name.trim() !== "" || r.amount.trim() !== "");
+}
+
 function showLoadError(message) {
   $("load-error").textContent = message;
 }
@@ -238,11 +332,12 @@ function showEdit(recipe) {
   const name = recipe ? recipe.name : "";
   const body = recipe ? recipe.body : "";
   editTags = recipe ? recipe.tags.slice() : [];
-  snapshot = { name, body, tags: editTags.slice() };
   $("edit-name").value = name;
   $("edit-body").value = body;
   $("tag-input").value = "";
   renderEditTags();
+  renderEditIngredients(recipe ? recipe.ingredients : []);
+  snapshot = { name, body, tags: editTags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
   loadTagOptions();
   clearImageChange();
   renderEditImage();
@@ -261,6 +356,7 @@ function isDirty() {
     $("edit-body").value !== snapshot.body ||
     editTags.join("\n") !== snapshot.tags.join("\n") ||
     $("tag-input").value.trim() !== "" ||
+    JSON.stringify(meaningfulIngredients(readIngredientRows())) !== JSON.stringify(snapshot.ingredients) ||
     imageChange !== null
   );
 }
@@ -301,9 +397,7 @@ async function save(event) {
   if (busy) return;
   clearErrors();
   commitTagInput();
-  // 画面に材料欄が無い間も保存で材料が消えないよう、読み込んだ材料を量の文字列に戻して送り返す
-  const ingredients = current ? current.ingredients.map((i) => ({ name: i.name, amount: formatAmount(i.format, i.quantity) })) : [];
-  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags, ingredients };
+  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags, ingredients: readIngredientRows() };
   setBusy(true);
   let saved = null;
   try {
@@ -327,10 +421,11 @@ async function save(event) {
       // 名前と本文は保存済み。画像の変更を残したまま編集フォームにとどまる
       current = saved;
       editTags = saved.tags.slice();
-      snapshot = { name: saved.name, body: saved.body, tags: saved.tags.slice() };
       $("edit-name").value = saved.name;
       $("edit-body").value = saved.body;
       renderEditTags();
+      renderEditIngredients(saved.ingredients);
+      snapshot = { name: saved.name, body: saved.body, tags: saved.tags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
     }
     showError(e.message);
   } finally {
@@ -429,6 +524,7 @@ $("add-tag-button").addEventListener("click", () => {
   commitTagInput();
   $("tag-input").focus();
 });
+$("add-ingredient-button").addEventListener("click", addIngredientRow);
 $("tag-input").addEventListener("keydown", (e) => {
   // 日本語入力の変換を確定するEnterではタグを足さない(keyCode 229はSafari向け)
   if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;

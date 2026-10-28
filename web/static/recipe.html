@@ -39,6 +39,11 @@
 #edit-tags:not(:empty) { margin-top: 0.5rem; }
 .tag-input-row { display: flex; gap: 0.5rem; }
 .tag-input-row input { flex: 1; }
+.ingredient-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.ingredient-rows:not(:empty) { margin-bottom: 0.5rem; }
+.ingredient-row { display: flex; gap: 0.5rem; }
+.ingredient-row .ingredient-name { flex: 1; min-width: 0; }
+.ingredient-row .ingredient-amount { flex: 0 0 7rem; min-width: 0; }
 </style>
 </head>
 <body>
@@ -88,6 +93,10 @@
         </div>
       </div>
       <input type="file" id="image-input" accept="image/*" hidden>
+    </div>
+    <div class="ingredient-field" role="group" aria-label="材料">
+      <ul id="edit-ingredients" class="ingredient-rows"></ul>
+      <button type="button" id="add-ingredient-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
     </div>
     <textarea id="edit-body" rows="15" placeholder="本文" aria-label="本文"></textarea>
   </form>
