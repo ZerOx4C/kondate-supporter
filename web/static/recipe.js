@@ -425,6 +425,92 @@ function meaningfulIngredients(rows) {
   return rows.filter((r) => r.name.trim() !== "" || r.amount.trim() !== "");
 }
 
+// 本文から材料を集める判定。量の数は半角・全角の整数・小数・分数と、それらの範囲(〜・～・~)を1つの数とする
+const AMOUNT_VALUE = "[0-9０-９]+(?:[/／][0-9０-９]+|[.．][0-9０-９]+)?";
+const AMOUNT_NUMBER = new RegExp(AMOUNT_VALUE + "(?:[〜～~]" + AMOUNT_VALUE + ")?", "g");
+const AMOUNT_PREFIX = /(大さじ|小さじ|大|小)\s*$/;
+const TRAILING_NOTE = /[（(][^（）()]*[）)]$/;
+const MAX_CANDIDATE_NAME = 20;
+
+// 量の中の分数を小数第2位までに四捨五入した小数に直す(分母が0のものはそのまま)
+function fractionsToDecimals(amount) {
+  return amount.replace(/([0-9０-９]+)[/／]([0-9０-９]+)/g, (whole, a, b) => {
+    const half = (s) => Number(s.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)));
+    const d = half(b);
+    return d === 0 ? whole : String(Math.round(half(a) / d * 100) / 100);
+  });
+}
+
+// 本文の行から材料らしい行を探し、[{name, amount}] を行の順で返す
+function collectIngredientCandidates(text) {
+  const candidates = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim().replace(TRAILING_NOTE, "").trim();
+    if (line === "" || !/^\p{L}/u.test(line) || /[、。：:]/.test(line)) continue;
+    const numbers = Array.from(line.matchAll(AMOUNT_NUMBER));
+    if (numbers.length === 0) continue;
+    let start = numbers[numbers.length - 1].index;
+    const prefix = AMOUNT_PREFIX.exec(line.slice(0, start));
+    if (prefix) start = prefix.index;
+    const name = line.slice(0, start).trim();
+    if (name === "" || Array.from(name).length > MAX_CANDIDATE_NAME) continue;
+    candidates.push({ name, amount: fractionsToDecimals(line.slice(start)) });
+  }
+  return candidates;
+}
+
+// 名前も量も空の行を外してから、候補を材料の行の末尾に足す
+function appendIngredientRows(rows) {
+  const list = $("edit-ingredients");
+  for (const li of Array.from(list.children)) {
+    if (li.querySelector(".ingredient-name").value.trim() === "" && li.querySelector(".ingredient-amount").value.trim() === "") li.remove();
+  }
+  list.append(...rows.map((r) => createIngredientRow(r.name, r.amount)));
+  updateIngredientLabels();
+}
+
+const collectDialog = $("collect-dialog");
+let collectCandidates = [];
+
+function openCollectDialog() {
+  if (busy) return;
+  collectCandidates = collectIngredientCandidates($("edit-body").value);
+  const empty = collectCandidates.length === 0;
+  $("collect-empty").hidden = !empty;
+  $("collect-candidates").hidden = empty;
+  $("collect-ok").hidden = empty;
+  $("collect-cancel").textContent = empty ? "閉じる" : "キャンセル";
+  $("collect-candidates").replaceChildren(...collectCandidates.map((c) => {
+    const li = document.createElement("li");
+    const label = document.createElement("label");
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = true;
+    const name = document.createElement("span");
+    name.className = "collect-name";
+    name.textContent = c.name;
+    const amount = document.createElement("span");
+    amount.className = "collect-amount";
+    amount.textContent = c.amount;
+    label.append(check, name, amount);
+    li.append(label);
+    return li;
+  }));
+  updateCollectOk();
+  collectDialog.showModal();
+}
+
+// チェックが1つも無い間は「追加」を押せなくする
+function updateCollectOk() {
+  $("collect-ok").disabled = $("collect-candidates").querySelector("input:checked") === null;
+}
+
+function addCollectedIngredients() {
+  const checks = Array.from($("collect-candidates").querySelectorAll("input"));
+  appendIngredientRows(collectCandidates.filter((c, i) => checks[i].checked));
+  collectDialog.close();
+}
+
 function showLoadError(message) {
   $("load-error").textContent = message;
 }
@@ -655,6 +741,13 @@ $("add-tag-button").addEventListener("click", () => {
   $("tag-input").focus();
 });
 $("add-ingredient-button").addEventListener("click", addIngredientRow);
+$("collect-ingredients-button").addEventListener("click", openCollectDialog);
+$("collect-candidates").addEventListener("change", updateCollectOk);
+$("collect-ok").addEventListener("click", addCollectedIngredients);
+$("collect-cancel").addEventListener("click", () => collectDialog.close());
+onOutsideTap(collectDialog, () => collectDialog.close());
+// 閉じたあとは、足した行の入力欄へ移さず押したボタンに戻す(スマホで画面キーボードが出るのを避ける)
+collectDialog.addEventListener("close", () => $("collect-ingredients-button").focus());
 $("tag-input").addEventListener("keydown", (e) => {
   // 日本語入力の変換を確定するEnterではタグを足さない(keyCode 229はSafari向け)
   if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;

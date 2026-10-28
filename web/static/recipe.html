@@ -49,6 +49,13 @@
 @media (prefers-reduced-motion: reduce) { .ingredient-rows.sorting .ingredient-row:not(.dragging) { transition: none; } }
 .ingredient-row .ingredient-name { flex: 1; min-width: 0; }
 .ingredient-row .ingredient-amount { flex: 0 0 7rem; min-width: 0; }
+#collect-dialog-title { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.collect-candidates { list-style: none; margin: 0 0 1rem; padding: 0; max-height: 50vh; overflow-y: auto; }
+.collect-candidates li + li { border-top: 1px solid #ddd; }
+.collect-candidates label { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; cursor: pointer; }
+.collect-candidates input[type="checkbox"] { width: 1.25rem; height: 1.25rem; margin: 0; flex: none; }
+.collect-name { flex: 1; overflow-wrap: anywhere; }
+.collect-amount { text-align: right; overflow-wrap: break-word; }
 </style>
 </head>
 <body>
@@ -101,7 +108,10 @@
     </div>
     <div class="ingredient-field" role="group" aria-label="材料">
       <ul id="edit-ingredients" class="ingredient-rows"></ul>
-      <button type="button" id="add-ingredient-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
+      <div class="actions">
+        <button type="button" id="add-ingredient-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
+        <button type="button" id="collect-ingredients-button"><i class="ti ti-text-scan-2" aria-hidden="true"></i>本文から集める</button>
+      </div>
     </div>
     <textarea id="edit-body" rows="15" placeholder="本文" aria-label="本文"></textarea>
   </form>
@@ -115,6 +125,18 @@
     <div class="actions">
       <button type="button" id="confirm-ok" class="danger"></button>
       <button type="button" id="confirm-cancel">キャンセル</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="collect-dialog" aria-labelledby="collect-dialog-title">
+  <div class="dialog-inner">
+    <h2 id="collect-dialog-title">本文から集めた材料</h2>
+    <p id="collect-empty" hidden>本文に材料らしい行がありません</p>
+    <ul id="collect-candidates" class="collect-candidates"></ul>
+    <div class="actions">
+      <button type="button" id="collect-ok"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
+      <button type="button" id="collect-cancel">キャンセル</button>
     </div>
   </div>
 </dialog>
