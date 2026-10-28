@@ -143,6 +143,19 @@ function renderViewTags(names) {
   }));
 }
 
+// 閲覧表示の材料は名前と量(書式に数量を当てはめた文字列)の2列の表にする
+function renderViewIngredients(ingredients) {
+  $("view-ingredients").tBodies[0].replaceChildren(...ingredients.map((i) => {
+    const tr = document.createElement("tr");
+    for (const text of [i.name, formatAmount(i.format, i.quantity)]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.append(td);
+    }
+    return tr;
+  }));
+}
+
 // 編集中の札と、まだ付けていないタグだけの候補を描き直す。札ごとに「外す」ボタンを付ける
 function renderEditTags() {
   $("edit-tags").replaceChildren(...editTags.map((name) => {
@@ -204,6 +217,8 @@ function showView(recipe) {
   if (recipe.image_url) viewImage.src = recipe.image_url;
   else viewImage.removeAttribute("src");
   viewImage.hidden = !recipe.image_url;
+  renderViewIngredients(recipe.ingredients);
+  $("view-ingredients").hidden = recipe.ingredients.length === 0;
   renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
