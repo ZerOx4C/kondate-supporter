@@ -224,12 +224,19 @@ function createIngredientRow(name, amount) {
   amountInput.enterKeyHint = "next";
   amountInput.value = amount;
   amountInput.addEventListener("keydown", onIngredientEnter);
+  const handle = document.createElement("button");
+  handle.type = "button";
+  handle.className = "icon-only ingredient-handle";
+  handle.innerHTML = '<i class="ti ti-grip-vertical" aria-hidden="true"></i>';
+  handle.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
+  handle.addEventListener("pointerdown", startIngredientDrag);
+  handle.addEventListener("keydown", onIngredientHandleKey);
   const button = document.createElement("button");
   button.type = "button";
-  button.className = "icon-only";
+  button.className = "icon-only ingredient-remove";
   button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
   button.addEventListener("click", () => removeIngredientRow(li));
-  li.append(nameInput, amountInput, button);
+  li.append(handle, nameInput, amountInput, button);
   return li;
 }
 
@@ -240,14 +247,16 @@ function renderEditIngredients(ingredients) {
   updateIngredientLabels();
 }
 
-// 外すボタンの名前は、名前のある行は「「名前」を外す」、名前の無い行は区別のため「N行目の材料を外す」にする
+// 外すボタンと掴む部分の名前は、名前のある行は「「名前」を外す/動かす」、名前の無い行は区別のため「N行目の材料を外す/動かす」にする
 function updateIngredientLabels() {
   Array.from($("edit-ingredients").children).forEach((li, index) => {
     const name = li.querySelector(".ingredient-name").value.trim();
-    const label = name === "" ? (index + 1) + "行目の材料を外す" : "「" + name + "」を外す";
-    const button = li.querySelector("button");
-    button.setAttribute("aria-label", label);
-    button.title = label;
+    for (const [selector, verb] of [[".ingredient-remove", "外す"], [".ingredient-handle", "動かす"]]) {
+      const label = name === "" ? (index + 1) + "行目の材料を" + verb : "「" + name + "」を" + verb;
+      const button = li.querySelector(selector);
+      button.setAttribute("aria-label", label);
+      button.title = label;
+    }
   });
 }
 
@@ -265,7 +274,128 @@ function removeIngredientRow(li) {
   li.remove();
   updateIngredientLabels();
   const next = list.children[Math.min(index, list.children.length - 1)];
-  (next ? next.querySelector("button") : $("add-ingredient-button")).focus();
+  (next ? next.querySelector(".ingredient-remove") : $("add-ingredient-button")).focus();
+}
+
+// 掴む部分のドラッグ。掴んだ行はtransformで指に付けて動かし、DOMの順は離したときに1回だけ入れ替える
+// (動かしている間に入れ替えると行の位置が変わり、入る位置の計算も見た目も跳ぶため)
+let ingredientDrag = null;
+const AUTO_SCROLL_EDGE = 48;
+const AUTO_SCROLL_MAX = 12;
+
+function startIngredientDrag(e) {
+  if (busy || ingredientDrag || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+  e.preventDefault();
+  const handle = e.currentTarget;
+  const list = $("edit-ingredients");
+  const rows = Array.from(list.children);
+  const row = handle.closest("li");
+  const rects = rows.map((li) => {
+    const rect = li.getBoundingClientRect();
+    return { top: rect.top + window.scrollY, height: rect.height };
+  });
+  const index = rows.indexOf(row);
+  handle.focus();
+  handle.setPointerCapture(e.pointerId);
+  ingredientDrag = {
+    handle, list, rows, row, index, rects, target: index,
+    pointerId: e.pointerId,
+    shift: rects[index].height + (parseFloat(getComputedStyle(list).rowGap) || 0),
+    startPageY: e.clientY + window.scrollY,
+    clientY: e.clientY,
+    frame: 0,
+  };
+  list.classList.add("sorting");
+  row.classList.add("dragging");
+  handle.addEventListener("pointermove", onIngredientDragMove);
+  handle.addEventListener("pointerup", onIngredientDragUp);
+  handle.addEventListener("pointercancel", onIngredientDragCancel);
+  handle.addEventListener("lostpointercapture", onIngredientDragCancel);
+  window.addEventListener("scroll", updateIngredientDrag);
+  ingredientDrag.frame = requestAnimationFrame(autoScrollIngredientDrag);
+}
+
+function onIngredientDragMove(e) {
+  if (e.pointerId !== ingredientDrag.pointerId) return;
+  ingredientDrag.clientY = e.clientY;
+  updateIngredientDrag();
+}
+
+function onIngredientDragUp(e) {
+  if (e.pointerId === ingredientDrag.pointerId) endIngredientDrag(true);
+}
+
+function onIngredientDragCancel(e) {
+  if (e.pointerId === ingredientDrag.pointerId) endIngredientDrag(false);
+}
+
+function updateIngredientDrag() {
+  const d = ingredientDrag;
+  const offset = d.clientY + window.scrollY - d.startPageY;
+  const center = d.rects[d.index].top + d.rects[d.index].height / 2 + offset;
+  let target = 0;
+  d.rows.forEach((li, j) => {
+    if (j !== d.index && d.rects[j].top + d.rects[j].height / 2 < center) target++;
+  });
+  d.target = target;
+  d.rows.forEach((li, j) => {
+    if (j === d.index) {
+      li.style.transform = "translateY(" + offset + "px)";
+    } else if (j < d.index && j >= target) {
+      li.style.transform = "translateY(" + d.shift + "px)";
+    } else if (j > d.index && j <= target) {
+      li.style.transform = "translateY(" + -d.shift + "px)";
+    } else {
+      li.style.transform = "";
+    }
+  });
+}
+
+// 表示領域の上端・下端に近づけている間、近いほど速くスクロールする
+function autoScrollIngredientDrag() {
+  const d = ingredientDrag;
+  let speed = 0;
+  if (d.clientY < AUTO_SCROLL_EDGE) speed = -AUTO_SCROLL_MAX * Math.min(1, (AUTO_SCROLL_EDGE - d.clientY) / AUTO_SCROLL_EDGE);
+  else if (d.clientY > window.innerHeight - AUTO_SCROLL_EDGE) speed = AUTO_SCROLL_MAX * Math.min(1, (d.clientY - (window.innerHeight - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
+  if (speed !== 0) window.scrollBy(0, speed); // scrollイベントがupdateIngredientDragを呼ぶ
+  d.frame = requestAnimationFrame(autoScrollIngredientDrag);
+}
+
+// 動きのアニメーションを止めてからtransformを外す(順が逆だと、外す瞬間に行が元の位置へ戻って見える)
+function endIngredientDrag(commit) {
+  const d = ingredientDrag;
+  cancelAnimationFrame(d.frame);
+  window.removeEventListener("scroll", updateIngredientDrag);
+  d.handle.removeEventListener("pointermove", onIngredientDragMove);
+  d.handle.removeEventListener("pointerup", onIngredientDragUp);
+  d.handle.removeEventListener("pointercancel", onIngredientDragCancel);
+  d.handle.removeEventListener("lostpointercapture", onIngredientDragCancel);
+  if (d.handle.hasPointerCapture(d.pointerId)) d.handle.releasePointerCapture(d.pointerId);
+  d.list.classList.remove("sorting");
+  for (const li of d.rows) li.style.transform = "";
+  d.row.classList.remove("dragging");
+  if (commit && d.target !== d.index) {
+    const others = d.rows.filter((li) => li !== d.row);
+    d.list.insertBefore(d.row, others[d.target] || null);
+    updateIngredientLabels();
+  }
+  ingredientDrag = null;
+  d.handle.focus();
+}
+
+function onIngredientHandleKey(e) {
+  if ((e.key !== "ArrowUp" && e.key !== "ArrowDown") || busy || ingredientDrag) return;
+  e.preventDefault(); // ページのスクロールを止める
+  const row = e.currentTarget.closest("li");
+  if (e.key === "ArrowUp") {
+    if (row.previousElementSibling) row.parentElement.insertBefore(row, row.previousElementSibling);
+    else return;
+  } else {
+    if (row.nextElementSibling) row.parentElement.insertBefore(row, row.nextElementSibling.nextElementSibling);
+    else return;
+  }
+  updateIngredientLabels();
+  e.currentTarget.focus(); // DOMの中で動かすとフォーカスが外れるブラウザがある
 }
 
 // 日本語入力の変換を確定するEnterでは移らない。名前→同じ行の量→次の行の名前へ移り、最後の行なら行を足す

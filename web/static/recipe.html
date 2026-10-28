@@ -42,6 +42,11 @@
 .ingredient-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .ingredient-rows:not(:empty) { margin-bottom: 0.5rem; }
 .ingredient-row { display: flex; gap: 0.5rem; }
+.ingredient-handle { cursor: grab; touch-action: none; }
+.ingredient-rows.sorting .ingredient-handle { cursor: grabbing; }
+.ingredient-rows.sorting .ingredient-row:not(.dragging) { transition: transform 0.15s; }
+.ingredient-row.dragging { position: relative; z-index: 1; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+@media (prefers-reduced-motion: reduce) { .ingredient-rows.sorting .ingredient-row:not(.dragging) { transition: none; } }
 .ingredient-row .ingredient-name { flex: 1; min-width: 0; }
 .ingredient-row .ingredient-amount { flex: 0 0 7rem; min-width: 0; }
 </style>
