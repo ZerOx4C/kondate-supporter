@@ -55,7 +55,14 @@
 .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 #bookmark-filter-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
 #selected-tags:empty { display: none; }
-#sort-select { margin-left: auto; }
+#sort-button { margin-left: auto; padding: 0 0.6rem; gap: 0.1rem; }
+#sort-dir-icon { font-size: 1rem; }
+#sort-menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
+#sort-menu::backdrop { background: transparent; }
+#sort-options { list-style: none; margin: 0; padding: 0; }
+#sort-options button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
+#sort-options .ti { visibility: hidden; }
+#sort-options button[aria-current="true"] .ti { visibility: visible; }
 #filter-empty { margin: 1rem 0 0; color: #555; }
 .dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .dialog-header h2 { margin: 0; font-size: 1.1rem; }
@@ -82,12 +89,7 @@
     <button type="button" id="bookmark-filter-button" class="icon-only" aria-pressed="false" aria-label="ブックマークで絞り込む" title="ブックマークで絞り込む"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
     <button type="button" id="tag-filter-button"><i class="ti ti-filter" aria-hidden="true"></i>タグ</button>
     <ul id="selected-tags" class="tags removable"></ul>
-    <select id="sort-select" aria-label="並び順">
-      <option value="new">新着順</option>
-      <option value="name">名前順</option>
-      <option value="cooked-desc">作った回数が多い順</option>
-      <option value="cooked-asc">作った回数が少ない順</option>
-    </select>
+    <button type="button" id="sort-button"><i id="sort-key-icon" class="ti" aria-hidden="true"></i><i id="sort-dir-icon" class="ti" aria-hidden="true"></i></button>
   </div>
   <p class="error" id="list-error"></p>
   <ul id="recipe-list"></ul>
@@ -107,6 +109,8 @@
     <p id="tag-options-empty" hidden></p>
   </div>
 </dialog>
+
+<dialog id="sort-menu" aria-label="並び順"><ul id="sort-options"></ul></dialog>
 
 <script src="common.js"></script>
 <script src="recipes.js"></script>

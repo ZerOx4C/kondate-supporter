@@ -13,11 +13,12 @@ const POPULAR_TAG = "好評"; // 一覧タイルを強調するタグ名(完全�
 const nameCollator = new Intl.Collator("ja");
 function compareNew(a, b) { return b.id - a.id; }
 function compareName(a, b) { return nameCollator.compare(a.name, b.name) || compareNew(a, b); }
-const SORT_COMPARATORS = {
-  new: compareNew,
-  name: compareName,
-  "cooked-desc": (a, b) => b.cooked_count - a.cooked_count || compareName(a, b),
-  "cooked-asc": (a, b) => a.cooked_count - b.cooked_count || compareName(a, b),
+// 並び順ごとの表示(基準のアイコンと降順か)と比較関数。キーの並びがメニューの順
+const SORT_ORDERS = {
+  new: { label: "新着順", icon: "ti-clock", desc: true, compare: compareNew },
+  name: { label: "名前順", icon: "ti-abc", desc: false, compare: compareName },
+  "cooked-desc": { label: "作った回数が多い順", icon: "ti-chef-hat", desc: true, compare: (a, b) => b.cooked_count - a.cooked_count || compareName(a, b) },
+  "cooked-asc": { label: "作った回数が少ない順", icon: "ti-chef-hat", desc: false, compare: (a, b) => a.cooked_count - b.cooked_count || compareName(a, b) },
 };
 
 // 大文字小文字・全角半角・ひらがなカタカナを区別せずに比べるための正規化
@@ -55,7 +56,7 @@ function readBookmarkFromUrl() {
 // 知らない値・new は新着順として扱う
 function readSortFromUrl() {
   const v = new URLSearchParams(location.search).get("sort");
-  return v !== null && v !== "new" && Object.hasOwn(SORT_COMPARATORS, v) ? v : "new";
+  return v !== null && v !== "new" && Object.hasOwn(SORT_ORDERS, v) ? v : "new";
 }
 
 function writeUrl() {
@@ -75,7 +76,7 @@ function matchesSearch(recipe) {
 }
 
 function filteredRecipes() {
-  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesSearch(r)).sort(SORT_COMPARATORS[sortOrder]);
+  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesSearch(r)).sort(SORT_ORDERS[sortOrder].compare);
 }
 
 function setSelected(name, on) {
@@ -337,9 +338,56 @@ $("bookmark-filter-button").addEventListener("click", () => {
   applyFilter();
 });
 
-$("sort-select").addEventListener("change", (e) => {
-  sortOrder = e.target.value;
-  applyFilter();
+const sortMenu = $("sort-menu");
+function renderSortButton() {
+  const order = SORT_ORDERS[sortOrder];
+  $("sort-key-icon").className = "ti " + order.icon;
+  $("sort-dir-icon").className = "ti " + (order.desc ? "ti-caret-down" : "ti-caret-up");
+  const label = "並び順: " + order.label;
+  $("sort-button").setAttribute("aria-label", label);
+  $("sort-button").title = label;
+}
+
+$("sort-options").replaceChildren(...Object.entries(SORT_ORDERS).map(([key, order]) => {
+  const li = document.createElement("li");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.sort = key;
+  button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+  button.append(order.label);
+  button.addEventListener("click", () => {
+    if (key !== sortOrder) {
+      sortOrder = key;
+      renderSortButton();
+      applyFilter();
+    }
+    sortMenu.close();
+  });
+  li.appendChild(button);
+  return li;
+}));
+
+// ボタンの直下に右端をそろえて置く。文書の座標なのでページと一緒にスクロールする
+function placeSortMenu() {
+  const rect = $("sort-button").getBoundingClientRect();
+  const margin = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  sortMenu.style.top = rect.bottom + window.scrollY + "px";
+  sortMenu.style.left = Math.max(margin, rect.right + window.scrollX - sortMenu.offsetWidth) + "px";
+}
+
+$("sort-button").addEventListener("click", () => {
+  const options = [...$("sort-options").querySelectorAll("button")];
+  for (const b of options) {
+    if (b.dataset.sort === sortOrder) b.setAttribute("aria-current", "true");
+    else b.removeAttribute("aria-current");
+  }
+  sortMenu.showModal();
+  placeSortMenu();
+  options.find((b) => b.dataset.sort === sortOrder).focus();
+});
+onOutsideTap(sortMenu, () => sortMenu.close());
+window.addEventListener("resize", () => {
+  if (sortMenu.open) placeSortMenu();
 });
 
 const tagDialog = $("tag-dialog");
@@ -401,6 +449,7 @@ async function loadList() {
     allTags = [];
     selectedTags = [];
     bookmarkOnly = false;
+    sortMenu.close();
     $("recipe-list").replaceChildren();
     $("selected-tags").replaceChildren();
     $("search-box").hidden = true;
@@ -419,7 +468,7 @@ async function loadList() {
   selectedTags = readSelectedFromUrl();
   bookmarkOnly = readBookmarkFromUrl();
   sortOrder = readSortFromUrl();
-  $("sort-select").value = sortOrder;
+  renderSortButton();
   applyFilter();
 }
 
