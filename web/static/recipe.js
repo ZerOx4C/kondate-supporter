@@ -429,6 +429,7 @@ function meaningfulIngredients(rows) {
 const AMOUNT_VALUE = "[0-9０-９]+(?:[/／][0-9０-９]+|[.．][0-9０-９]+)?";
 const AMOUNT_NUMBER = new RegExp(AMOUNT_VALUE + "(?:[〜～~]" + AMOUNT_VALUE + ")?", "g");
 const AMOUNT_PREFIX = /(大さじ|小さじ|大|小)\s*$/;
+const AMOUNT_WORD = /(適量|少々|適宜|少量)$/;
 const TRAILING_NOTE = /[（(][^（）()]*[）)]$/;
 const MAX_CANDIDATE_NAME = 20;
 
@@ -448,10 +449,17 @@ function collectIngredientCandidates(text) {
     const line = raw.trim().replace(TRAILING_NOTE, "").trim();
     if (line === "" || !/^\p{L}/u.test(line) || /[、。：:]/.test(line)) continue;
     const numbers = Array.from(line.matchAll(AMOUNT_NUMBER));
-    if (numbers.length === 0) continue;
-    let start = numbers[numbers.length - 1].index;
-    const prefix = AMOUNT_PREFIX.exec(line.slice(0, start));
-    if (prefix) start = prefix.index;
+    let start;
+    if (numbers.length > 0) {
+      start = numbers[numbers.length - 1].index;
+      const prefix = AMOUNT_PREFIX.exec(line.slice(0, start));
+      if (prefix) start = prefix.index;
+    } else {
+      // 数が無い行は、末尾が量を表す語のときだけ拾う
+      const word = AMOUNT_WORD.exec(line);
+      if (!word) continue;
+      start = word.index;
+    }
     const name = line.slice(0, start).trim();
     if (name === "" || Array.from(name).length > MAX_CANDIDATE_NAME) continue;
     candidates.push({ name, amount: fractionsToDecimals(line.slice(start)) });
