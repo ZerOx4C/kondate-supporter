@@ -342,7 +342,7 @@ const sortMenu = $("sort-menu");
 function renderSortButton() {
   const order = SORT_ORDERS[sortOrder];
   $("sort-key-icon").className = "ti " + order.icon;
-  $("sort-dir-icon").className = "ti " + (order.desc ? "ti-caret-down" : "ti-caret-up");
+  $("sort-dir-icon").className = "ti " + (order.desc ? "ti-sort-descending" : "ti-sort-ascending");
   const label = "並び順: " + order.label;
   $("sort-button").setAttribute("aria-label", label);
   $("sort-button").title = label;
