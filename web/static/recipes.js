@@ -367,14 +367,6 @@ $("sort-options").replaceChildren(...Object.entries(SORT_ORDERS).map(([key, orde
   return li;
 }));
 
-// ボタンの直下に右端をそろえて置く。文書の座標なのでページと一緒にスクロールする
-function placeMenu(menu, anchor) {
-  const rect = anchor.getBoundingClientRect();
-  const margin = parseFloat(getComputedStyle(document.documentElement).fontSize);
-  menu.style.top = rect.bottom + window.scrollY + "px";
-  menu.style.left = Math.max(margin, rect.right + window.scrollX - menu.offsetWidth) + "px";
-}
-
 $("sort-button").addEventListener("click", () => {
   const options = [...$("sort-options").querySelectorAll("button")];
   for (const b of options) {
@@ -387,19 +379,11 @@ $("sort-button").addEventListener("click", () => {
 });
 onOutsideTap(sortMenu, () => sortMenu.close());
 
-const mainMenu = $("main-menu");
-$("menu-button").addEventListener("click", () => {
-  mainMenu.showModal();
-  placeMenu(mainMenu, $("menu-button"));
-  $("import-link").focus();
-});
-onOutsideTap(mainMenu, () => mainMenu.close());
-// 移る前に閉じる。開いたままだと、戻るでキャッシュから復元したときにメニューが開いて出る
-$("import-link").addEventListener("click", () => mainMenu.close());
+setupPageNav($("page-nav"));
+setupMainMenu($("menu-button"), $("main-menu"));
 
 window.addEventListener("resize", () => {
   if (sortMenu.open) placeMenu(sortMenu, $("sort-button"));
-  if (mainMenu.open) placeMenu(mainMenu, $("menu-button"));
 });
 
 const tagDialog = $("tag-dialog");

@@ -57,10 +57,6 @@
 #selected-tags:empty { display: none; }
 #sort-button { margin-left: auto; padding: 0 0.6rem; gap: 0.1rem; }
 #sort-dir-icon { font-size: 1rem; }
-.menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
-.menu::backdrop { background: transparent; }
-.menu ul { list-style: none; margin: 0; padding: 0; }
-.menu button, .menu a.button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
 #sort-options .ti { visibility: hidden; }
 #sort-options button[aria-current="true"] .ti { visibility: visible; }
 #filter-empty { margin: 1rem 0 0; color: #555; }
@@ -75,7 +71,13 @@
 <body>
 <header>
   <h1>レシピ</h1>
-  <button type="button" id="menu-button" class="icon-only" aria-label="メニュー" title="メニュー"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
+  <div class="actions">
+    <nav id="page-nav" class="page-nav" aria-label="画面の切り替え">
+      <a class="button icon-only" href="recipes.html" aria-current="page" aria-label="レシピ" title="レシピ"><i class="ti ti-book-2" aria-hidden="true"></i></a>
+      <a class="button icon-only" href="meal-plan.html" aria-label="献立" title="献立"><i class="ti ti-calendar-week" aria-hidden="true"></i></a>
+    </nav>
+    <button type="button" id="menu-button" class="icon-only" aria-label="メニュー" title="メニュー"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
+  </div>
 </header>
 <main>
   <div id="search-box" class="search-box" hidden>

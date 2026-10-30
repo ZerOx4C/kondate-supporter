@@ -26,6 +26,12 @@ textarea { resize: vertical; }
 .tags.removable .tag { padding: 0 0 0 0.75rem; font-size: 1rem; }
 .tags.removable .tag button { min-height: 44px; border: none; background: transparent; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.page-nav { display: flex; gap: 0.5rem; }
+.page-nav a.button[aria-current="page"] { background: #e7f0fa; border-color: #1a5fb4; cursor: default; }
+.menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
+.menu::backdrop { background: transparent; }
+.menu ul { list-style: none; margin: 0; padding: 0; }
+.menu button, .menu a.button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
 .error { color: #c00; }
 .error:empty { display: none; }
 dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }

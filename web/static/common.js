@@ -84,6 +84,38 @@ function formatAmount(format, quantity) {
   return quantity === null ? format : format.replace("{0}", () => String(quantity));
 }
 
+// ボタンの直下に右端をそろえて置く。文書の座標なのでページと一緒にスクロールする
+function placeMenu(menu, anchor) {
+  const rect = anchor.getBoundingClientRect();
+  const margin = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  menu.style.top = rect.bottom + window.scrollY + "px";
+  menu.style.left = Math.max(margin, rect.right + window.scrollX - menu.offsetWidth) + "px";
+}
+
+// 上部右のメニューボタンと、その下に開くメニュー。一覧と献立で共用
+function setupMainMenu(button, menu) {
+  button.addEventListener("click", () => {
+    menu.showModal();
+    placeMenu(menu, button);
+    menu.querySelector("a, button").focus();
+  });
+  onOutsideTap(menu, () => menu.close());
+  // 移る前に閉じる。開いたままだと、戻るでキャッシュから復元したときにメニューが開いて出る
+  menu.addEventListener("click", (e) => {
+    if (e.target.closest("a")) menu.close();
+  });
+  window.addEventListener("resize", () => {
+    if (menu.open) placeMenu(menu, button);
+  });
+}
+
+// 画面切り替えのリンク。今いる画面のリンクは押しても移らない(一覧の絞り込みを消さない)
+function setupPageNav(nav) {
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest('a[aria-current="page"]')) e.preventDefault();
+  });
+}
+
 // ダイアログ自身(外側)で pointerdown と click の両方が起きたときだけ外側タップとみなす
 function onOutsideTap(dialog, handler) {
   let downOnDialog = false;
