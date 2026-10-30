@@ -23,7 +23,7 @@ internal/repository/     # DBアクセス層(SQL実行のみ)
 internal/service/        # ビジネスロジック層
 internal/handler/        # HTTPハンドラ層
 web/embed.go             # web/static をembedで焼き込み、fs.FSとして提供
-web/static/              # フロントエンド(画面ごとのHTMLと同名JS。一覧 recipes.html / recipes.js、詳細 recipe.html / recipe.js、取り込み import.html / import.js、献立 meal-plan.html / meal-plan.js。画面によらないJS部品 common.js。全画面共通の既定スタイル base.css。開発モードの背景の模様 dev-mode.svg。embedでバイナリに焼き込み)
+web/static/              # フロントエンド(画面ごとのHTMLと同名JS。一覧 recipes.html / recipes.js、詳細 recipe.html / recipe.js、取り込み import.html / import.js、献立 plans.html / plans.js。画面によらないJS部品 common.js。全画面共通の既定スタイル base.css。開発モードの背景の模様 dev-mode.svg。embedでバイナリに焼き込み)
 web/static/vendor/       # 同梱した外部ライブラリ(配布ファイルのまま。tabler-icons/ にoutlineのCSS・woff2・LICENSE。版数はREADME)
 Makefile                 # make / make help(ターゲット一覧)/ make run(開発起動)/ make build-rpi(RaspberryPi Zero向けビルド)/ make build-win(Windows向けビルド。コンソールなし・ログは kondate.log)
 bin/                     # ビルド成果物の出力先(Git管理外)
@@ -245,7 +245,7 @@ URLクエリ(操作のたびに履歴を増やさずに書き戻し、読み込�
 - 成功したら欄を空にし、欄の上に「N件のレシピを取り込みました」と「一覧へ戻る」を出す
 - 失敗したら、サーバーの `error` 文言を改行どおりに欄の上へ出し、入力は残す
 
-### 献立(`meal-plan.html` / `meal-plan.js`)
+### 献立(`plans.html` / `plans.js`)
 
 - 見出し「献立」と、「一覧と献立に共通」の上部右のボタンだけを置く。DB・APIはまだ無い
 
