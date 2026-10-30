@@ -368,11 +368,11 @@ $("sort-options").replaceChildren(...Object.entries(SORT_ORDERS).map(([key, orde
 }));
 
 // ボタンの直下に右端をそろえて置く。文書の座標なのでページと一緒にスクロールする
-function placeSortMenu() {
-  const rect = $("sort-button").getBoundingClientRect();
+function placeMenu(menu, anchor) {
+  const rect = anchor.getBoundingClientRect();
   const margin = parseFloat(getComputedStyle(document.documentElement).fontSize);
-  sortMenu.style.top = rect.bottom + window.scrollY + "px";
-  sortMenu.style.left = Math.max(margin, rect.right + window.scrollX - sortMenu.offsetWidth) + "px";
+  menu.style.top = rect.bottom + window.scrollY + "px";
+  menu.style.left = Math.max(margin, rect.right + window.scrollX - menu.offsetWidth) + "px";
 }
 
 $("sort-button").addEventListener("click", () => {
@@ -382,12 +382,24 @@ $("sort-button").addEventListener("click", () => {
     else b.removeAttribute("aria-current");
   }
   sortMenu.showModal();
-  placeSortMenu();
+  placeMenu(sortMenu, $("sort-button"));
   options.find((b) => b.dataset.sort === sortOrder).focus();
 });
 onOutsideTap(sortMenu, () => sortMenu.close());
+
+const mainMenu = $("main-menu");
+$("menu-button").addEventListener("click", () => {
+  mainMenu.showModal();
+  placeMenu(mainMenu, $("menu-button"));
+  $("import-link").focus();
+});
+onOutsideTap(mainMenu, () => mainMenu.close());
+// 移る前に閉じる。開いたままだと、戻るでキャッシュから復元したときにメニューが開いて出る
+$("import-link").addEventListener("click", () => mainMenu.close());
+
 window.addEventListener("resize", () => {
-  if (sortMenu.open) placeSortMenu();
+  if (sortMenu.open) placeMenu(sortMenu, $("sort-button"));
+  if (mainMenu.open) placeMenu(mainMenu, $("menu-button"));
 });
 
 const tagDialog = $("tag-dialog");

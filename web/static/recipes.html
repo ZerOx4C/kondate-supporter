@@ -57,10 +57,10 @@
 #selected-tags:empty { display: none; }
 #sort-button { margin-left: auto; padding: 0 0.6rem; gap: 0.1rem; }
 #sort-dir-icon { font-size: 1rem; }
-#sort-menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
-#sort-menu::backdrop { background: transparent; }
-#sort-options { list-style: none; margin: 0; padding: 0; }
-#sort-options button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
+.menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
+.menu::backdrop { background: transparent; }
+.menu ul { list-style: none; margin: 0; padding: 0; }
+.menu button, .menu a.button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
 #sort-options .ti { visibility: hidden; }
 #sort-options button[aria-current="true"] .ti { visibility: visible; }
 #filter-empty { margin: 1rem 0 0; color: #555; }
@@ -75,7 +75,7 @@
 <body>
 <header>
   <h1>レシピ</h1>
-  <a class="button icon-only" href="import.html" aria-label="レシピを取り込む" title="レシピを取り込む"><i class="ti ti-file-import" aria-hidden="true"></i></a>
+  <button type="button" id="menu-button" class="icon-only" aria-label="メニュー" title="メニュー"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
 </header>
 <main>
   <div id="search-box" class="search-box" hidden>
@@ -110,7 +110,8 @@
   </div>
 </dialog>
 
-<dialog id="sort-menu" aria-label="並び順"><ul id="sort-options"></ul></dialog>
+<dialog id="sort-menu" class="menu" aria-label="並び順"><ul id="sort-options"></ul></dialog>
+<dialog id="main-menu" class="menu" aria-label="メニュー"><ul><li><a class="button" id="import-link" href="import.html">レシピを取り込む</a></li></ul></dialog>
 
 <script src="common.js"></script>
 <script src="recipes.js"></script>
