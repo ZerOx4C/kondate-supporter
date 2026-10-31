@@ -1,6 +1,6 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す。各日付のエリアは朝・昼・夜の帯に分かれる
+// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
@@ -225,7 +225,23 @@ function createPanel(recipe, planId) {
   name.textContent = recipe.name;
   link.appendChild(name);
 
-  li.append(grip, link);
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "plan-remove icon-only";
+  remove.title = "「" + recipe.name + "」を外す";
+  remove.setAttribute("aria-label", remove.title);
+  const removeIcon = document.createElement("i");
+  removeIcon.className = "ti ti-x";
+  removeIcon.setAttribute("aria-hidden", "true");
+  remove.appendChild(removeIcon);
+  remove.addEventListener("click", () => {
+    if (loading || saving || planDrag) return;
+    const next = li.nextElementSibling || li.previousElementSibling;
+    removePlan(li);
+    if (next) next.querySelector(".plan-remove").focus();
+  });
+
+  li.append(grip, link, remove);
   return li;
 }
 
@@ -449,7 +465,7 @@ async function movePlan(panel, target, index) {
   }
 }
 
-// 置いたパネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。候補には足さない
+// パネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。候補には足さない。ドラッグとボタンの両方から呼ぶ
 async function removePlan(panel) {
   const fromList = panel.parentElement;
   const origNext = panel.nextSibling;
