@@ -9,7 +9,12 @@
 <link rel="stylesheet" href="dev-mode.css">
 <style>
 #recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
-#recipe-list li { min-width: 0; }
+#recipe-list li { min-width: 0; position: relative; }
+#recipe-list .tile-candidate { position: absolute; top: 0; right: 0; align-items: flex-start; justify-content: flex-end; padding: calc(0.3rem + 1px) calc(0.3rem + 1px) 0 0; border: none; background: transparent; }
+.tile-candidate-mark { display: inline-flex; padding: 0.1rem 0.4rem; border: 1px solid #999; border-radius: 6px; background: rgba(255, 255, 255, 0.85); line-height: 1rem; }
+.tile-candidate-mark .ti { font-size: 1rem; }
+@media (hover: hover) { #recipe-list .tile-candidate:not(:disabled):hover .tile-candidate-mark { background: #f0f0f0; } }
+#recipe-list .tile-candidate:not(:disabled):active .tile-candidate-mark { background: #f0f0f0; }
 .tile { display: block; color: inherit; text-decoration: none; }
 .tile-visual { position: relative; aspect-ratio: 1 / 1; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
 .tile-visual.popular::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 7px; box-shadow: inset 0 0 1px 4px #ff8000; mix-blend-mode: plus-lighter; animation: popular-pulse 2s ease-in-out infinite; }
@@ -91,6 +96,7 @@
   <ul id="recipe-list"></ul>
   <p id="filter-empty" hidden>条件に合うレシピがありません</p>
 </main>
+<p id="toast" class="toast" role="status"></p>
 
 <button type="button" id="scroll-top-button" class="icon-only scroll-top" aria-label="先頭へ戻る" title="先頭へ戻る" hidden><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
 

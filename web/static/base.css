@@ -5,6 +5,8 @@ button, a.button { min-height: 44px; padding: 0 1rem; font-size: 1rem; display: 
 a.button { box-sizing: border-box; text-decoration: none; }
 button.icon-only, a.button.icon-only { min-width: 44px; padding: 0; }
 .scroll-top { position: fixed; right: max(1rem, calc(50% - 20rem)); bottom: 1rem; border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+.toast { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); box-sizing: border-box; max-width: calc(min(100% - 2rem, 40rem) - 2 * (44px + 0.5rem)); margin: 0; padding: 0.6rem 1rem; background: rgba(0, 0, 0, 0.8); color: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); overflow-wrap: anywhere; pointer-events: none; }
+.toast:empty { display: none; }
 button.primary { color: #1a5fb4; border-color: #1a5fb4; }
 button.danger { color: #c01c28; border-color: #c01c28; }
 @media (hover: hover) {

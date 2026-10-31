@@ -7,6 +7,7 @@ let searchKeyword = ""; // 検索のキーワード(前後の空白は除く)
 let searchScope = "name"; // 探す対象(name / body)
 let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
+const candidateBusy = new Set(); // 候補に追加を送信中のレシピのid
 const POPULAR_TAG = "好評"; // 一覧タイルを強調するタグ名(完全一致)
 
 const nameCollator = new Intl.Collator("ja");
@@ -202,8 +203,45 @@ function createTile(recipe, maxCooked) {
     visual.appendChild(cooked);
   }
   link.appendChild(visual);
-  li.appendChild(link);
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "icon-only tile-candidate";
+  add.dataset.id = String(recipe.id);
+  const label = "「" + recipe.name + "」を候補に追加";
+  add.setAttribute("aria-label", label);
+  add.title = label;
+  add.innerHTML = '<span class="tile-candidate-mark"><i class="ti ti-calendar-plus" aria-hidden="true"></i></span>';
+  add.disabled = candidateBusy.has(recipe.id);
+  add.addEventListener("click", () => addCandidate(recipe, add));
+  li.append(link, add);
   return li;
+}
+
+function candidateButton(id) {
+  return $("recipe-list").querySelector('.tile-candidate[data-id="' + id + '"]');
+}
+
+// 候補の先頭に1件足す。送信中はそのレシピのボタンだけ押せない(ダブルタップで2件入らないように)
+async function addCandidate(recipe, button) {
+  if (candidateBusy.has(recipe.id)) return;
+  const hadFocus = document.activeElement === button;
+  $("list-error").textContent = "";
+  candidateBusy.add(recipe.id);
+  button.disabled = true;
+  try {
+    await api("POST", "/api/plans", { date: null, meal: "candidate", recipe_id: recipe.id, index: 0 });
+    showToast($("toast"), "「" + recipe.name + "」を候補に追加しました");
+  } catch (e) {
+    $("list-error").textContent = "候補に追加できませんでした: " + e.message;
+  } finally {
+    candidateBusy.delete(recipe.id);
+    // 送信中に絞り込みなどで描き直されていれば、今のタイルのボタンを戻す
+    const current = candidateButton(recipe.id);
+    if (current) {
+      current.disabled = false;
+      if (hadFocus) current.focus();
+    }
+  }
 }
 
 // 1行に収まらないタグを末尾から隠し、隠した数を「+N」にまとめる

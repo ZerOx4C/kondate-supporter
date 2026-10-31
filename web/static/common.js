@@ -79,6 +79,15 @@ function setupScrollTop(button) {
   });
 }
 
+// 画面の下端中央に文言を約3秒出す。続けて呼ぶと文言を差し替えて数え直す
+const TOAST_MS = 3000;
+let toastTimer = 0;
+function showToast(element, message) {
+  clearTimeout(toastTimer);
+  element.textContent = message;
+  toastTimer = setTimeout(() => { element.textContent = ""; }, TOAST_MS);
+}
+
 // 書式に数量を当てはめて量の文字列に戻す。数量がnullなら書式のまま
 function formatAmount(format, quantity) {
   return quantity === null ? format : format.replace("{0}", () => String(quantity));
