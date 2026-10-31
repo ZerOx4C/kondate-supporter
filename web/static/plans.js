@@ -1,5 +1,6 @@
 "use strict";
-// 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置く
+// 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
+// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
@@ -178,10 +179,12 @@ function setupPeriod() {
   daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
-function createPanel(recipe, draggable) {
+// entryIdは献立に置いた行のid。候補のパネルには付けない
+function createPanel(recipe, entryId) {
   const li = document.createElement("li");
   li.className = "plan-panel";
   li.dataset.recipeId = recipe.id;
+  if (entryId !== undefined) li.dataset.entryId = entryId;
 
   const grip = document.createElement("span");
   grip.className = "plan-grip";
@@ -189,7 +192,7 @@ function createPanel(recipe, draggable) {
   const gripIcon = document.createElement("i");
   gripIcon.className = "ti ti-grip-vertical";
   grip.appendChild(gripIcon);
-  if (draggable) grip.addEventListener("pointerdown", startPlanDrag);
+  grip.addEventListener("pointerdown", startPlanDrag);
 
   const link = document.createElement("a");
   link.className = "plan-panel-link";
@@ -240,7 +243,7 @@ async function loadPlans() {
     const list = recipes
       .filter((r) => r.bookmarked)
       .sort((a, b) => nameCollator.compare(a.name, b.name) || b.id - a.id);
-    $("candidates").replaceChildren(...list.map((r) => createPanel(r, true)));
+    $("candidates").replaceChildren(...list.map((r) => createPanel(r)));
     $("candidates-empty").hidden = list.length > 0;
   } else {
     recipesById = new Map();
@@ -262,11 +265,12 @@ async function loadPlans() {
   for (const entry of entriesRes.value) {
     const list = lists.get(entry.date === null ? "" : entry.date);
     const recipe = recipesById.get(entry.recipe_id);
-    if (list && recipe) list.appendChild(createPanel(recipe, false));
+    if (list && recipe) list.appendChild(createPanel(recipe, entry.id));
   }
 }
 
-// 候補のパネルの掴む部分のドラッグ。Pointer Eventsで受ける(HTML5のドラッグ&ドロップはタッチ端末で動かないため)。
+// パネルの掴む部分のドラッグ。候補のパネルは毎日・各日付へ置き、置いたパネルは並べ替え・移動と、
+// 候補の区画への取り外しができる。Pointer Eventsで受ける(HTML5のドラッグ&ドロップはタッチ端末で動かないため)。
 // 動かしている間はパネルの写しだけを動かし、エリアの中身は動かさない(入れ替えるとエリアの位置が変わり、
 // 入る位置の計算も見た目も跳ぶため)。置き先と位置は、掴んだときに測った位置から決める。
 function startPlanDrag(e) {
@@ -275,6 +279,7 @@ function startPlanDrag(e) {
   const handle = e.currentTarget;
   const panel = handle.closest(".plan-panel");
   const panelRect = panel.getBoundingClientRect();
+  const placed = panel.dataset.entryId !== undefined;
   const targets = Array.from(document.querySelectorAll(".plan-target")).map((section) => {
     const rect = section.getBoundingClientRect();
     const list = section.querySelector(".plan-list");
@@ -291,6 +296,19 @@ function startPlanDrag(e) {
       }),
     };
   });
+  if (placed) {
+    // 候補の区画は置いたパネルを外す先で、離す位置に意味が無いので区画全体だけを測る
+    const section = $("candidates-area");
+    const rect = section.getBoundingClientRect();
+    targets.push({
+      section,
+      remove: true,
+      left: rect.left + window.scrollX,
+      right: rect.right + window.scrollX,
+      top: rect.top + window.scrollY,
+      bottom: rect.bottom + window.scrollY,
+    });
+  }
 
   const ghost = panel.cloneNode(true);
   ghost.classList.add("plan-ghost");
@@ -298,10 +316,13 @@ function startPlanDrag(e) {
   ghost.style.width = panelRect.width + "px";
   ghost.style.height = panelRect.height + "px";
   document.body.appendChild(ghost);
+  if (placed) panel.classList.add("plan-dragging");
 
   planDrag = {
     pointerId: e.pointerId,
     handle,
+    panel,
+    placed,
     recipeId: Number(panel.dataset.recipeId),
     ghost,
     offsetX: e.clientX - panelRect.left,
@@ -356,9 +377,13 @@ function updatePlanDrag() {
     d.drop = null;
     return;
   }
+  target.section.classList.add("drop-target");
+  if (target.remove) {
+    d.drop = { target };
+    return;
+  }
   const index = target.centers.filter((c) => c < y).length;
   d.drop = { target, index };
-  target.section.classList.add("drop-target");
   const before = target.list.children[index];
   if (before) before.classList.add("drop-before");
   else target.list.classList.add("drop-end");
@@ -381,9 +406,63 @@ function endPlanDrag(commit) {
   d.handle.removeEventListener("lostpointercapture", onPlanDragCancel);
   if (d.handle.hasPointerCapture(d.pointerId)) d.handle.releasePointerCapture(d.pointerId);
   d.ghost.remove();
+  d.panel.classList.remove("plan-dragging");
   clearDropMarks();
   planDrag = null;
-  if (commit && d.drop) placeEntry(d.drop.target, d.drop.index, d.recipeId);
+  if (!commit || !d.drop) return;
+  if (!d.placed) placeEntry(d.drop.target, d.drop.index, d.recipeId);
+  else if (d.drop.target.remove) removeEntry(d.panel);
+  else moveEntry(d.panel, d.drop.target, d.drop.index);
+}
+
+function dateOf(list) {
+  return list.dataset.date === "" ? null : list.dataset.date;
+}
+
+// 置いたパネルをすぐ動かして保存し、保存に失敗したら元の位置へ戻す。
+// indexは掴んだパネルを含む並びでの位置なので、保存には動かすパネルを除いた並びでの位置を送る
+async function moveEntry(panel, target, index) {
+  const fromList = panel.parentElement;
+  const fromIndex = Array.prototype.indexOf.call(fromList.children, panel);
+  const sameList = fromList === target.list;
+  if (sameList && (index === fromIndex || index === fromIndex + 1)) return;
+  const sendIndex = sameList && index > fromIndex ? index - 1 : index;
+  const fromError = fromList.closest(".plan-area").querySelector(".error");
+  const toError = target.section.querySelector(".error");
+  fromError.textContent = "";
+  toError.textContent = "";
+  const origNext = panel.nextSibling;
+  target.list.insertBefore(panel, target.list.children[index] || null);
+  saving = true;
+  try {
+    await api("PUT", "/api/plan-entries/" + panel.dataset.entryId, {
+      date: dateOf(target.list),
+      index: sendIndex,
+    });
+  } catch (err) {
+    fromList.insertBefore(panel, origNext);
+    fromError.textContent = "動かせませんでした: " + err.message;
+  } finally {
+    saving = false;
+  }
+}
+
+// 置いたパネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。ブックマークは変えない
+async function removeEntry(panel) {
+  const fromList = panel.parentElement;
+  const origNext = panel.nextSibling;
+  const fromError = fromList.closest(".plan-area").querySelector(".error");
+  fromError.textContent = "";
+  panel.remove();
+  saving = true;
+  try {
+    await api("DELETE", "/api/plan-entries/" + panel.dataset.entryId);
+  } catch (err) {
+    fromList.insertBefore(panel, origNext);
+    fromError.textContent = "外せませんでした: " + err.message;
+  } finally {
+    saving = false;
+  }
 }
 
 // 置いたパネルをすぐ並べて保存し、保存に失敗したら取り除く
@@ -392,15 +471,16 @@ async function placeEntry(target, index, recipeId) {
   if (!recipe) return;
   const errorEl = target.section.querySelector(".error");
   errorEl.textContent = "";
-  const panel = createPanel(recipe, false);
+  const panel = createPanel(recipe);
   target.list.insertBefore(panel, target.list.children[index] || null);
   saving = true;
   try {
-    await api("POST", "/api/plan-entries", {
-      date: target.list.dataset.date === "" ? null : target.list.dataset.date,
+    const created = await api("POST", "/api/plan-entries", {
+      date: dateOf(target.list),
       recipe_id: recipeId,
       index,
     });
+    panel.dataset.entryId = created.id;
   } catch (err) {
     panel.remove();
     errorEl.textContent = "置けませんでした: " + err.message;

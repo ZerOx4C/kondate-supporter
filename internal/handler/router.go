@@ -32,6 +32,8 @@ func NewRouter(staticFS fs.FS, recipes *RecipeHandler, plans *PlanHandler, devMo
 	mux.HandleFunc("GET /api/tags", recipes.ListTags)
 	mux.HandleFunc("GET /api/plan-entries", plans.List)
 	mux.HandleFunc("POST /api/plan-entries", plans.Create)
+	mux.HandleFunc("PUT /api/plan-entries/{id}", plans.Move)
+	mux.HandleFunc("DELETE /api/plan-entries/{id}", plans.Delete)
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/recipes.html", http.StatusFound)
 	})

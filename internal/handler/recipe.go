@@ -321,7 +321,8 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.As(err, &importErr), errors.As(err, &ingErr):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrNotFound), errors.Is(err, service.ErrImageNotFound):
+	case errors.Is(err, service.ErrNotFound), errors.Is(err, service.ErrImageNotFound),
+		errors.Is(err, service.ErrPlanEntryNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
 	default:
 		log.Printf("handler: %v", err)
