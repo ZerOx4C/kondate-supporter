@@ -7,6 +7,25 @@
 <link rel="stylesheet" href="vendor/tabler-icons/tabler-icons.min.css">
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="dev-mode.css">
+<style>
+  .period { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
+  .period-start-wrap { position: relative; display: inline-flex; }
+  .period-start-wrap input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+  #period-days-input { width: 4em; min-height: 44px; box-sizing: border-box; font: inherit; font-size: 1rem; padding: 0.5rem; border: 1px solid #999; border-radius: 8px; }
+  .plan-area h2 { margin: 1.5rem 0 0.5rem; font-size: 1.1rem; }
+  .plan-list { list-style: none; margin: 0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; min-height: 3rem; border: 1px solid #ccc; border-radius: 8px; }
+  .plan-panel { display: flex; align-items: center; background: #fff; border: 1px solid #999; border-radius: 8px; }
+  .plan-grip { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; color: #999; }
+  .plan-panel-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; color: inherit; text-decoration: none; border-radius: 0 8px 8px 0; }
+  .plan-panel-link:active { background: #f0f0f0; }
+  @media (hover: hover) {
+    .plan-panel-link:hover { background: #f0f0f0; }
+  }
+  .plan-thumb { width: 44px; height: 44px; flex: none; object-fit: cover; border-radius: 4px; }
+  .plan-thumb-placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #999; }
+  .plan-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #candidates-empty { margin: 0; color: #555; }
+</style>
 </head>
 <body>
 <header>
@@ -21,6 +40,35 @@
 </header>
 
 <dialog id="main-menu" class="menu" aria-label="メニュー"><ul><li><a class="button" id="import-link" href="import.html">レシピを取り込む</a></li></ul></dialog>
+
+<main>
+  <div class="period" role="group" aria-label="期間">
+    <button type="button" id="period-prev" class="icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+    <span class="period-start-wrap">
+      <button type="button" id="period-start" title="開始日を選ぶ"></button>
+      <input type="date" id="period-start-input" tabindex="-1" aria-hidden="true">
+    </span>
+    <span>から</span>
+    <button type="button" id="period-days" title="日数を変える"></button>
+    <input type="number" id="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
+    <span>日間</span>
+    <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+  </div>
+
+  <section class="plan-area" aria-labelledby="candidates-title">
+    <h2 id="candidates-title">候補</h2>
+    <p class="error" id="candidates-error"></p>
+    <ul class="plan-list" id="candidates"></ul>
+    <p id="candidates-empty" hidden>ブックマークしたレシピがここに並びます</p>
+  </section>
+
+  <section class="plan-area" aria-labelledby="daily-title">
+    <h2 id="daily-title">毎日</h2>
+    <ul class="plan-list" id="daily-list"></ul>
+  </section>
+
+  <div id="day-areas"></div>
+</main>
 
 <script src="common.js"></script>
 <script src="plans.js"></script>
