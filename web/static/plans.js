@@ -1,6 +1,6 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる
+// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれ、見出しのボタンで畳める(畳んだ日付は置き先にならない)
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
@@ -8,6 +8,7 @@ const MIN_DAYS = 1;
 const MAX_DAYS = 31;
 const WEEKDAYS = "日月火水木金土";
 const MEALS = [["breakfast", "朝"], ["lunch", "昼"], ["dinner", "夜"]];
+const MEAL_ICONS = { breakfast: "ti-haze", lunch: "ti-sun-high", dinner: "ti-moon" };
 
 let periodStart;
 let periodDays;
@@ -84,12 +85,38 @@ function renderPeriod() {
     section.className = "plan-area plan-target";
     section.setAttribute("aria-labelledby", "day-title-" + i);
     const h2 = document.createElement("h2");
-    h2.id = "day-title-" + i;
-    h2.textContent = formatDay(addDays(periodStart, i));
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "plan-day-toggle";
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-controls", "day-body-" + i);
+    const caret = document.createElement("i");
+    caret.className = "ti ti-caret-down";
+    caret.setAttribute("aria-hidden", "true");
+    const date = document.createElement("span");
+    date.className = "plan-day-date";
+    date.id = "day-title-" + i;
+    date.textContent = formatDay(addDays(periodStart, i));
+    const counts = document.createElement("span");
+    counts.className = "plan-day-counts";
+    for (const [meal] of MEALS) {
+      const count = document.createElement("span");
+      count.className = "plan-day-count";
+      count.dataset.meal = meal;
+      const icon = document.createElement("i");
+      icon.className = "ti " + MEAL_ICONS[meal];
+      icon.setAttribute("aria-hidden", "true");
+      count.append(icon, document.createElement("span"));
+      counts.appendChild(count);
+    }
+    toggle.append(caret, date, counts);
+    toggle.addEventListener("click", () => toggleDay(toggle));
+    h2.appendChild(toggle);
     const error = document.createElement("p");
     error.className = "error";
     const day = document.createElement("div");
     day.className = "plan-day";
+    day.id = "day-body-" + i;
     for (const [meal, label] of MEALS) {
       const list = document.createElement("ul");
       list.className = "plan-list plan-meal";
@@ -102,6 +129,31 @@ function renderPeriod() {
     areas.push(section);
   }
   $("day-areas").replaceChildren(...areas);
+  updateDayCounts();
+}
+
+// 見出しのボタンで朝・昼・夜の帯の枠だけを畳む。エラー欄は畳まない。畳んだ状態は覚えない。
+// ドラッグ中は、掴んだときに測った置き先の位置がずれるので開閉しない
+function toggleDay(toggle) {
+  if (planDrag) return;
+  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.querySelector(".ti").className = "ti " + (expanded ? "ti-caret-down" : "ti-caret-right");
+  $(toggle.getAttribute("aria-controls")).hidden = !expanded;
+}
+
+// 各日付の見出しの件数と読み上げ名を、帯の中身から数え直す(畳んだ日付も数える)
+function updateDayCounts() {
+  for (const section of document.querySelectorAll("#day-areas .plan-area")) {
+    const toggle = section.querySelector(".plan-day-toggle");
+    let label = section.querySelector(".plan-day-date").textContent;
+    for (const [meal, name] of MEALS) {
+      const n = section.querySelector('.plan-meal[data-meal="' + meal + '"]').children.length;
+      toggle.querySelector('.plan-day-count[data-meal="' + meal + '"] span').textContent = String(n);
+      label += " " + name + n + "件";
+    }
+    toggle.setAttribute("aria-label", label);
+  }
 }
 
 function changePeriod() {
@@ -268,6 +320,7 @@ async function loadPlans() {
   if (plansRes.status === "rejected" || recipesRes.status === "rejected") {
     const reason = plansRes.status === "rejected" ? plansRes.reason : recipesRes.reason;
     $("plans-error").textContent = "献立を読み込めませんでした: " + reason.message;
+    updateDayCounts();
     return;
   }
   for (const plan of plansRes.value) {
@@ -275,6 +328,7 @@ async function loadPlans() {
     const recipe = recipesById.get(plan.recipe_id);
     if (list && recipe) list.appendChild(createPanel(recipe, plan.id));
   }
+  updateDayCounts();
 }
 
 // パネルの掴む部分のドラッグ。候補のパネルは毎日・各日付へ動かし(候補からは消える)、置いたパネルは並べ替え・移動と、
@@ -302,9 +356,13 @@ function startPlanDrag(e) {
       return r.top + window.scrollY + r.height / 2;
     }),
   });
-  const targets = Array.from(document.querySelectorAll(".plan-target .plan-list")).map((list) =>
-    measure(list.getBoundingClientRect(), list));
+  // 畳んだ日付は帯の大きさが0で入った先も見えないので、帯も区画も置き先にしない
+  const folded = (el) => el.closest(".plan-area").querySelector(".plan-day")?.hidden;
+  const targets = Array.from(document.querySelectorAll(".plan-target .plan-list"))
+    .filter((list) => !folded(list))
+    .map((list) => measure(list.getBoundingClientRect(), list));
   for (const section of document.querySelectorAll(".plan-target")) {
+    if (folded(section)) continue;
     targets.push(measure(section.getBoundingClientRect(), section.querySelector(".plan-list")));
   }
   if (placed) {
@@ -433,6 +491,7 @@ async function movePlan(panel, target, index) {
   toError.textContent = "";
   const origNext = panel.nextSibling;
   target.list.insertBefore(panel, target.list.children[index] || null);
+  updateDayCounts();
   saving = true;
   try {
     await api("PUT", "/api/plans/" + panel.dataset.planId, {
@@ -442,6 +501,7 @@ async function movePlan(panel, target, index) {
     });
   } catch (err) {
     fromList.insertBefore(panel, origNext);
+    updateDayCounts();
     fromError.textContent = "動かせませんでした: " + err.message;
   } finally {
     saving = false;
@@ -455,11 +515,13 @@ async function removePlan(panel) {
   const fromError = fromList.closest(".plan-area").querySelector(".error");
   fromError.textContent = "";
   panel.remove();
+  updateDayCounts();
   saving = true;
   try {
     await api("DELETE", "/api/plans/" + panel.dataset.planId);
   } catch (err) {
     fromList.insertBefore(panel, origNext);
+    updateDayCounts();
     fromError.textContent = "外せませんでした: " + err.message;
   } finally {
     saving = false;
