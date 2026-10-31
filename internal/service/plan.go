@@ -23,6 +23,9 @@ const (
 	mealBreakfast = "breakfast"
 	mealLunch     = "lunch"
 	mealDinner    = "dinner"
+
+	// mealCandidate は日付の無い行だけが取る、献立の候補を表すmeal。
+	mealCandidate = "candidate"
 )
 
 type PlanService struct {
@@ -33,7 +36,7 @@ func NewPlanService(repo *repository.PlanRepository) *PlanService {
 	return &PlanService{repo: repo}
 }
 
-// List は毎日と、from〜toの日付に置いた行を返す。from・toは実在する"YYYY-MM-DD"だけ受け付ける。
+// List は毎日と候補と、from〜toの日付に置いた行を返す。from・toは実在する"YYYY-MM-DD"だけ受け付ける。
 func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, error) {
 	f, err := time.Parse(dateLayout, from)
 	if err != nil {
@@ -50,13 +53,14 @@ func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, 
 }
 
 // checkArea はdateとmealの組を検査し、保存するmealを返す。
-// 毎日(dateがnil)はmealを付けられず、日付の行は朝・昼・夜のどれかが要る。
+// 日付の無い行は、mealが無ければ毎日、candidateなら候補で、朝・昼・夜は付けられない。
+// 日付の行は朝・昼・夜のどれかが要り、candidateは付けられない。
 func checkArea(date, meal *string) (*string, error) {
 	if date == nil {
-		if meal != nil {
+		if meal != nil && *meal != mealCandidate {
 			return nil, ErrMealInvalid
 		}
-		return nil, nil
+		return meal, nil
 	}
 	if _, err := time.Parse(dateLayout, *date); err != nil {
 		return nil, ErrDateInvalid
@@ -71,7 +75,7 @@ func checkArea(date, meal *string) (*string, error) {
 	return nil, ErrMealInvalid
 }
 
-// Add はdateとmealのエリアのindex番目にレシピを置く。dateがnilなら毎日で、mealは付けられない。
+// Add はdateとmealのエリアのindex番目にレシピを置く。dateがnilなら毎日(mealもnil)か候補(mealがcandidate)。
 // indexが負なら先頭に置く。
 func (s *PlanService) Add(ctx context.Context, date, meal *string, recipeID int64, index int) (model.Plan, error) {
 	meal, err := checkArea(date, meal)
@@ -101,7 +105,7 @@ func (s *PlanService) Move(ctx context.Context, id int64, date, meal *string, in
 	return e, err
 }
 
-// Delete は置いた行idを献立から外す。レシピとブックマークは変えない。
+// Delete は置いた行idを献立から外す。レシピは変えない。
 func (s *PlanService) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }

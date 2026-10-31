@@ -37,13 +37,13 @@
   .plan-meal[data-meal="breakfast"] { background: #e7f1f8; }
   .plan-meal[data-meal="lunch"] { background: #fff1db; }
   .plan-meal[data-meal="dinner"] { background: #efe6ee; }
-  /* 空の帯・空の毎日・空の候補の背景のアイコン。文字コードは同梱の tabler-icons.min.css の ti-haze / ti-sun-high / ti-moon / ti-bookmark の値を写したもの */
+  /* 空の帯・空の毎日・空の候補の背景のアイコン。文字コードは同梱の tabler-icons.min.css の ti-haze / ti-sun-high / ti-moon / ti-calendar-plus の値を写したもの */
   .plan-meal:empty::before, #daily-list:empty::before, #candidates:empty::before { margin: auto; font-family: "tabler-icons"; font-size: 2rem; line-height: 1; color: rgba(0, 0, 0, 0.15); pointer-events: none; }
   .plan-meal[data-meal="breakfast"]:empty::before { content: "\efaa"; content: "\efaa" / ""; }
   .plan-meal[data-meal="lunch"]:empty::before { content: "\f236"; content: "\f236" / ""; }
   .plan-meal[data-meal="dinner"]:empty::before { content: "\eaf8"; content: "\eaf8" / ""; }
   #daily-list:empty::before { content: "\efaa\2002\f236\2002\eaf8"; content: "\efaa\2002\f236\2002\eaf8" / ""; white-space: nowrap; }
-  #candidates:empty::before { content: "\ea3a"; content: "\ea3a" / ""; }
+  #candidates:empty::before { content: "\ebba"; content: "\ebba" / ""; }
   .plan-list:not(.plan-meal).drop-target { background: #e8f1ff; border-color: #3b82f6; }
   .plan-meal.drop-target { box-shadow: inset 0 0 0 2px #3b82f6; }
   .plan-panel.drop-before::before, .plan-list.drop-end::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: #3b82f6; }
@@ -88,7 +88,7 @@
   <section class="plan-area" id="candidates-area" aria-labelledby="candidates-title">
     <h2 id="candidates-title">候補</h2>
     <p class="error" id="candidates-error"></p>
-    <ul class="plan-list" id="candidates"></ul>
+    <ul class="plan-list" id="candidates" data-date="" data-meal="candidate"></ul>
   </section>
 
   <section class="plan-area plan-target" aria-labelledby="daily-title">

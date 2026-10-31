@@ -16,14 +16,14 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 	return &PlanRepository{db: db}
 }
 
-// List は毎日と、from〜to(両端を含む)の日付に置いた行を返す。毎日が先で、その後は日付順、
+// List は毎日と候補と、from〜to(両端を含む)の日付に置いた行を返す。毎日、候補の順で、その後は日付順、
 // 同じ日付の中は朝・昼・夜の順、同じエリアの中は並び順。0件のときは空スライスを返す。
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]model.Plan, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, date, meal, recipe_id FROM plans
 		WHERE date IS NULL OR date BETWEEN ? AND ?
 		ORDER BY date IS NOT NULL, date,
-			CASE meal WHEN 'breakfast' THEN 0 WHEN 'lunch' THEN 1 WHEN 'dinner' THEN 2 END,
+			CASE meal WHEN 'candidate' THEN 0 WHEN 'breakfast' THEN 1 WHEN 'lunch' THEN 2 WHEN 'dinner' THEN 3 END,
 			position, id`, from, to)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]model.Pla
 }
 
 // Add はdateとmealのエリアの0始まりのindex番目にレシピを置き、置いた行を返す。indexが件数以上なら末尾に置く。
-// dateがnilなら毎日で、mealもnilになる。レシピが無ければErrNotFoundを返す。
+// dateがnilなら毎日(mealもnil)か候補(mealがcandidate)。レシピが無ければErrNotFoundを返す。
 // 並び順を表すpositionは連番とは限らないので、index番目の行のpositionを探し、それ以降を1つずつずらして入れる。
 func (r *PlanRepository) Add(ctx context.Context, date, meal *string, recipeID int64, index int) (model.Plan, error) {
 	var e model.Plan

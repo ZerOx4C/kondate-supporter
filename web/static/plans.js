@@ -9,8 +9,6 @@ const MAX_DAYS = 31;
 const WEEKDAYS = "日月火水木金土";
 const MEALS = [["breakfast", "朝"], ["lunch", "昼"], ["dinner", "夜"]];
 
-const nameCollator = new Intl.Collator("ja");
-
 let periodStart;
 let periodDays;
 let editingDays = false;
@@ -187,7 +185,7 @@ function setupPeriod() {
   daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
-// planIdは献立に置いた行のid。候補のパネルには付けない
+// planIdは行のid。候補のパネルにも付ける。置いた直後で保存の応答を待つパネルには無い
 function createPanel(recipe, planId) {
   const li = document.createElement("li");
   li.className = "plan-panel";
@@ -245,21 +243,10 @@ async function loadPlans() {
   if (seq !== loadSeq) return;
   loading = false;
 
-  if (recipesRes.status === "fulfilled") {
-    const recipes = recipesRes.value;
-    recipesById = new Map(recipes.map((r) => [r.id, r]));
-    const list = recipes
-      .filter((r) => r.bookmarked)
-      .sort((a, b) => nameCollator.compare(a.name, b.name) || b.id - a.id);
-    $("candidates").replaceChildren(...list.map((r) => createPanel(r)));
-  } else {
-    recipesById = new Map();
-    $("candidates").replaceChildren();
-    $("candidates-error").textContent = "候補を読み込めませんでした: " + recipesRes.reason.message;
-  }
+  recipesById = recipesRes.status === "fulfilled" ? new Map(recipesRes.value.map((r) => [r.id, r])) : new Map();
 
   const lists = new Map();
-  for (const list of document.querySelectorAll(".plan-target .plan-list")) {
+  for (const list of document.querySelectorAll(".plan-list")) {
     list.replaceChildren();
     lists.set(list.dataset.date + "/" + (list.dataset.meal || ""), list);
   }
@@ -285,7 +272,7 @@ function startPlanDrag(e) {
   const handle = e.currentTarget;
   const panel = handle.closest(".plan-panel");
   const panelRect = panel.getBoundingClientRect();
-  const placed = panel.dataset.planId !== undefined;
+  const placed = panel.parentElement !== $("candidates");
   // 置き先は毎日と、各日付の朝・昼・夜の帯。後ろに区画ごとの予備を置き、日付の見出しやエラー欄の上で
   // 離したときは区画の最初の帯(朝)の先頭に入れる
   const measure = (rect, list) => ({
@@ -462,7 +449,7 @@ async function movePlan(panel, target, index) {
   }
 }
 
-// 置いたパネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。ブックマークは変えない
+// 置いたパネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。候補には足さない
 async function removePlan(panel) {
   const fromList = panel.parentElement;
   const origNext = panel.nextSibling;
@@ -511,7 +498,7 @@ setupPeriod();
 loadPeriod();
 renderPeriod();
 loadPlans();
-// 戻るでキャッシュから復元されたとき、詳細で変えたブックマークを反映する
+// 戻るでキャッシュから復元されたとき、詳細で変えた名前・画像や削除を反映する
 window.addEventListener("pageshow", (e) => {
   if (e.persisted) loadPlans();
 });
