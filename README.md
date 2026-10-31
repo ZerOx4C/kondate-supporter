@@ -23,7 +23,7 @@ CDNは使わず、配布ファイルを無編集のまま `web/static/vendor/` �
 |---|---|---|---|
 | Tabler Icons Webfont(`@tabler/icons-webfont`。outline) | 3.49.0 | MIT | `web/static/vendor/tabler-icons/` |
 
-更新するときは、パッケージの `dist/tabler-icons.min.css`・`dist/fonts/tabler-icons.woff2`・`LICENSE` を差し替え、上の版数を書き換える。
+更新するときは、パッケージの `dist/tabler-icons.min.css`・`dist/fonts/tabler-icons.woff2`・`LICENSE` を差し替え、上の版数を書き換える。差し替えたら、`web/static/plans.html` の空の帯のアイコンの文字コード(`content`)が、新しい `tabler-icons.min.css` の同じアイコンの値と同じか確かめ、違えば直す。
 
 ## セットアップ・開発時の起動
 
