@@ -14,19 +14,27 @@ let cookedPressed = false; // このページで「作った」を押した状�
 let leaving = false; // 画面内で確認済みの遷移中。trueの間はbeforeunloadで確認しない
 let imageChange = null; // 編集中の画像の変更。null=変更なし / {blob,url}=新しい画像 / "remove"=外す
 
-// 一覧から来たときだけブラウザの戻るで一覧へ戻る(一覧の絞り込み条件などをURLごと残すため)
-const cameFromList = (() => {
+// 一覧か献立から来たときだけブラウザの戻るで戻る(一覧の絞り込み条件などをURLごと残すため)
+const cameFrom = (() => {
   try {
     const ref = new URL(document.referrer);
-    return ref.origin === location.origin && ref.pathname === "/recipes.html";
-  } catch {
-    return false;
-  }
+    if (ref.origin !== location.origin) return null;
+    if (ref.pathname === "/recipes.html") return "list";
+    if (ref.pathname === "/plans.html") return "plans";
+  } catch {}
+  return null;
 })();
 
-function leaveToList(replace) {
+if (cameFrom === "plans") {
+  const link = $("back-link");
+  link.href = "plans.html";
+  link.setAttribute("aria-label", "献立へ戻る");
+  link.title = "献立へ戻る";
+}
+
+function leaveBack(replace) {
   leaving = true;
-  if (cameFromList) history.back();
+  if (cameFrom) history.back();
   else if (replace) location.replace("recipes.html");
   else location.href = "recipes.html";
 }
@@ -589,7 +597,7 @@ async function requestCancel() {
   if (current) {
     showView(current);
   } else {
-    leaveToList(false);
+    leaveBack(false);
   }
 }
 
@@ -664,7 +672,7 @@ async function remove() {
   setBusy(true);
   try {
     await api("DELETE", "/api/recipes/" + current.id);
-    leaveToList(true);
+    leaveBack(true);
   } catch (e) {
     showError(e.message);
   } finally {
@@ -722,7 +730,7 @@ async function load() {
 $("back-link").addEventListener("click", (e) => {
   if (busy) {
     e.preventDefault();
-  } else if (cameFromList) {
+  } else if (cameFrom) {
     e.preventDefault();
     history.back();
   }
