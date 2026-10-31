@@ -9,13 +9,7 @@
 <link rel="stylesheet" href="dev-mode.css">
 <style>
 #recipe-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
-#recipe-list li { min-width: 0; position: relative; }
-#recipe-list .tile-bookmark { position: absolute; top: 0; left: 0; align-items: flex-start; justify-content: flex-start; padding: calc(0.3rem + 1px) 0 0 0.3rem; border: none; background: transparent; }
-.tile-bookmark-mark { display: inline-flex; padding: 0.1rem 0.4rem; border: 1px solid #999; border-radius: 6px; background: rgba(255, 255, 255, 0.85); line-height: 1rem; }
-.tile-bookmark-mark .ti { font-size: 1rem; }
-@media (hover: hover) { #recipe-list .tile-bookmark[aria-pressed="false"]:not(:disabled):hover .tile-bookmark-mark { background: #f0f0f0; } }
-#recipe-list .tile-bookmark[aria-pressed="false"]:not(:disabled):active .tile-bookmark-mark { background: #f0f0f0; }
-#recipe-list .tile-bookmark[aria-pressed="true"] .tile-bookmark-mark { background: #1a5fb4; color: #fff; }
+#recipe-list li { min-width: 0; }
 .tile { display: block; color: inherit; text-decoration: none; }
 .tile-visual { position: relative; aspect-ratio: 1 / 1; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
 .tile-visual.popular::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 7px; box-shadow: inset 0 0 1px 4px #ff8000; mix-blend-mode: plus-lighter; animation: popular-pulse 2s ease-in-out infinite; }
@@ -32,7 +26,7 @@
 @media (hover: hover) { .tile-tags .tag[data-tag]:hover { background: #f0f0f0; } }
 .tile-tags .tag[data-tag]:active { background: #f0f0f0; }
 .tile-name { display: block; padding: 0.3rem 0.5rem; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tile-cooked { position: absolute; top: 0.3rem; right: 0.3rem; padding: 0.1rem 0.4rem; border: 1px solid #999; border-radius: 6px; font-size: 0.9rem; line-height: 1rem; }
+.tile-cooked { position: absolute; top: 0.3rem; left: 0.3rem; padding: 0.1rem 0.4rem; border: 1px solid #999; border-radius: 6px; font-size: 0.9rem; line-height: 1rem; }
 .tile-cooked .ti { font-size: 1rem; }
 .tile-cooked[data-level="1"] { background: #ffffff; }
 .tile-cooked[data-level="2"] { background: #ffeac6; }

@@ -7,7 +7,6 @@ let searchKeyword = ""; // 検索のキーワード(前後の空白は除く)
 let searchScope = "name"; // 探す対象(name / body)
 let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
-const bookmarkBusy = new Set(); // ブックマークの付け外しを送信中のレシピid
 const POPULAR_TAG = "好評"; // 一覧タイルを強調するタグ名(完全一致)
 
 const nameCollator = new Intl.Collator("ja");
@@ -203,54 +202,8 @@ function createTile(recipe, maxCooked) {
     visual.appendChild(cooked);
   }
   link.appendChild(visual);
-  const bookmark = document.createElement("button");
-  bookmark.type = "button";
-  bookmark.className = "icon-only tile-bookmark";
-  bookmark.dataset.id = String(recipe.id);
-  bookmark.setAttribute("aria-pressed", String(recipe.bookmarked));
-  const label = "「" + recipe.name + "」をブックマーク";
-  bookmark.setAttribute("aria-label", label);
-  bookmark.title = label;
-  bookmark.innerHTML = '<span class="tile-bookmark-mark"><i class="ti ti-bookmark" aria-hidden="true"></i></span>';
-  bookmark.disabled = bookmarkBusy.has(recipe.id);
-  bookmark.addEventListener("click", () => toggleBookmark(recipe.id, bookmark));
-  li.append(link, bookmark);
+  li.appendChild(link);
   return li;
-}
-
-function bookmarkButton(id) {
-  return $("recipe-list").querySelector('.tile-bookmark[data-id="' + id + '"]');
-}
-
-// 表示中の bookmarked を見て付け外しを選び、成功したら返ってきたレシピで一覧を描き直す
-async function toggleBookmark(id, button) {
-  const recipe = recipes.find((r) => r.id === id);
-  if (!recipe || bookmarkBusy.has(id)) return;
-  const hadFocus = document.activeElement === button;
-  const index = filteredRecipes().findIndex((r) => r.id === id);
-  $("list-error").textContent = "";
-  bookmarkBusy.add(id);
-  button.disabled = true;
-  try {
-    const updated = await api(recipe.bookmarked ? "DELETE" : "PUT", "/api/recipes/" + id + "/bookmark");
-    recipes = recipes.map((r) => (r.id === id ? updated : r));
-    bookmarkBusy.delete(id);
-    renderList();
-    if (hadFocus) {
-      // 絞り込みでタイルが消えたときは、詰めてきた隣のタイルへフォーカスを移す
-      const shown = filteredRecipes();
-      const target = bookmarkButton(id)
-        ?? (shown[index] && bookmarkButton(shown[index].id))
-        ?? (shown[index - 1] && bookmarkButton(shown[index - 1].id))
-        ?? $("bookmark-filter-button");
-      target.focus();
-    }
-  } catch (e) {
-    bookmarkBusy.delete(id);
-    const current = bookmarkButton(id);
-    if (current) current.disabled = false;
-    $("list-error").textContent = e.message;
-  }
 }
 
 // 1行に収まらないタグを末尾から隠し、隠した数を「+N」にまとめる
