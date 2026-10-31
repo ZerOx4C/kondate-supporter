@@ -252,11 +252,9 @@ async function loadPlans() {
       .filter((r) => r.bookmarked)
       .sort((a, b) => nameCollator.compare(a.name, b.name) || b.id - a.id);
     $("candidates").replaceChildren(...list.map((r) => createPanel(r)));
-    $("candidates-empty").hidden = list.length > 0;
   } else {
     recipesById = new Map();
     $("candidates").replaceChildren();
-    $("candidates-empty").hidden = true;
     $("candidates-error").textContent = "候補を読み込めませんでした: " + recipesRes.reason.message;
   }
 

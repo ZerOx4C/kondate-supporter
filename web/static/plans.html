@@ -28,7 +28,6 @@
   .plan-thumb { width: 44px; height: 44px; flex: none; object-fit: cover; }
   .plan-thumb-placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #999; }
   .plan-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #candidates-empty { margin: 0; color: #555; }
   .plan-grip { touch-action: none; cursor: grab; }
   .plan-panel.plan-dragging { opacity: 0.4; }
   .plan-panel, .plan-list { position: relative; }
@@ -38,11 +37,12 @@
   .plan-meal[data-meal="breakfast"] { background: #e7f1f8; }
   .plan-meal[data-meal="lunch"] { background: #fff1db; }
   .plan-meal[data-meal="dinner"] { background: #efe6ee; }
-  /* 空の帯の背景のアイコン。文字コードは同梱の tabler-icons.min.css の ti-haze / ti-sun-high / ti-moon の値を写したもの */
-  .plan-meal:empty::before { margin: auto; font-family: "tabler-icons"; font-size: 2rem; line-height: 1; color: rgba(0, 0, 0, 0.15); pointer-events: none; }
+  /* 空の帯・空の候補の背景のアイコン。文字コードは同梱の tabler-icons.min.css の ti-haze / ti-sun-high / ti-moon / ti-bookmark の値を写したもの */
+  .plan-meal:empty::before, #candidates:empty::before { margin: auto; font-family: "tabler-icons"; font-size: 2rem; line-height: 1; color: rgba(0, 0, 0, 0.15); pointer-events: none; }
   .plan-meal[data-meal="breakfast"]:empty::before { content: "\efaa"; content: "\efaa" / ""; }
   .plan-meal[data-meal="lunch"]:empty::before { content: "\f236"; content: "\f236" / ""; }
   .plan-meal[data-meal="dinner"]:empty::before { content: "\eaf8"; content: "\eaf8" / ""; }
+  #candidates:empty::before { content: "\ea3a"; content: "\ea3a" / ""; }
   .plan-list:not(.plan-meal).drop-target { background: #e8f1ff; border-color: #3b82f6; }
   .plan-meal.drop-target { box-shadow: inset 0 0 0 2px #3b82f6; }
   .plan-panel.drop-before::before, .plan-list.drop-end::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: #3b82f6; }
@@ -88,7 +88,6 @@
     <h2 id="candidates-title">候補</h2>
     <p class="error" id="candidates-error"></p>
     <ul class="plan-list" id="candidates"></ul>
-    <p id="candidates-empty" hidden>ブックマークしたレシピがここに並びます</p>
   </section>
 
   <section class="plan-area plan-target" aria-labelledby="daily-title">
