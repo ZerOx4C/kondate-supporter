@@ -1,6 +1,6 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる
+// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
@@ -278,7 +278,7 @@ async function loadPlans() {
 }
 
 // パネルの掴む部分のドラッグ。候補のパネルは毎日・各日付へ動かし(候補からは消える)、置いたパネルは並べ替え・移動と、
-// 候補の区画への取り外しができる。Pointer Eventsで受ける(HTML5のドラッグ&ドロップはタッチ端末で動かないため)。
+// 候補の区画への移動ができる。Pointer Eventsで受ける(HTML5のドラッグ&ドロップはタッチ端末で動かないため)。
 // 動かしている間はパネルの写しだけを動かし、エリアの中身は動かさない(入れ替えるとエリアの位置が変わり、
 // 入る位置の計算も見た目も跳ぶため)。置き先と位置は、掴んだときに測った位置から決める。
 function startPlanDrag(e) {
@@ -291,7 +291,7 @@ function startPlanDrag(e) {
   // 置き先は毎日と、各日付の朝・昼・夜の帯。後ろに区画ごとの予備を置き、日付の見出しやエラー欄の上で
   // 離したときは区画の最初の帯(朝)の先頭に入れる
   const measure = (rect, list) => ({
-    section: list.closest(".plan-target"),
+    section: list.closest(".plan-area"),
     list,
     left: rect.left + window.scrollX,
     right: rect.right + window.scrollX,
@@ -308,18 +308,10 @@ function startPlanDrag(e) {
     targets.push(measure(section.getBoundingClientRect(), section.querySelector(".plan-list")));
   }
   if (placed) {
-    // 候補の区画は置いたパネルを外す先で、離す位置に意味が無いので区画全体だけを測る
-    const section = $("candidates-area");
-    const rect = section.getBoundingClientRect();
-    targets.push({
-      section,
-      list: $("candidates"),
-      remove: true,
-      left: rect.left + window.scrollX,
-      right: rect.right + window.scrollX,
-      top: rect.top + window.scrollY,
-      bottom: rect.bottom + window.scrollY,
-    });
+    // 置いたパネルのときだけ候補の区画も置き先に加える(候補の中での並べ替えは作らない)
+    const candidates = $("candidates");
+    targets.push(measure(candidates.getBoundingClientRect(), candidates));
+    targets.push(measure($("candidates-area").getBoundingClientRect(), candidates));
   }
 
   const ghost = panel.cloneNode(true);
@@ -388,10 +380,6 @@ function updatePlanDrag() {
     return;
   }
   target.list.classList.add("drop-target");
-  if (target.remove) {
-    d.drop = { target };
-    return;
-  }
   const index = target.centers.filter((c) => c < y).length;
   d.drop = { target, index };
   const before = target.list.children[index];
@@ -420,8 +408,7 @@ function endPlanDrag(commit) {
   clearDropMarks();
   planDrag = null;
   if (!commit || !d.drop) return;
-  if (d.drop.target.remove) removePlan(d.panel);
-  else movePlan(d.panel, d.drop.target, d.drop.index);
+  movePlan(d.panel, d.drop.target, d.drop.index);
 }
 
 function dateOf(list) {
@@ -432,7 +419,7 @@ function mealOf(list) {
   return list.dataset.meal || null;
 }
 
-// 候補・置いたパネルをすぐ動かして保存し、保存に失敗したら元の位置へ戻す。
+// 候補から毎日・帯へ、置いたパネルを毎日・帯・候補へすぐ動かして保存し、保存に失敗したら元の位置へ戻す。
 // indexは掴んだパネルを含む並びでの位置なので、保存には動かすパネルを除いた並びでの位置を送る
 async function movePlan(panel, target, index) {
   const fromList = panel.parentElement;
@@ -461,7 +448,7 @@ async function movePlan(panel, target, index) {
   }
 }
 
-// パネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。候補には足さない。ドラッグとボタンの両方から呼ぶ
+// パネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。候補には足さない。外すボタンから呼ぶ
 async function removePlan(panel) {
   const fromList = panel.parentElement;
   const origNext = panel.nextSibling;
