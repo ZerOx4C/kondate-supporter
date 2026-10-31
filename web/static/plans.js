@@ -1,5 +1,5 @@
 "use strict";
-// 献立。期間選択UIと、候補・毎日・各日付のエリア(毎日と各日付は枠だけ)
+// 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置く
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
@@ -12,6 +12,12 @@ const nameCollator = new Intl.Collator("ja");
 let periodStart;
 let periodDays;
 let editingDays = false;
+
+let recipesById = new Map();
+let loadSeq = 0;
+let loading = false;
+let saving = false;
+let planDrag = null;
 
 function addDays(date, n) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
@@ -75,14 +81,17 @@ function renderPeriod() {
   const areas = [];
   for (let i = 0; i < periodDays; i++) {
     const section = document.createElement("section");
-    section.className = "plan-area";
+    section.className = "plan-area plan-target";
     section.setAttribute("aria-labelledby", "day-title-" + i);
     const h2 = document.createElement("h2");
     h2.id = "day-title-" + i;
     h2.textContent = formatDay(addDays(periodStart, i));
+    const error = document.createElement("p");
+    error.className = "error";
     const list = document.createElement("ul");
     list.className = "plan-list";
-    section.append(h2, list);
+    list.dataset.date = toIsoDate(addDays(periodStart, i));
+    section.append(h2, error, list);
     areas.push(section);
   }
   $("day-areas").replaceChildren(...areas);
@@ -91,22 +100,28 @@ function renderPeriod() {
 function changePeriod() {
   savePeriod();
   renderPeriod();
+  loadPlans();
 }
 
 function endDaysEdit(commit) {
   if (!editingDays) return;
   editingDays = false;
   const input = $("period-days-input");
+  let changed = false;
   if (commit) {
     const n = Number(input.value);
-    if (input.value.trim() !== "" && isValidDays(n)) {
+    if (input.value.trim() !== "" && isValidDays(n) && n !== periodDays) {
       periodDays = n;
       savePeriod();
+      changed = true;
     }
   }
   input.hidden = true;
   $("period-days").hidden = false;
-  renderPeriod();
+  if (changed) {
+    renderPeriod();
+    loadPlans();
+  }
 }
 
 function setupPeriod() {
@@ -163,9 +178,10 @@ function setupPeriod() {
   daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
-function createPanel(recipe) {
+function createPanel(recipe, draggable) {
   const li = document.createElement("li");
   li.className = "plan-panel";
+  li.dataset.recipeId = recipe.id;
 
   const grip = document.createElement("span");
   grip.className = "plan-grip";
@@ -173,6 +189,7 @@ function createPanel(recipe) {
   const gripIcon = document.createElement("i");
   gripIcon.className = "ti ti-grip-vertical";
   grip.appendChild(gripIcon);
+  if (draggable) grip.addEventListener("pointerdown", startPlanDrag);
 
   const link = document.createElement("a");
   link.className = "plan-panel-link";
@@ -203,19 +220,192 @@ function createPanel(recipe) {
   return li;
 }
 
-async function loadCandidates() {
+async function loadPlans() {
+  const seq = ++loadSeq;
+  loading = true;
   $("candidates-error").textContent = "";
-  try {
-    const recipes = await api("GET", "/api/recipes");
+  $("plans-error").textContent = "";
+  const from = toIsoDate(periodStart);
+  const to = toIsoDate(addDays(periodStart, periodDays - 1));
+  const [recipesRes, entriesRes] = await Promise.allSettled([
+    api("GET", "/api/recipes"),
+    api("GET", "/api/plan-entries?from=" + from + "&to=" + to),
+  ]);
+  if (seq !== loadSeq) return;
+  loading = false;
+
+  if (recipesRes.status === "fulfilled") {
+    const recipes = recipesRes.value;
+    recipesById = new Map(recipes.map((r) => [r.id, r]));
     const list = recipes
       .filter((r) => r.bookmarked)
       .sort((a, b) => nameCollator.compare(a.name, b.name) || b.id - a.id);
-    $("candidates").replaceChildren(...list.map(createPanel));
+    $("candidates").replaceChildren(...list.map((r) => createPanel(r, true)));
     $("candidates-empty").hidden = list.length > 0;
-  } catch (err) {
+  } else {
+    recipesById = new Map();
     $("candidates").replaceChildren();
     $("candidates-empty").hidden = true;
-    $("candidates-error").textContent = "候補を読み込めませんでした: " + err.message;
+    $("candidates-error").textContent = "候補を読み込めませんでした: " + recipesRes.reason.message;
+  }
+
+  const lists = new Map();
+  for (const list of document.querySelectorAll(".plan-target .plan-list")) {
+    list.replaceChildren();
+    lists.set(list.dataset.date, list);
+  }
+  if (entriesRes.status === "rejected" || recipesRes.status === "rejected") {
+    const reason = entriesRes.status === "rejected" ? entriesRes.reason : recipesRes.reason;
+    $("plans-error").textContent = "献立を読み込めませんでした: " + reason.message;
+    return;
+  }
+  for (const entry of entriesRes.value) {
+    const list = lists.get(entry.date === null ? "" : entry.date);
+    const recipe = recipesById.get(entry.recipe_id);
+    if (list && recipe) list.appendChild(createPanel(recipe, false));
+  }
+}
+
+// 候補のパネルの掴む部分のドラッグ。Pointer Eventsで受ける(HTML5のドラッグ&ドロップはタッチ端末で動かないため)。
+// 動かしている間はパネルの写しだけを動かし、エリアの中身は動かさない(入れ替えるとエリアの位置が変わり、
+// 入る位置の計算も見た目も跳ぶため)。置き先と位置は、掴んだときに測った位置から決める。
+function startPlanDrag(e) {
+  if (loading || saving || planDrag || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+  e.preventDefault();
+  const handle = e.currentTarget;
+  const panel = handle.closest(".plan-panel");
+  const panelRect = panel.getBoundingClientRect();
+  const targets = Array.from(document.querySelectorAll(".plan-target")).map((section) => {
+    const rect = section.getBoundingClientRect();
+    const list = section.querySelector(".plan-list");
+    return {
+      section,
+      list,
+      left: rect.left + window.scrollX,
+      right: rect.right + window.scrollX,
+      top: rect.top + window.scrollY,
+      bottom: rect.bottom + window.scrollY,
+      centers: Array.from(list.children).map((li) => {
+        const r = li.getBoundingClientRect();
+        return r.top + window.scrollY + r.height / 2;
+      }),
+    };
+  });
+
+  const ghost = panel.cloneNode(true);
+  ghost.classList.add("plan-ghost");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.style.width = panelRect.width + "px";
+  ghost.style.height = panelRect.height + "px";
+  document.body.appendChild(ghost);
+
+  planDrag = {
+    pointerId: e.pointerId,
+    handle,
+    recipeId: Number(panel.dataset.recipeId),
+    ghost,
+    offsetX: e.clientX - panelRect.left,
+    offsetY: e.clientY - panelRect.top,
+    clientX: e.clientX,
+    clientY: e.clientY,
+    targets,
+    drop: null,
+    frame: 0,
+  };
+  handle.setPointerCapture(e.pointerId);
+  handle.addEventListener("pointermove", onPlanDragMove);
+  handle.addEventListener("pointerup", onPlanDragUp);
+  handle.addEventListener("pointercancel", onPlanDragCancel);
+  handle.addEventListener("lostpointercapture", onPlanDragCancel);
+  window.addEventListener("scroll", updatePlanDrag);
+  updatePlanDrag();
+  planDrag.frame = requestAnimationFrame(autoScrollPlanDrag);
+}
+
+function onPlanDragMove(e) {
+  if (e.pointerId !== planDrag.pointerId) return;
+  planDrag.clientX = e.clientX;
+  planDrag.clientY = e.clientY;
+  updatePlanDrag();
+}
+
+function onPlanDragUp(e) {
+  if (e.pointerId === planDrag.pointerId) endPlanDrag(true);
+}
+
+function onPlanDragCancel(e) {
+  if (e.pointerId === planDrag.pointerId) endPlanDrag(false);
+}
+
+function clearDropMarks() {
+  for (const el of document.querySelectorAll(".drop-target, .drop-before, .drop-end")) {
+    el.classList.remove("drop-target", "drop-before", "drop-end");
+  }
+}
+
+function updatePlanDrag() {
+  const d = planDrag;
+  d.ghost.style.left = d.clientX - d.offsetX + "px";
+  d.ghost.style.top = d.clientY - d.offsetY + "px";
+
+  const x = d.clientX + window.scrollX;
+  const y = d.clientY + window.scrollY;
+  const target = d.targets.find((t) => x >= t.left && x <= t.right && y >= t.top && y <= t.bottom);
+  clearDropMarks();
+  if (!target) {
+    d.drop = null;
+    return;
+  }
+  const index = target.centers.filter((c) => c < y).length;
+  d.drop = { target, index };
+  target.section.classList.add("drop-target");
+  const before = target.list.children[index];
+  if (before) before.classList.add("drop-before");
+  else target.list.classList.add("drop-end");
+}
+
+// 表示領域の上端・下端に近づけている間、近いほど速くスクロールする
+function autoScrollPlanDrag() {
+  const speed = autoScrollSpeed(planDrag.clientY);
+  if (speed !== 0) window.scrollBy(0, speed); // scrollイベントがupdatePlanDragを呼ぶ
+  planDrag.frame = requestAnimationFrame(autoScrollPlanDrag);
+}
+
+function endPlanDrag(commit) {
+  const d = planDrag;
+  cancelAnimationFrame(d.frame);
+  window.removeEventListener("scroll", updatePlanDrag);
+  d.handle.removeEventListener("pointermove", onPlanDragMove);
+  d.handle.removeEventListener("pointerup", onPlanDragUp);
+  d.handle.removeEventListener("pointercancel", onPlanDragCancel);
+  d.handle.removeEventListener("lostpointercapture", onPlanDragCancel);
+  if (d.handle.hasPointerCapture(d.pointerId)) d.handle.releasePointerCapture(d.pointerId);
+  d.ghost.remove();
+  clearDropMarks();
+  planDrag = null;
+  if (commit && d.drop) placeEntry(d.drop.target, d.drop.index, d.recipeId);
+}
+
+// 置いたパネルをすぐ並べて保存し、保存に失敗したら取り除く
+async function placeEntry(target, index, recipeId) {
+  const recipe = recipesById.get(recipeId);
+  if (!recipe) return;
+  const errorEl = target.section.querySelector(".error");
+  errorEl.textContent = "";
+  const panel = createPanel(recipe, false);
+  target.list.insertBefore(panel, target.list.children[index] || null);
+  saving = true;
+  try {
+    await api("POST", "/api/plan-entries", {
+      date: target.list.dataset.date === "" ? null : target.list.dataset.date,
+      recipe_id: recipeId,
+      index,
+    });
+  } catch (err) {
+    panel.remove();
+    errorEl.textContent = "置けませんでした: " + err.message;
+  } finally {
+    saving = false;
   }
 }
 
@@ -224,8 +414,8 @@ setupMainMenu($("menu-button"), $("main-menu"));
 setupPeriod();
 loadPeriod();
 renderPeriod();
-loadCandidates();
+loadPlans();
 // 戻るでキャッシュから復元されたとき、詳細で変えたブックマークを反映する
 window.addEventListener("pageshow", (e) => {
-  if (e.persisted) loadCandidates();
+  if (e.persisted) loadPlans();
 });

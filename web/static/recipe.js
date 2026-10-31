@@ -280,8 +280,6 @@ function removeIngredientRow(li) {
 // 掴む部分のドラッグ。掴んだ行はtransformで指に付けて動かし、DOMの順は離したときに1回だけ入れ替える
 // (動かしている間に入れ替えると行の位置が変わり、入る位置の計算も見た目も跳ぶため)
 let ingredientDrag = null;
-const AUTO_SCROLL_EDGE = 48;
-const AUTO_SCROLL_MAX = 12;
 
 function startIngredientDrag(e) {
   if (busy || ingredientDrag || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
@@ -354,9 +352,7 @@ function updateIngredientDrag() {
 // 表示領域の上端・下端に近づけている間、近いほど速くスクロールする
 function autoScrollIngredientDrag() {
   const d = ingredientDrag;
-  let speed = 0;
-  if (d.clientY < AUTO_SCROLL_EDGE) speed = -AUTO_SCROLL_MAX * Math.min(1, (AUTO_SCROLL_EDGE - d.clientY) / AUTO_SCROLL_EDGE);
-  else if (d.clientY > window.innerHeight - AUTO_SCROLL_EDGE) speed = AUTO_SCROLL_MAX * Math.min(1, (d.clientY - (window.innerHeight - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
+  const speed = autoScrollSpeed(d.clientY);
   if (speed !== 0) window.scrollBy(0, speed); // scrollイベントがupdateIngredientDragを呼ぶ
   d.frame = requestAnimationFrame(autoScrollIngredientDrag);
 }

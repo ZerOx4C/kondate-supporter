@@ -56,7 +56,7 @@ func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, err
 // Create はレシピ・タグ・材料を追加し、追加後のレシピを返す。
 func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.inTx(ctx, func(tx *sql.Tx) error {
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, `INSERT INTO recipes (name, body) VALUES (?, ?)`, name, body)
 		if err != nil {
 			return err
@@ -80,7 +80,7 @@ func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags [
 // Import はレシピを配列の順に1つのトランザクションで追加し、追加した件数を返す。
 // タグは足すだけで外さないため、未使用のタグは生まれず deleteUnusedTags は呼ばない。
 func (r *RecipeRepository) Import(ctx context.Context, recs []model.Recipe) (int, error) {
-	err := r.inTx(ctx, func(tx *sql.Tx) error {
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
 		for _, rec := range recs {
 			res, err := tx.ExecContext(ctx,
 				`INSERT INTO recipes (name, body, cooked_count) VALUES (?, ?, ?)`, rec.Name, rec.Body, rec.CookedCount)
@@ -107,7 +107,7 @@ func (r *RecipeRepository) Import(ctx context.Context, recs []model.Recipe) (int
 // タグと材料は丸ごと置き換える。存在しないidに付けると外部キー違反になるため、UPDATEを先に行う。
 func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.inTx(ctx, func(tx *sql.Tx) error {
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ? WHERE id = ?`, name, body, id)
 		if err != nil {
 			return err
@@ -143,7 +143,7 @@ func (r *RecipeRepository) DecrementCookedCount(ctx context.Context, id int64) (
 // 存在しないidにはVALUESで入れると外部キー違反になるため、recipesから選んで入れる。
 func (r *RecipeRepository) SetBookmark(ctx context.Context, id int64) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.inTx(ctx, func(tx *sql.Tx) error {
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx,
 			`INSERT INTO recipe_bookmarks (recipe_id) SELECT id FROM recipes WHERE id = ? ON CONFLICT(recipe_id) DO NOTHING`, id)
 		if err != nil {
@@ -158,7 +158,7 @@ func (r *RecipeRepository) SetBookmark(ctx context.Context, id int64) (model.Rec
 // DeleteBookmark はブックマークを外し(付いていなければ何もしない)、更新後のレシピを返す。
 func (r *RecipeRepository) DeleteBookmark(ctx context.Context, id int64) (model.Recipe, error) {
 	var rec model.Recipe
-	err := r.inTx(ctx, func(tx *sql.Tx) error {
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_bookmarks WHERE recipe_id = ?`, id); err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func scanReturned(row *sql.Row) (model.Recipe, error) {
 
 // Delete はレシピを消し、どのレシピにも付いていないタグを消す。recipe_tagsはCASCADEで消える。
 func (r *RecipeRepository) Delete(ctx context.Context, id int64) error {
-	return r.inTx(ctx, func(tx *sql.Tx) error {
+	return inTx(ctx, r.db, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, `DELETE FROM recipes WHERE id = ?`, id)
 		if err != nil {
 			return err
@@ -252,21 +252,6 @@ func (r *RecipeRepository) ListTags(ctx context.Context) ([]string, error) {
 		tags = append(tags, name)
 	}
 	return tags, rows.Err()
-}
-
-// inTx はfnをトランザクション内で実行する。fnがエラーを返せばロールバックする。
-// 接続は1本に制限しているため、fnの中では必ず引数のtxを使うこと。r.dbを使うと
-// 空き接続を待ち続けて止まる。
-func (r *RecipeRepository) inTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-	return tx.Commit()
 }
 
 // replaceTags はレシピのタグをnamesに置き換える。紐付けを全部消して付け直した後に、

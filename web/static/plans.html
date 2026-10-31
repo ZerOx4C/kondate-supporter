@@ -25,6 +25,13 @@
   .plan-thumb-placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #999; }
   .plan-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #candidates-empty { margin: 0; color: #555; }
+  #candidates .plan-grip { touch-action: none; cursor: grab; }
+  .plan-panel, .plan-list { position: relative; }
+  .plan-ghost { position: fixed; margin: 0; z-index: 10; pointer-events: none; list-style: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+  .plan-area.drop-target .plan-list { background: #e8f1ff; border-color: #3b82f6; }
+  .plan-panel.drop-before::before, .plan-list.drop-end::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: #3b82f6; }
+  .plan-panel.drop-before::before { top: -6px; }
+  .plan-list.drop-end::after { bottom: -6px; }
 </style>
 </head>
 <body>
@@ -55,6 +62,8 @@
     <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
   </div>
 
+  <p class="error" id="plans-error"></p>
+
   <section class="plan-area" aria-labelledby="candidates-title">
     <h2 id="candidates-title">候補</h2>
     <p class="error" id="candidates-error"></p>
@@ -62,9 +71,10 @@
     <p id="candidates-empty" hidden>ブックマークしたレシピがここに並びます</p>
   </section>
 
-  <section class="plan-area" aria-labelledby="daily-title">
+  <section class="plan-area plan-target" aria-labelledby="daily-title">
     <h2 id="daily-title">毎日</h2>
-    <ul class="plan-list" id="daily-list"></ul>
+    <p class="error"></p>
+    <ul class="plan-list" id="daily-list" data-date=""></ul>
   </section>
 
   <div id="day-areas"></div>

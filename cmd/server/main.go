@@ -41,7 +41,11 @@ func main() {
 	recipeSvc := service.NewRecipeService(recipeRepo)
 	recipeHandler := handler.NewRecipeHandler(recipeSvc)
 
-	router := handler.NewRouter(staticFS, recipeHandler, cfg.DevMode)
+	planRepo := repository.NewPlanRepository(conn)
+	planSvc := service.NewPlanService(planRepo)
+	planHandler := handler.NewPlanHandler(planSvc)
+
+	router := handler.NewRouter(staticFS, recipeHandler, planHandler, cfg.DevMode)
 
 	log.Printf("listening on %s (db: %s, dev mode: %v)", cfg.Addr, cfg.DBPath, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {

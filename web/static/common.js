@@ -127,3 +127,13 @@ function onOutsideTap(dialog, handler) {
     downOnDialog = false;
   });
 }
+
+// ドラッグ中に表示領域の上端・下端へ近づけたとき、近いほど速くスクロールさせるためのpx数(上は負)
+const AUTO_SCROLL_EDGE = 48;
+const AUTO_SCROLL_MAX = 12;
+
+function autoScrollSpeed(clientY) {
+  if (clientY < AUTO_SCROLL_EDGE) return -AUTO_SCROLL_MAX * Math.min(1, (AUTO_SCROLL_EDGE - clientY) / AUTO_SCROLL_EDGE);
+  if (clientY > window.innerHeight - AUTO_SCROLL_EDGE) return AUTO_SCROLL_MAX * Math.min(1, (clientY - (window.innerHeight - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
+  return 0;
+}

@@ -316,7 +316,8 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	var importErr *service.ImportError
 	var ingErr *service.IngredientError
 	switch {
-	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrImportEmpty):
+	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrImportEmpty),
+		errors.Is(err, service.ErrDateInvalid), errors.Is(err, service.ErrPeriodInvalid):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.As(err, &importErr), errors.As(err, &ingErr):
 		writeError(w, http.StatusBadRequest, err.Error())
