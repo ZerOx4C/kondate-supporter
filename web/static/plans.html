@@ -33,10 +33,18 @@
   .plan-panel.plan-dragging { opacity: 0.4; }
   .plan-panel, .plan-list { position: relative; }
   .plan-ghost { position: fixed; margin: 0; z-index: 10; pointer-events: none; list-style: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
-  .plan-area.drop-target .plan-list { background: #e8f1ff; border-color: #3b82f6; }
+  .plan-day { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+  .plan-meal { border: none; border-radius: 0; }
+  .plan-meal[data-meal="breakfast"] { background: #e4ecf1; }
+  .plan-meal[data-meal="lunch"] { background: #f6ecdc; }
+  .plan-meal[data-meal="dinner"] { background: #e9e1e8; }
+  .plan-list:not(.plan-meal).drop-target { background: #e8f1ff; border-color: #3b82f6; }
+  .plan-meal.drop-target { box-shadow: inset 0 0 0 2px #3b82f6; }
   .plan-panel.drop-before::before, .plan-list.drop-end::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: #3b82f6; }
   .plan-panel.drop-before::before { top: -6px; }
   .plan-list.drop-end::after { bottom: -6px; }
+  .plan-meal.drop-end::after { bottom: 2px; }
+  .plan-meal.drop-end:empty::after { top: 2px; bottom: auto; }
 </style>
 </head>
 <body>

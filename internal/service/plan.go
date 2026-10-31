@@ -51,7 +51,6 @@ func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, 
 
 // checkArea はdateとmealの組を検査し、保存するmealを返す。
 // 毎日(dateがnil)はmealを付けられず、日付の行は朝・昼・夜のどれかが要る。
-// 日付の行でmealがnilなら夜にする。画面が時間帯を送るまでの仮の受け付けで、画面が送るようになったら外す。
 func checkArea(date, meal *string) (*string, error) {
 	if date == nil {
 		if meal != nil {
@@ -63,8 +62,7 @@ func checkArea(date, meal *string) (*string, error) {
 		return nil, ErrDateInvalid
 	}
 	if meal == nil {
-		dinner := mealDinner
-		return &dinner, nil
+		return nil, ErrMealInvalid
 	}
 	switch *meal {
 	case mealBreakfast, mealLunch, mealDinner:

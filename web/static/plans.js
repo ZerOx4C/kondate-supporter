@@ -1,12 +1,13 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す
+// 置いたパネルをドラッグして並べ替え・移動し、候補へ戻して外す。各日付のエリアは朝・昼・夜の帯に分かれる
 
 const PERIOD_KEY = "kondate.plans.period";
 const DEFAULT_DAYS = 7;
 const MIN_DAYS = 1;
 const MAX_DAYS = 31;
 const WEEKDAYS = "日月火水木金土";
+const MEALS = [["breakfast", "朝"], ["lunch", "昼"], ["dinner", "夜"]];
 
 const nameCollator = new Intl.Collator("ja");
 
@@ -89,10 +90,17 @@ function renderPeriod() {
     h2.textContent = formatDay(addDays(periodStart, i));
     const error = document.createElement("p");
     error.className = "error";
-    const list = document.createElement("ul");
-    list.className = "plan-list";
-    list.dataset.date = toIsoDate(addDays(periodStart, i));
-    section.append(h2, error, list);
+    const day = document.createElement("div");
+    day.className = "plan-day";
+    for (const [meal, label] of MEALS) {
+      const list = document.createElement("ul");
+      list.className = "plan-list plan-meal";
+      list.dataset.date = toIsoDate(addDays(periodStart, i));
+      list.dataset.meal = meal;
+      list.setAttribute("aria-label", label);
+      day.appendChild(list);
+    }
+    section.append(h2, error, day);
     areas.push(section);
   }
   $("day-areas").replaceChildren(...areas);
@@ -255,7 +263,7 @@ async function loadPlans() {
   const lists = new Map();
   for (const list of document.querySelectorAll(".plan-target .plan-list")) {
     list.replaceChildren();
-    lists.set(list.dataset.date, list);
+    lists.set(list.dataset.date + "/" + (list.dataset.meal || ""), list);
   }
   if (plansRes.status === "rejected" || recipesRes.status === "rejected") {
     const reason = plansRes.status === "rejected" ? plansRes.reason : recipesRes.reason;
@@ -263,7 +271,7 @@ async function loadPlans() {
     return;
   }
   for (const plan of plansRes.value) {
-    const list = lists.get(plan.date === null ? "" : plan.date);
+    const list = lists.get((plan.date ?? "") + "/" + (plan.meal ?? ""));
     const recipe = recipesById.get(plan.recipe_id);
     if (list && recipe) list.appendChild(createPanel(recipe, plan.id));
   }
@@ -280,28 +288,32 @@ function startPlanDrag(e) {
   const panel = handle.closest(".plan-panel");
   const panelRect = panel.getBoundingClientRect();
   const placed = panel.dataset.planId !== undefined;
-  const targets = Array.from(document.querySelectorAll(".plan-target")).map((section) => {
-    const rect = section.getBoundingClientRect();
-    const list = section.querySelector(".plan-list");
-    return {
-      section,
-      list,
-      left: rect.left + window.scrollX,
-      right: rect.right + window.scrollX,
-      top: rect.top + window.scrollY,
-      bottom: rect.bottom + window.scrollY,
-      centers: Array.from(list.children).map((li) => {
-        const r = li.getBoundingClientRect();
-        return r.top + window.scrollY + r.height / 2;
-      }),
-    };
+  // 置き先は毎日と、各日付の朝・昼・夜の帯。後ろに区画ごとの予備を置き、日付の見出しやエラー欄の上で
+  // 離したときは区画の最初の帯(朝)の先頭に入れる
+  const measure = (rect, list) => ({
+    section: list.closest(".plan-target"),
+    list,
+    left: rect.left + window.scrollX,
+    right: rect.right + window.scrollX,
+    top: rect.top + window.scrollY,
+    bottom: rect.bottom + window.scrollY,
+    centers: Array.from(list.children).map((li) => {
+      const r = li.getBoundingClientRect();
+      return r.top + window.scrollY + r.height / 2;
+    }),
   });
+  const targets = Array.from(document.querySelectorAll(".plan-target .plan-list")).map((list) =>
+    measure(list.getBoundingClientRect(), list));
+  for (const section of document.querySelectorAll(".plan-target")) {
+    targets.push(measure(section.getBoundingClientRect(), section.querySelector(".plan-list")));
+  }
   if (placed) {
     // 候補の区画は置いたパネルを外す先で、離す位置に意味が無いので区画全体だけを測る
     const section = $("candidates-area");
     const rect = section.getBoundingClientRect();
     targets.push({
       section,
+      list: $("candidates"),
       remove: true,
       left: rect.left + window.scrollX,
       right: rect.right + window.scrollX,
@@ -377,7 +389,7 @@ function updatePlanDrag() {
     d.drop = null;
     return;
   }
-  target.section.classList.add("drop-target");
+  target.list.classList.add("drop-target");
   if (target.remove) {
     d.drop = { target };
     return;
@@ -419,6 +431,10 @@ function dateOf(list) {
   return list.dataset.date === "" ? null : list.dataset.date;
 }
 
+function mealOf(list) {
+  return list.dataset.meal || null;
+}
+
 // 置いたパネルをすぐ動かして保存し、保存に失敗したら元の位置へ戻す。
 // indexは掴んだパネルを含む並びでの位置なので、保存には動かすパネルを除いた並びでの位置を送る
 async function movePlan(panel, target, index) {
@@ -437,6 +453,7 @@ async function movePlan(panel, target, index) {
   try {
     await api("PUT", "/api/plans/" + panel.dataset.planId, {
       date: dateOf(target.list),
+      meal: mealOf(target.list),
       index: sendIndex,
     });
   } catch (err) {
@@ -477,6 +494,7 @@ async function placePlan(target, index, recipeId) {
   try {
     const created = await api("POST", "/api/plans", {
       date: dateOf(target.list),
+      meal: mealOf(target.list),
       recipe_id: recipeId,
       index,
     });
