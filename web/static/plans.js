@@ -179,12 +179,12 @@ function setupPeriod() {
   daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
-// entryIdは献立に置いた行のid。候補のパネルには付けない
-function createPanel(recipe, entryId) {
+// planIdは献立に置いた行のid。候補のパネルには付けない
+function createPanel(recipe, planId) {
   const li = document.createElement("li");
   li.className = "plan-panel";
   li.dataset.recipeId = recipe.id;
-  if (entryId !== undefined) li.dataset.entryId = entryId;
+  if (planId !== undefined) li.dataset.planId = planId;
 
   const grip = document.createElement("span");
   grip.className = "plan-grip";
@@ -230,9 +230,9 @@ async function loadPlans() {
   $("plans-error").textContent = "";
   const from = toIsoDate(periodStart);
   const to = toIsoDate(addDays(periodStart, periodDays - 1));
-  const [recipesRes, entriesRes] = await Promise.allSettled([
+  const [recipesRes, plansRes] = await Promise.allSettled([
     api("GET", "/api/recipes"),
-    api("GET", "/api/plan-entries?from=" + from + "&to=" + to),
+    api("GET", "/api/plans?from=" + from + "&to=" + to),
   ]);
   if (seq !== loadSeq) return;
   loading = false;
@@ -257,15 +257,15 @@ async function loadPlans() {
     list.replaceChildren();
     lists.set(list.dataset.date, list);
   }
-  if (entriesRes.status === "rejected" || recipesRes.status === "rejected") {
-    const reason = entriesRes.status === "rejected" ? entriesRes.reason : recipesRes.reason;
+  if (plansRes.status === "rejected" || recipesRes.status === "rejected") {
+    const reason = plansRes.status === "rejected" ? plansRes.reason : recipesRes.reason;
     $("plans-error").textContent = "献立を読み込めませんでした: " + reason.message;
     return;
   }
-  for (const entry of entriesRes.value) {
-    const list = lists.get(entry.date === null ? "" : entry.date);
-    const recipe = recipesById.get(entry.recipe_id);
-    if (list && recipe) list.appendChild(createPanel(recipe, entry.id));
+  for (const plan of plansRes.value) {
+    const list = lists.get(plan.date === null ? "" : plan.date);
+    const recipe = recipesById.get(plan.recipe_id);
+    if (list && recipe) list.appendChild(createPanel(recipe, plan.id));
   }
 }
 
@@ -279,7 +279,7 @@ function startPlanDrag(e) {
   const handle = e.currentTarget;
   const panel = handle.closest(".plan-panel");
   const panelRect = panel.getBoundingClientRect();
-  const placed = panel.dataset.entryId !== undefined;
+  const placed = panel.dataset.planId !== undefined;
   const targets = Array.from(document.querySelectorAll(".plan-target")).map((section) => {
     const rect = section.getBoundingClientRect();
     const list = section.querySelector(".plan-list");
@@ -410,9 +410,9 @@ function endPlanDrag(commit) {
   clearDropMarks();
   planDrag = null;
   if (!commit || !d.drop) return;
-  if (!d.placed) placeEntry(d.drop.target, d.drop.index, d.recipeId);
-  else if (d.drop.target.remove) removeEntry(d.panel);
-  else moveEntry(d.panel, d.drop.target, d.drop.index);
+  if (!d.placed) placePlan(d.drop.target, d.drop.index, d.recipeId);
+  else if (d.drop.target.remove) removePlan(d.panel);
+  else movePlan(d.panel, d.drop.target, d.drop.index);
 }
 
 function dateOf(list) {
@@ -421,7 +421,7 @@ function dateOf(list) {
 
 // 置いたパネルをすぐ動かして保存し、保存に失敗したら元の位置へ戻す。
 // indexは掴んだパネルを含む並びでの位置なので、保存には動かすパネルを除いた並びでの位置を送る
-async function moveEntry(panel, target, index) {
+async function movePlan(panel, target, index) {
   const fromList = panel.parentElement;
   const fromIndex = Array.prototype.indexOf.call(fromList.children, panel);
   const sameList = fromList === target.list;
@@ -435,7 +435,7 @@ async function moveEntry(panel, target, index) {
   target.list.insertBefore(panel, target.list.children[index] || null);
   saving = true;
   try {
-    await api("PUT", "/api/plan-entries/" + panel.dataset.entryId, {
+    await api("PUT", "/api/plans/" + panel.dataset.planId, {
       date: dateOf(target.list),
       index: sendIndex,
     });
@@ -448,7 +448,7 @@ async function moveEntry(panel, target, index) {
 }
 
 // 置いたパネルをすぐ取り除いて献立から外し、失敗したら元の位置へ戻す。ブックマークは変えない
-async function removeEntry(panel) {
+async function removePlan(panel) {
   const fromList = panel.parentElement;
   const origNext = panel.nextSibling;
   const fromError = fromList.closest(".plan-area").querySelector(".error");
@@ -456,7 +456,7 @@ async function removeEntry(panel) {
   panel.remove();
   saving = true;
   try {
-    await api("DELETE", "/api/plan-entries/" + panel.dataset.entryId);
+    await api("DELETE", "/api/plans/" + panel.dataset.planId);
   } catch (err) {
     fromList.insertBefore(panel, origNext);
     fromError.textContent = "外せませんでした: " + err.message;
@@ -466,7 +466,7 @@ async function removeEntry(panel) {
 }
 
 // 置いたパネルをすぐ並べて保存し、保存に失敗したら取り除く
-async function placeEntry(target, index, recipeId) {
+async function placePlan(target, index, recipeId) {
   const recipe = recipesById.get(recipeId);
   if (!recipe) return;
   const errorEl = target.section.querySelector(".error");
@@ -475,12 +475,12 @@ async function placeEntry(target, index, recipeId) {
   target.list.insertBefore(panel, target.list.children[index] || null);
   saving = true;
   try {
-    const created = await api("POST", "/api/plan-entries", {
+    const created = await api("POST", "/api/plans", {
       date: dateOf(target.list),
       recipe_id: recipeId,
       index,
     });
-    panel.dataset.entryId = created.id;
+    panel.dataset.planId = created.id;
   } catch (err) {
     panel.remove();
     errorEl.textContent = "置けませんでした: " + err.message;

@@ -15,7 +15,7 @@ func NewPlanHandler(svc *service.PlanService) *PlanHandler {
 	return &PlanHandler{svc: svc}
 }
 
-type planEntryRequest struct {
+type planRequest struct {
 	Date     *string `json:"date"`
 	RecipeID int64   `json:"recipe_id"`
 	Index    int     `json:"index"`
@@ -23,16 +23,16 @@ type planEntryRequest struct {
 
 func (h *PlanHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	entries, err := h.svc.List(r.Context(), q.Get("from"), q.Get("to"))
+	plans, err := h.svc.List(r.Context(), q.Get("from"), q.Get("to"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, entries)
+	writeJSON(w, http.StatusOK, plans)
 }
 
 func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var req planEntryRequest
+	var req planRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return

@@ -13,7 +13,7 @@ var (
 	ErrDateInvalid   = errors.New("日付が不正です")
 	ErrPeriodInvalid = errors.New("期間が不正です")
 
-	ErrPlanEntryNotFound = errors.New("献立に置いたレシピが見つかりません")
+	ErrPlanNotFound = errors.New("献立に置いたレシピが見つかりません")
 )
 
 const dateLayout = "2006-01-02"
@@ -27,7 +27,7 @@ func NewPlanService(repo *repository.PlanRepository) *PlanService {
 }
 
 // List は毎日と、from〜toの日付に置いた行を返す。from・toは実在する"YYYY-MM-DD"だけ受け付ける。
-func (s *PlanService) List(ctx context.Context, from, to string) ([]model.PlanEntry, error) {
+func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, error) {
 	f, err := time.Parse(dateLayout, from)
 	if err != nil {
 		return nil, ErrDateInvalid
@@ -43,10 +43,10 @@ func (s *PlanService) List(ctx context.Context, from, to string) ([]model.PlanEn
 }
 
 // Add はdateのエリアのindex番目にレシピを置く。dateがnilなら毎日。indexが負なら先頭に置く。
-func (s *PlanService) Add(ctx context.Context, date *string, recipeID int64, index int) (model.PlanEntry, error) {
+func (s *PlanService) Add(ctx context.Context, date *string, recipeID int64, index int) (model.Plan, error) {
 	if date != nil {
 		if _, err := time.Parse(dateLayout, *date); err != nil {
-			return model.PlanEntry{}, ErrDateInvalid
+			return model.Plan{}, ErrDateInvalid
 		}
 	}
 	if index < 0 {
@@ -57,10 +57,10 @@ func (s *PlanService) Add(ctx context.Context, date *string, recipeID int64, ind
 }
 
 // Move は置いた行idをdateのエリアのindex番目へ動かす。indexは動かす行を除いた並びでの位置で、負なら先頭になる。
-func (s *PlanService) Move(ctx context.Context, id int64, date *string, index int) (model.PlanEntry, error) {
+func (s *PlanService) Move(ctx context.Context, id int64, date *string, index int) (model.Plan, error) {
 	if date != nil {
 		if _, err := time.Parse(dateLayout, *date); err != nil {
-			return model.PlanEntry{}, ErrDateInvalid
+			return model.Plan{}, ErrDateInvalid
 		}
 	}
 	if index < 0 {
@@ -68,7 +68,7 @@ func (s *PlanService) Move(ctx context.Context, id int64, date *string, index in
 	}
 	e, err := s.repo.Move(ctx, id, date, index)
 	if errors.Is(err, repository.ErrNotFound) {
-		return e, ErrPlanEntryNotFound
+		return e, ErrPlanNotFound
 	}
 	return e, err
 }
