@@ -17,6 +17,7 @@ func NewPlanHandler(svc *service.PlanService) *PlanHandler {
 
 type planRequest struct {
 	Date     *string `json:"date"`
+	Meal     *string `json:"meal"`
 	RecipeID int64   `json:"recipe_id"`
 	Index    int     `json:"index"`
 }
@@ -37,7 +38,7 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	e, err := h.svc.Add(r.Context(), req.Date, req.RecipeID, req.Index)
+	e, err := h.svc.Add(r.Context(), req.Date, req.Meal, req.RecipeID, req.Index)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -47,6 +48,7 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 type planMoveRequest struct {
 	Date  *string `json:"date"`
+	Meal  *string `json:"meal"`
 	Index int     `json:"index"`
 }
 
@@ -60,7 +62,7 @@ func (h *PlanHandler) Move(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	e, err := h.svc.Move(r.Context(), id, req.Date, req.Index)
+	e, err := h.svc.Move(r.Context(), id, req.Date, req.Meal, req.Index)
 	if err != nil {
 		writeServiceError(w, err)
 		return

@@ -12,11 +12,18 @@ import (
 var (
 	ErrDateInvalid   = errors.New("日付が不正です")
 	ErrPeriodInvalid = errors.New("期間が不正です")
+	ErrMealInvalid   = errors.New("時間帯が不正です")
 
 	ErrPlanNotFound = errors.New("献立に置いたレシピが見つかりません")
 )
 
 const dateLayout = "2006-01-02"
+
+const (
+	mealBreakfast = "breakfast"
+	mealLunch     = "lunch"
+	mealDinner    = "dinner"
+)
 
 type PlanService struct {
 	repo *repository.PlanRepository
@@ -42,31 +49,54 @@ func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, 
 	return s.repo.List(ctx, from, to)
 }
 
-// Add はdateのエリアのindex番目にレシピを置く。dateがnilなら毎日。indexが負なら先頭に置く。
-func (s *PlanService) Add(ctx context.Context, date *string, recipeID int64, index int) (model.Plan, error) {
-	if date != nil {
-		if _, err := time.Parse(dateLayout, *date); err != nil {
-			return model.Plan{}, ErrDateInvalid
+// checkArea はdateとmealの組を検査し、保存するmealを返す。
+// 毎日(dateがnil)はmealを付けられず、日付の行は朝・昼・夜のどれかが要る。
+// 日付の行でmealがnilなら夜にする。画面が時間帯を送るまでの仮の受け付けで、画面が送るようになったら外す。
+func checkArea(date, meal *string) (*string, error) {
+	if date == nil {
+		if meal != nil {
+			return nil, ErrMealInvalid
 		}
+		return nil, nil
+	}
+	if _, err := time.Parse(dateLayout, *date); err != nil {
+		return nil, ErrDateInvalid
+	}
+	if meal == nil {
+		dinner := mealDinner
+		return &dinner, nil
+	}
+	switch *meal {
+	case mealBreakfast, mealLunch, mealDinner:
+		return meal, nil
+	}
+	return nil, ErrMealInvalid
+}
+
+// Add はdateとmealのエリアのindex番目にレシピを置く。dateがnilなら毎日で、mealは付けられない。
+// indexが負なら先頭に置く。
+func (s *PlanService) Add(ctx context.Context, date, meal *string, recipeID int64, index int) (model.Plan, error) {
+	meal, err := checkArea(date, meal)
+	if err != nil {
+		return model.Plan{}, err
 	}
 	if index < 0 {
 		index = 0
 	}
-	e, err := s.repo.Add(ctx, date, recipeID, index)
+	e, err := s.repo.Add(ctx, date, meal, recipeID, index)
 	return e, convertErr(err)
 }
 
-// Move は置いた行idをdateのエリアのindex番目へ動かす。indexは動かす行を除いた並びでの位置で、負なら先頭になる。
-func (s *PlanService) Move(ctx context.Context, id int64, date *string, index int) (model.Plan, error) {
-	if date != nil {
-		if _, err := time.Parse(dateLayout, *date); err != nil {
-			return model.Plan{}, ErrDateInvalid
-		}
+// Move は置いた行idをdateとmealのエリアのindex番目へ動かす。indexは動かす行を除いた並びでの位置で、負なら先頭になる。
+func (s *PlanService) Move(ctx context.Context, id int64, date, meal *string, index int) (model.Plan, error) {
+	meal, err := checkArea(date, meal)
+	if err != nil {
+		return model.Plan{}, err
 	}
 	if index < 0 {
 		index = 0
 	}
-	e, err := s.repo.Move(ctx, id, date, index)
+	e, err := s.repo.Move(ctx, id, date, meal, index)
 	if errors.Is(err, repository.ErrNotFound) {
 		return e, ErrPlanNotFound
 	}
