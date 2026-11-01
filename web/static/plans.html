@@ -68,6 +68,9 @@
   .plan-meal[data-meal="breakfast"] { background: #e7f1f8; }
   .plan-meal[data-meal="lunch"] { background: #fff1db; }
   .plan-meal[data-meal="dinner"] { background: #efe6ee; }
+  .plan-meal[data-meal="breakfast"] > .plan-panel { border-color: #5995c0; }
+  .plan-meal[data-meal="lunch"] > .plan-panel { border-color: #d99426; }
+  .plan-meal[data-meal="dinner"] > .plan-panel { border-color: #af6aa7; }
   /* 空の帯・空の毎日・空の候補の背景のアイコン。文字コードは同梱の tabler-icons.min.css の ti-haze / ti-sun-high / ti-moon / ti-calendar-plus の値を写したもの */
   .plan-meal:empty::before, #daily-list:empty::before, #candidates:empty::before { margin: auto; font-family: "tabler-icons"; font-size: 2rem; line-height: 1; color: rgba(0, 0, 0, 0.15); pointer-events: none; }
   .plan-meal[data-meal="breakfast"]:empty::before { content: "\efaa"; content: "\efaa" / ""; }
