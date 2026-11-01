@@ -16,11 +16,19 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 	return &PlanRepository{db: db}
 }
 
+const planColumns = "id, date, meal, recipe_id, memo"
+
+func scanPlan(row interface{ Scan(...any) error }) (model.Plan, error) {
+	var e model.Plan
+	err := row.Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID, &e.Memo)
+	return e, err
+}
+
 // List は毎日と候補と、from〜to(両端を含む)の日付に置いた行を返す。毎日、候補の順で、その後は日付順、
 // 同じ日付の中は朝・昼・夜の順、同じエリアの中は並び順。0件のときは空スライスを返す。
 func (r *PlanRepository) List(ctx context.Context, from, to string) ([]model.Plan, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, date, meal, recipe_id FROM plans
+		`SELECT `+planColumns+` FROM plans
 		WHERE date IS NULL OR date BETWEEN ? AND ?
 		ORDER BY date IS NOT NULL, date,
 			CASE meal WHEN 'candidate' THEN 0 WHEN 'breakfast' THEN 1 WHEN 'lunch' THEN 2 WHEN 'dinner' THEN 3 END,
@@ -32,8 +40,8 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]model.Pla
 
 	plans := []model.Plan{}
 	for rows.Next() {
-		var e model.Plan
-		if err := rows.Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID); err != nil {
+		e, err := scanPlan(rows)
+		if err != nil {
 			return nil, err
 		}
 		plans = append(plans, e)
@@ -51,13 +59,29 @@ func (r *PlanRepository) Add(ctx context.Context, date, meal *string, recipeID i
 		if err != nil {
 			return err
 		}
-		err = tx.QueryRowContext(ctx,
+		e, err = scanPlan(tx.QueryRowContext(ctx,
 			`INSERT INTO plans (date, meal, position, recipe_id)
 			SELECT ?, ?, ?, id FROM recipes WHERE id = ?
-			RETURNING id, date, meal, recipe_id`, date, meal, pos, recipeID).Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID)
+			RETURNING `+planColumns, date, meal, pos, recipeID))
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}
+		return err
+	})
+	return e, err
+}
+
+// AddMemo はdateとmealのエリアの0始まりのindex番目にメモを置き、置いた行を返す。置く位置の決め方はAddと同じ。
+func (r *PlanRepository) AddMemo(ctx context.Context, date, meal *string, memo string, index int) (model.Plan, error) {
+	var e model.Plan
+	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
+		pos, err := slotPosition(ctx, tx, date, meal, index, 0)
+		if err != nil {
+			return err
+		}
+		e, err = scanPlan(tx.QueryRowContext(ctx,
+			`INSERT INTO plans (date, meal, position, memo) VALUES (?, ?, ?, ?)
+			RETURNING `+planColumns, date, meal, pos, memo))
 		return err
 	})
 	return e, err
@@ -92,9 +116,9 @@ func (r *PlanRepository) Move(ctx context.Context, id int64, date, meal *string,
 		if err != nil {
 			return err
 		}
-		err = tx.QueryRowContext(ctx,
-			`UPDATE plans SET date = ?, meal = ?, position = ? WHERE id = ? RETURNING id, date, meal, recipe_id`,
-			date, meal, pos, id).Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID)
+		e, err = scanPlan(tx.QueryRowContext(ctx,
+			`UPDATE plans SET date = ?, meal = ?, position = ? WHERE id = ? RETURNING `+planColumns,
+			date, meal, pos, id))
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}

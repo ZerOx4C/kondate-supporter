@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"kondate-supporter/internal/model"
 	"kondate-supporter/internal/service"
 )
 
@@ -18,7 +19,8 @@ func NewPlanHandler(svc *service.PlanService) *PlanHandler {
 type planRequest struct {
 	Date     *string `json:"date"`
 	Meal     *string `json:"meal"`
-	RecipeID int64   `json:"recipe_id"`
+	RecipeID *int64  `json:"recipe_id"`
+	Memo     *string `json:"memo"`
 	Index    int     `json:"index"`
 }
 
@@ -38,7 +40,18 @@ func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
 		return
 	}
-	e, err := h.svc.Add(r.Context(), req.Date, req.Meal, req.RecipeID, req.Index)
+	// レシピかメモのどちらか一方だけを受ける
+	if (req.RecipeID == nil) == (req.Memo == nil) {
+		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		return
+	}
+	var e model.Plan
+	var err error
+	if req.Memo != nil {
+		e, err = h.svc.AddMemo(r.Context(), req.Date, req.Meal, *req.Memo, req.Index)
+	} else {
+		e, err = h.svc.Add(r.Context(), req.Date, req.Meal, *req.RecipeID, req.Index)
+	}
 	if err != nil {
 		writeServiceError(w, err)
 		return

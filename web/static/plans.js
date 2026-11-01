@@ -2,6 +2,7 @@
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
 // 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
+// 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える
 
 const PERIOD_KEY = "kondate.plans.period";
 const MEALS_KEY = "kondate.plans.meals";
@@ -285,8 +286,9 @@ function setupPeriod() {
   daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
-// planIdは行のid。候補・毎日・各日付のすべてのパネルに付ける
-function createPanel(recipe, planId) {
+// レシピのパネルとメモのパネルの共通部分。planIdは行のid。候補・毎日・各日付のすべてのパネルに付ける。
+// nameは外すボタンの読み上げ名、contentは掴む部分と外すボタンの間に入れる要素
+function createPanelBase(planId, name, content) {
   const li = document.createElement("li");
   li.className = "plan-panel";
   li.dataset.planId = planId;
@@ -299,35 +301,10 @@ function createPanel(recipe, planId) {
   grip.appendChild(gripIcon);
   grip.addEventListener("pointerdown", startPlanDrag);
 
-  const link = document.createElement("a");
-  link.className = "plan-panel-link";
-  link.href = "recipe.html?id=" + recipe.id;
-  link.title = recipe.name;
-  if (recipe.image_url) {
-    const img = document.createElement("img");
-    img.className = "plan-thumb";
-    img.src = recipe.image_url;
-    img.alt = "";
-    img.loading = "lazy";
-    link.appendChild(img);
-  } else {
-    const placeholder = document.createElement("span");
-    placeholder.className = "plan-thumb plan-thumb-placeholder";
-    const icon = document.createElement("i");
-    icon.className = "ti ti-bowl-spoon";
-    icon.setAttribute("aria-hidden", "true");
-    placeholder.appendChild(icon);
-    link.appendChild(placeholder);
-  }
-  const name = document.createElement("span");
-  name.className = "plan-name";
-  name.textContent = recipe.name;
-  link.appendChild(name);
-
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "plan-remove icon-only";
-  remove.title = "「" + recipe.name + "」を外す";
+  remove.title = "「" + name + "」を外す";
   remove.setAttribute("aria-label", remove.title);
   const removeIcon = document.createElement("i");
   removeIcon.className = "ti ti-x";
@@ -340,8 +317,114 @@ function createPanel(recipe, planId) {
     if (next) next.querySelector(".plan-remove").focus();
   });
 
-  li.append(grip, link, remove);
+  li.append(grip, content, remove);
   return li;
+}
+
+function createThumbPlaceholder(iconClass) {
+  const placeholder = document.createElement("span");
+  placeholder.className = "plan-thumb plan-thumb-placeholder";
+  const icon = document.createElement("i");
+  icon.className = "ti " + iconClass;
+  icon.setAttribute("aria-hidden", "true");
+  placeholder.appendChild(icon);
+  return placeholder;
+}
+
+function createRecipePanel(recipe, planId) {
+  const link = document.createElement("a");
+  link.className = "plan-panel-link";
+  link.href = "recipe.html?id=" + recipe.id;
+  link.title = recipe.name;
+  if (recipe.image_url) {
+    const img = document.createElement("img");
+    img.className = "plan-thumb";
+    img.src = recipe.image_url;
+    img.alt = "";
+    img.loading = "lazy";
+    link.appendChild(img);
+  } else {
+    link.appendChild(createThumbPlaceholder("ti-bowl-spoon"));
+  }
+  const name = document.createElement("span");
+  name.className = "plan-name";
+  name.textContent = recipe.name;
+  link.appendChild(name);
+  return createPanelBase(planId, recipe.name, link);
+}
+
+// メモのパネルは移る先が無いのでリンクにしない
+function createMemoPanel(memo, planId) {
+  const body = document.createElement("span");
+  body.className = "plan-panel-body";
+  body.title = memo;
+  body.appendChild(createThumbPlaceholder("ti-note"));
+  const name = document.createElement("span");
+  name.className = "plan-name";
+  name.textContent = memo;
+  body.appendChild(name);
+  return createPanelBase(planId, memo, body);
+}
+
+// 候補の見出しのボタンで開くダイアログ。保存の結果を待ってから閉じ、失敗したら理由を出して入力を残す。
+// 送信中は閉じない
+function setupMemoDialog() {
+  const dialog = $("memo-dialog");
+  const input = $("memo-input");
+  const save = $("memo-save");
+  const cancel = $("memo-cancel");
+  const error = $("memo-error");
+
+  const syncSave = () => {
+    save.disabled = input.value.trim() === "";
+  };
+  const close = () => {
+    if (saving) return;
+    dialog.close();
+    $("memo-add").focus();
+  };
+
+  $("memo-add").addEventListener("click", () => {
+    if (loading || saving || planDrag) return;
+    input.value = "";
+    error.textContent = "";
+    syncSave();
+    dialog.showModal();
+    input.focus();
+  });
+  input.addEventListener("input", syncSave);
+  cancel.addEventListener("click", close);
+  dialog.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    close();
+  });
+  onOutsideTap(dialog, close);
+
+  $("memo-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (saving || input.value.trim() === "") return;
+    saving = true;
+    error.textContent = "";
+    input.disabled = true;
+    save.disabled = true;
+    cancel.disabled = true;
+    try {
+      const res = await api("POST", "/api/plans", { date: null, meal: "candidate", memo: input.value, index: 0 });
+      const candidates = $("candidates");
+      candidates.insertBefore(createMemoPanel(res.memo, res.id), candidates.firstChild);
+      $("candidates-error").textContent = "";
+      saving = false;
+      close();
+    } catch (err) {
+      error.textContent = "メモを追加できませんでした: " + err.message;
+      input.disabled = false;
+      cancel.disabled = false;
+      syncSave();
+      input.focus();
+    } finally {
+      saving = false;
+    }
+  });
 }
 
 async function loadPlans() {
@@ -373,8 +456,13 @@ async function loadPlans() {
   }
   for (const plan of plansRes.value) {
     const list = lists.get((plan.date ?? "") + "/" + (plan.meal ?? ""));
+    if (!list) continue;
+    if (plan.memo !== null) {
+      list.appendChild(createMemoPanel(plan.memo, plan.id));
+      continue;
+    }
     const recipe = recipesById.get(plan.recipe_id);
-    if (list && recipe) list.appendChild(createPanel(recipe, plan.id));
+    if (recipe) list.appendChild(createRecipePanel(recipe, plan.id));
   }
   updateDayCounts();
 }
@@ -582,6 +670,7 @@ setupPageNav($("page-nav"));
 setupMainMenu($("menu-button"), $("main-menu"));
 setupPeriod();
 setupMealToggle();
+setupMemoDialog();
 $("daily-toggle").addEventListener("click", () => toggleArea($("daily-toggle")));
 loadShownMeals();
 applyShownMeals();

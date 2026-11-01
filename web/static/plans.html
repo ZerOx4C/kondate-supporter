@@ -39,13 +39,18 @@
   #period-days-input { width: 2em; margin: 0 0.5em; min-height: 0; height: 1.75em; box-sizing: border-box; padding: 0; font: inherit; font-size: 1rem; text-align: center; background: transparent; border: none; border-bottom: 1px solid #999; border-radius: 0; -moz-appearance: textfield; appearance: textfield; }
   #period-days-input::-webkit-inner-spin-button, #period-days-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .plan-area h2 { margin: 1.5rem 0 0.5rem; font-size: 1.1rem; }
+  .plan-area-heading { display: flex; align-items: center; }
+  #memo-add { margin-left: auto; }
+  #memo-dialog-title { margin: 0 0 0.5rem; font-size: 1.1rem; }
+  #memo-input { width: 100%; box-sizing: border-box; margin-bottom: 1rem; }
   .plan-area-toggle { width: 100%; justify-content: flex-start; gap: 0.5rem; padding: 0 0.5rem; font: inherit; color: inherit; background: transparent; border: none; }
   .plan-day-counts { margin-left: auto; display: flex; gap: 0.75rem; font-weight: normal; }
   .plan-day-count { display: inline-flex; align-items: center; gap: 0.2rem; }
   .plan-list { list-style: none; margin: 0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; min-height: 3rem; border: 1px solid #ccc; border-radius: 8px; }
   .plan-panel { display: flex; align-items: center; background: #fff; border: 1px solid #999; border-radius: 8px; }
   .plan-grip { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; color: #999; }
-  .plan-panel-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; color: inherit; text-decoration: none; border-radius: 0; }
+  .plan-panel-link, .plan-panel-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; color: inherit; text-decoration: none; border-radius: 0; }
+  .plan-panel-body { cursor: default; }
   .plan-remove { flex: none; border: none; border-radius: 0 8px 8px 0; background: transparent; }
   .plan-panel-link:active { background: #f0f0f0; }
   @media (hover: hover) {
@@ -93,6 +98,18 @@
 
 <dialog id="main-menu" class="menu" aria-label="メニュー"><ul><li><a class="button" id="import-link" href="import.html">レシピを取り込む</a></li></ul></dialog>
 
+<dialog id="memo-dialog" aria-labelledby="memo-dialog-title">
+  <form id="memo-form" class="dialog-inner">
+    <h2 id="memo-dialog-title">メモを追加</h2>
+    <p class="error" id="memo-error"></p>
+    <input type="text" id="memo-input" placeholder="メモ" aria-label="メモ" autocomplete="off" enterkeyhint="done">
+    <div class="actions">
+      <button type="submit" id="memo-save" class="primary"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
+      <button type="button" id="memo-cancel">キャンセル</button>
+    </div>
+  </form>
+</dialog>
+
 <main>
   <div class="period">
     <div class="period-range" role="group" aria-label="期間">
@@ -119,7 +136,7 @@
   <p class="error" id="plans-error"></p>
 
   <section class="plan-area" id="candidates-area" aria-labelledby="candidates-title">
-    <h2 id="candidates-title">候補</h2>
+    <h2 class="plan-area-heading"><span id="candidates-title">候補</span><button type="button" id="memo-add" class="icon-only" aria-label="メモを追加" title="メモを追加"><i class="ti ti-note" aria-hidden="true"></i></button></h2>
     <p class="error" id="candidates-error"></p>
     <ul class="plan-list" id="candidates" data-date="" data-meal="candidate"></ul>
   </section>

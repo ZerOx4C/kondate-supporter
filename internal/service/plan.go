@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"kondate-supporter/internal/model"
@@ -14,7 +15,9 @@ var (
 	ErrPeriodInvalid = errors.New("期間が不正です")
 	ErrMealInvalid   = errors.New("時間帯が不正です")
 
-	ErrPlanNotFound = errors.New("献立に置いたレシピが見つかりません")
+	ErrMemoRequired = errors.New("メモを入力してください")
+
+	ErrPlanNotFound = errors.New("献立に置いたものが見つかりません")
 )
 
 const dateLayout = "2006-01-02"
@@ -87,6 +90,23 @@ func (s *PlanService) Add(ctx context.Context, date, meal *string, recipeID int6
 	}
 	e, err := s.repo.Add(ctx, date, meal, recipeID, index)
 	return e, convertErr(err)
+}
+
+// AddMemo はdateとmealのエリアのindex番目にメモを置く。メモは前後の空白を除いて保存し、空なら置かない。
+// 置き先とindexの扱いはAddと同じ。
+func (s *PlanService) AddMemo(ctx context.Context, date, meal *string, memo string, index int) (model.Plan, error) {
+	meal, err := checkArea(date, meal)
+	if err != nil {
+		return model.Plan{}, err
+	}
+	memo = strings.TrimSpace(memo)
+	if memo == "" {
+		return model.Plan{}, ErrMemoRequired
+	}
+	if index < 0 {
+		index = 0
+	}
+	return s.repo.AddMemo(ctx, date, meal, memo, index)
 }
 
 // Move は置いた行idをdateとmealのエリアのindex番目へ動かす。indexは動かす行を除いた並びでの位置で、負なら先頭になる。
