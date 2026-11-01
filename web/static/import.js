@@ -21,7 +21,7 @@ function showResult(count) {
   link.className = "button";
   link.href = "recipes.html";
   const icon = document.createElement("i");
-  icon.className = "ti ti-arrow-left";
+  icon.className = "ti ti-arrow-back";
   icon.setAttribute("aria-hidden", "true");
   link.append(icon, "一覧へ戻る");
   link.addEventListener("click", backToList);
