@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="dev-mode.css">
 <style>
-  .period { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-  .meal-toggle { display: flex; margin-left: auto; background: #fff; border: 1px solid #999; border-radius: 8px; }
+  .period { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+  .meal-toggle { display: flex; align-self: flex-end; background: #fff; border: 1px solid #999; border-radius: 8px; }
   .meal-toggle button { border: none; border-radius: 0; }
   .meal-toggle button + button { border-left: 1px solid #999; }
   .meal-toggle button:first-child { border-radius: 7px 0 0 7px; }
@@ -28,10 +28,11 @@
   #day-areas[data-hidden-meals~="lunch"] .plan-day-count[data-meal="lunch"]:not(.plan-day-count-zero),
   #day-areas[data-hidden-meals~="dinner"] .plan-day-count[data-meal="dinner"]:not(.plan-day-count-zero) { color: #c00; }
   .period-range { display: flex; align-items: center; white-space: nowrap; background: #fff; border: 1px solid #999; border-radius: 8px; }
-  #period-start, #period-days { border: none; border-radius: 7px; padding: 0 0.5rem; }
+  .period-text { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem; }
+  #period-start, #period-days { border: none; border-radius: 0; padding: 0 0.5rem; }
   #period-days { width: 3em; padding: 0; }
-  .period-divider { align-self: stretch; width: 1px; margin-left: 0.75rem; background: #999; }
   #period-prev, #period-next { border: none; border-radius: 0; }
+  #period-prev { border-radius: 7px 0 0 7px; }
   #period-next { border-radius: 0 7px 7px 0; }
   .period-start-wrap { position: relative; display: inline-flex; }
   .period-start-wrap input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; }
@@ -95,16 +96,17 @@
 <main>
   <div class="period">
     <div class="period-range" role="group" aria-label="期間">
-      <span class="period-start-wrap">
-        <button type="button" id="period-start" title="開始日を選ぶ"></button>
-        <input type="date" id="period-start-input" tabindex="-1" aria-hidden="true">
-      </span>
-      <span>から</span>
-      <button type="button" id="period-days" title="日数を変える"></button>
-      <input type="number" id="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
-      <span>日間</span>
-      <span class="period-divider" aria-hidden="true"></span>
       <button type="button" id="period-prev" class="icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <span class="period-text">
+        <span class="period-start-wrap">
+          <button type="button" id="period-start" title="開始日を選ぶ"></button>
+          <input type="date" id="period-start-input" tabindex="-1" aria-hidden="true">
+        </span>
+        <span>から</span>
+        <button type="button" id="period-days" title="日数を変える"></button>
+        <input type="number" id="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
+        <span>日間</span>
+      </span>
       <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
     </div>
     <div id="meal-toggle" class="meal-toggle" role="group" aria-label="表示する時間帯">
