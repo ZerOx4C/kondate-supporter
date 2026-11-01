@@ -127,6 +127,16 @@ func (r *PlanRepository) Move(ctx context.Context, id int64, date, meal *string,
 	return e, err
 }
 
+// UpdateMemo はメモの行idの文を書き換え、書き換えた行を返す。行が無いときとレシピの行のときはErrNotFoundを返す。
+func (r *PlanRepository) UpdateMemo(ctx context.Context, id int64, memo string) (model.Plan, error) {
+	e, err := scanPlan(r.db.QueryRowContext(ctx,
+		`UPDATE plans SET memo = ? WHERE id = ? AND memo IS NOT NULL RETURNING `+planColumns, memo, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return e, ErrNotFound
+	}
+	return e, err
+}
+
 // Delete は行idを献立から外す。行が無くてもエラーにしない。
 func (r *PlanRepository) Delete(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM plans WHERE id = ?`, id)

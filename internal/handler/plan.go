@@ -83,6 +83,28 @@ func (h *PlanHandler) Move(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, e)
 }
 
+type planMemoRequest struct {
+	Memo *string `json:"memo"`
+}
+
+func (h *PlanHandler) UpdateMemo(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	var req planMemoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Memo == nil {
+		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		return
+	}
+	e, err := h.svc.UpdateMemo(r.Context(), id, *req.Memo)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
 func (h *PlanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
 	if !ok {

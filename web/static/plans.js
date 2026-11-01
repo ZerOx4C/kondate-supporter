@@ -2,7 +2,7 @@
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
 // 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
-// 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える
+// 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える。メモのパネルを押すと文を書き換えられる
 
 const PERIOD_KEY = "kondate.plans.period";
 const MEALS_KEY = "kondate.plans.meals";
@@ -353,21 +353,40 @@ function createRecipePanel(recipe, planId) {
   return createPanelBase(planId, recipe.name, link);
 }
 
-// メモのパネルは移る先が無いのでリンクにしない
+// メモのパネルは移る先が無いので、リンクではなく押すと文を書き換えるダイアログを開くボタンにする
 function createMemoPanel(memo, planId) {
-  const body = document.createElement("span");
+  const body = document.createElement("button");
+  body.type = "button";
   body.className = "plan-panel-body";
-  body.title = memo;
+  body.setAttribute("aria-haspopup", "dialog");
   body.appendChild(createThumbPlaceholder("ti-note"));
   const name = document.createElement("span");
   name.className = "plan-name";
-  name.textContent = memo;
   body.appendChild(name);
-  return createPanelBase(planId, memo, body);
+  const li = createPanelBase(planId, memo, body);
+  setMemoText(li, memo);
+  body.addEventListener("click", () => {
+    if (loading || saving || planDrag) return;
+    openMemoDialog(li);
+  });
+  return li;
 }
 
-// 候補の見出しのボタンで開くダイアログ。保存の結果を待ってから閉じ、失敗したら理由を出して入力を残す。
-// 送信中は閉じない
+// メモのパネルの文と、それを出すtitle・外すボタンの読み上げ名を揃えて書き換える
+function setMemoText(li, memo) {
+  li.dataset.memo = memo;
+  const body = li.querySelector(".plan-panel-body");
+  body.title = memo;
+  body.querySelector(".plan-name").textContent = memo;
+  const remove = li.querySelector(".plan-remove");
+  remove.title = "「" + memo + "」を外す";
+  remove.setAttribute("aria-label", remove.title);
+}
+
+// 追加と書き換えで共用するダイアログ。保存の結果を待ってから閉じ、失敗したら理由を出して入力を残す。
+// 送信中は閉じない。openMemoDialogは、追加ならnull、書き換えなら対象のパネルを渡して開く
+let openMemoDialog = () => {};
+
 function setupMemoDialog() {
   const dialog = $("memo-dialog");
   const input = $("memo-input");
@@ -378,19 +397,29 @@ function setupMemoDialog() {
   const syncSave = () => {
     save.disabled = input.value.trim() === "";
   };
+  // 書き換え中のパネル。追加のときはnull
+  let editing = null;
   const close = () => {
     if (saving) return;
     dialog.close();
-    $("memo-add").focus();
+    const body = editing && editing.isConnected && editing.querySelector(".plan-panel-body");
+    (body || $("memo-add")).focus();
   };
 
-  $("memo-add").addEventListener("click", () => {
-    if (loading || saving || planDrag) return;
-    input.value = "";
+  openMemoDialog = (panel) => {
+    editing = panel;
+    $("memo-dialog-title").textContent = panel ? "メモを編集" : "メモを追加";
+    input.value = panel ? panel.dataset.memo : "";
     error.textContent = "";
     syncSave();
     dialog.showModal();
     input.focus();
+    if (panel) input.setSelectionRange(input.value.length, input.value.length);
+  };
+
+  $("memo-add").addEventListener("click", () => {
+    if (loading || saving || planDrag) return;
+    openMemoDialog(null);
   });
   input.addEventListener("input", syncSave);
   cancel.addEventListener("click", close);
@@ -403,20 +432,30 @@ function setupMemoDialog() {
   $("memo-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (saving || input.value.trim() === "") return;
+    // 文が変わらない書き換えは送らずに閉じる
+    if (editing && input.value.trim() === editing.dataset.memo) {
+      close();
+      return;
+    }
     saving = true;
     error.textContent = "";
     input.disabled = true;
     save.disabled = true;
     cancel.disabled = true;
     try {
-      const res = await api("POST", "/api/plans", { date: null, meal: "candidate", memo: input.value, index: 0 });
-      const candidates = $("candidates");
-      candidates.insertBefore(createMemoPanel(res.memo, res.id), candidates.firstChild);
-      $("candidates-error").textContent = "";
+      if (editing) {
+        const res = await api("PUT", "/api/plans/" + editing.dataset.planId + "/memo", { memo: input.value });
+        setMemoText(editing, res.memo);
+      } else {
+        const res = await api("POST", "/api/plans", { date: null, meal: "candidate", memo: input.value, index: 0 });
+        const candidates = $("candidates");
+        candidates.insertBefore(createMemoPanel(res.memo, res.id), candidates.firstChild);
+        $("candidates-error").textContent = "";
+      }
       saving = false;
       close();
     } catch (err) {
-      error.textContent = "メモを追加できませんでした: " + err.message;
+      error.textContent = "メモを" + (editing ? "保存" : "追加") + "できませんでした: " + err.message;
       input.disabled = false;
       cancel.disabled = false;
       syncSave();

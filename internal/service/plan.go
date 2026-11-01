@@ -125,6 +125,19 @@ func (s *PlanService) Move(ctx context.Context, id int64, date, meal *string, in
 	return e, err
 }
 
+// UpdateMemo はメモの行idの文を書き換える。前後の空白を除いて保存し、空なら書き換えない。
+func (s *PlanService) UpdateMemo(ctx context.Context, id int64, memo string) (model.Plan, error) {
+	memo = strings.TrimSpace(memo)
+	if memo == "" {
+		return model.Plan{}, ErrMemoRequired
+	}
+	e, err := s.repo.UpdateMemo(ctx, id, memo)
+	if errors.Is(err, repository.ErrNotFound) {
+		return e, ErrPlanNotFound
+	}
+	return e, err
+}
+
 // Delete は置いた行idを献立から外す。レシピは変えない。
 func (s *PlanService) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)

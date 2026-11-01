@@ -50,11 +50,11 @@
   .plan-panel { display: flex; align-items: center; background: #fff; border: 1px solid #999; border-radius: 8px; }
   .plan-grip { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; color: #999; }
   .plan-panel-link, .plan-panel-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; color: inherit; text-decoration: none; border-radius: 0; }
-  .plan-panel-body { cursor: default; }
+  .plan-panel-body { padding: 0; font: inherit; text-align: left; justify-content: flex-start; background: transparent; border: none; }
   .plan-remove { flex: none; border: none; border-radius: 0 8px 8px 0; background: transparent; }
-  .plan-panel-link:active { background: #f0f0f0; }
+  .plan-panel-link:active, .plan-panel-body:active { background: #f0f0f0; }
   @media (hover: hover) {
-    .plan-panel-link:hover { background: #f0f0f0; }
+    .plan-panel-link:hover, .plan-panel-body:hover { background: #f0f0f0; }
   }
   .plan-thumb { width: 44px; height: 44px; flex: none; object-fit: cover; }
   .plan-thumb-placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #999; }
