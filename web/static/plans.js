@@ -384,7 +384,7 @@ function setMemoText(li, memo) {
 }
 
 // 追加と書き換えで共用するダイアログ。保存の結果を待ってから閉じ、失敗したら理由を出して入力を残す。
-// 送信中は閉じない。openMemoDialogは、追加ならnull、書き換えなら対象のパネルを渡して開く
+// 送信中は閉じない。入力欄とキャンセルの無効化は開くたびに解き、保存ボタンはsyncSaveで決める。openMemoDialogは、追加ならnull、書き換えなら対象のパネルを渡して開く
 let openMemoDialog = () => {};
 
 function setupMemoDialog() {
@@ -411,6 +411,8 @@ function setupMemoDialog() {
     $("memo-dialog-title").textContent = panel ? "メモを編集" : "メモを追加";
     input.value = panel ? panel.dataset.memo : "";
     error.textContent = "";
+    input.disabled = false;
+    cancel.disabled = false;
     syncSave();
     dialog.showModal();
     input.focus();
