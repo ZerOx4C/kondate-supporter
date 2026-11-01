@@ -137,9 +137,9 @@ function renderPeriod() {
     toggle.className = "plan-area-toggle";
     toggle.setAttribute("aria-expanded", "true");
     toggle.setAttribute("aria-controls", "day-body-" + i);
-    const caret = document.createElement("i");
-    caret.className = "ti ti-caret-down";
-    caret.setAttribute("aria-hidden", "true");
+    const chevron = document.createElement("i");
+    chevron.className = "ti ti-chevron-down";
+    chevron.setAttribute("aria-hidden", "true");
     const date = document.createElement("span");
     date.className = "plan-day-date";
     date.id = "day-title-" + i;
@@ -156,7 +156,7 @@ function renderPeriod() {
       count.append(icon, document.createElement("span"));
       counts.appendChild(count);
     }
-    toggle.append(caret, date, counts);
+    toggle.append(chevron, date, counts);
     toggle.addEventListener("click", () => toggleArea(toggle));
     h2.appendChild(toggle);
     const error = document.createElement("p");
@@ -185,7 +185,7 @@ function toggleArea(toggle) {
   if (planDrag) return;
   const expanded = toggle.getAttribute("aria-expanded") !== "true";
   toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.querySelector(".ti").className = "ti " + (expanded ? "ti-caret-down" : "ti-caret-right");
+  toggle.querySelector(".ti").className = "ti " + (expanded ? "ti-chevron-down" : "ti-chevron-right");
   $(toggle.getAttribute("aria-controls")).hidden = !expanded;
 }
 
