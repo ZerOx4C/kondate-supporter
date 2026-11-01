@@ -1,8 +1,10 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれ、見出しのボタンで畳める(畳んだ日付は置き先にならない)
+// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれ、見出しのボタンで畳める(畳んだ日付は置き先にならない)。
+// 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
 
 const PERIOD_KEY = "kondate.plans.period";
+const MEALS_KEY = "kondate.plans.meals";
 const DEFAULT_DAYS = 7;
 const MIN_DAYS = 1;
 const MAX_DAYS = 31;
@@ -13,6 +15,7 @@ const MEAL_ICONS = { breakfast: "ti-haze", lunch: "ti-sun-high", dinner: "ti-moo
 let periodStart;
 let periodDays;
 let editingDays = false;
+let shownMeals = new Set(MEALS.map(([meal]) => meal));
 
 let recipesById = new Map();
 let loadSeq = 0;
@@ -68,6 +71,49 @@ function savePeriod() {
     localStorage.setItem(PERIOD_KEY, JSON.stringify({ start: toIsoDate(periodStart), days: periodDays }));
   } catch {
     // 保存できなくても画面は使える
+  }
+}
+
+// 保存値はオンの時間帯の配列。読めないとき・知らない時間帯や重なりがあるときは3つともオンのまま
+function loadShownMeals() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MEALS_KEY));
+    const keys = MEALS.map(([meal]) => meal);
+    if (Array.isArray(saved) && saved.every((m) => keys.includes(m)) && new Set(saved).size === saved.length) {
+      shownMeals = new Set(saved);
+    }
+  } catch {
+    // 読めないときは3つともオンのまま
+  }
+}
+
+function saveShownMeals() {
+  try {
+    localStorage.setItem(MEALS_KEY, JSON.stringify(MEALS.map(([meal]) => meal).filter((meal) => shownMeals.has(meal))));
+  } catch {
+    // 保存できなくても画面は使える
+  }
+}
+
+// 帯の出し分けはCSSが #day-areas の data-hidden-meals で行う(期間を変えて帯を作り直しても残る)
+function applyShownMeals() {
+  $("day-areas").dataset.hiddenMeals = MEALS.map(([meal]) => meal).filter((meal) => !shownMeals.has(meal)).join(" ");
+  for (const button of document.querySelectorAll("#meal-toggle button")) {
+    button.setAttribute("aria-pressed", String(shownMeals.has(button.dataset.meal)));
+  }
+}
+
+// ドラッグ中は、掴んだときに測った置き先の位置がずれるので切り替えない
+function setupMealToggle() {
+  for (const button of document.querySelectorAll("#meal-toggle button")) {
+    button.addEventListener("click", () => {
+      if (planDrag) return;
+      const meal = button.dataset.meal;
+      if (shownMeals.has(meal)) shownMeals.delete(meal);
+      else shownMeals.add(meal);
+      saveShownMeals();
+      applyShownMeals();
+    });
   }
 }
 
@@ -149,7 +195,9 @@ function updateDayCounts() {
     let label = section.querySelector(".plan-day-date").textContent;
     for (const [meal, name] of MEALS) {
       const n = section.querySelector('.plan-meal[data-meal="' + meal + '"]').children.length;
-      toggle.querySelector('.plan-day-count[data-meal="' + meal + '"] span').textContent = String(n);
+      const count = toggle.querySelector('.plan-day-count[data-meal="' + meal + '"]');
+      count.querySelector("span").textContent = String(n);
+      count.classList.toggle("plan-day-count-zero", n === 0);
       label += " " + name + n + "件";
     }
     toggle.setAttribute("aria-label", label);
@@ -342,8 +390,8 @@ function startPlanDrag(e) {
   const panel = handle.closest(".plan-panel");
   const panelRect = panel.getBoundingClientRect();
   const placed = panel.parentElement !== $("candidates");
-  // 置き先は毎日と、各日付の朝・昼・夜の帯。後ろに区画ごとの予備を置き、日付の見出しやエラー欄の上で
-  // 離したときは区画の最初の帯(朝)の先頭に入れる
+  // 置き先は毎日と、各日付の表示している朝・昼・夜の帯。後ろに区画ごとの予備を置き、日付の見出しやエラー欄の上で
+  // 離したときは区画の表示している最初の帯の先頭に入れる
   const measure = (rect, list) => ({
     section: list.closest(".plan-area"),
     list,
@@ -356,14 +404,16 @@ function startPlanDrag(e) {
       return r.top + window.scrollY + r.height / 2;
     }),
   });
-  // 畳んだ日付は帯の大きさが0で入った先も見えないので、帯も区画も置き先にしない
+  // 畳んだ日付は帯の大きさが0で入った先も見えないので、帯も区画も置き先にしない。オフの帯も同じ
   const folded = (el) => el.closest(".plan-area").querySelector(".plan-day")?.hidden;
+  const shown = (list) => !list.classList.contains("plan-meal") || shownMeals.has(list.dataset.meal);
   const targets = Array.from(document.querySelectorAll(".plan-target .plan-list"))
-    .filter((list) => !folded(list))
+    .filter((list) => !folded(list) && shown(list))
     .map((list) => measure(list.getBoundingClientRect(), list));
   for (const section of document.querySelectorAll(".plan-target")) {
     if (folded(section)) continue;
-    targets.push(measure(section.getBoundingClientRect(), section.querySelector(".plan-list")));
+    const first = Array.from(section.querySelectorAll(".plan-list")).find(shown);
+    if (first) targets.push(measure(section.getBoundingClientRect(), first)); // 3つともオフの日付は区画も置き先にしない
   }
   if (placed) {
     // 置いたパネルのときだけ候補の区画も置き先に加える(候補の中での並べ替えは作らない)
@@ -531,6 +581,9 @@ async function removePlan(panel) {
 setupPageNav($("page-nav"));
 setupMainMenu($("menu-button"), $("main-menu"));
 setupPeriod();
+setupMealToggle();
+loadShownMeals();
+applyShownMeals();
 loadPeriod();
 renderPeriod();
 loadPlans();

@@ -8,7 +8,25 @@
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="dev-mode.css">
 <style>
-  .period { display: flex; margin-top: 1rem; }
+  .period { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+  .meal-toggle { display: flex; margin-left: auto; background: #fff; border: 1px solid #999; border-radius: 8px; }
+  .meal-toggle button { border: none; border-radius: 0; }
+  .meal-toggle button + button { border-left: 1px solid #999; }
+  .meal-toggle button:first-child { border-radius: 7px 0 0 7px; }
+  .meal-toggle button:last-child { border-radius: 0 7px 7px 0; }
+  #meal-toggle button[aria-pressed="true"] { background: #e7f0fa; color: #1a5fb4; }
+  /* 時間帯がオフの帯は出さない。親の属性に空白区切りで持つので、期間を変えて帯を作り直しても残る */
+  #day-areas[data-hidden-meals~="breakfast"] .plan-meal[data-meal="breakfast"],
+  #day-areas[data-hidden-meals~="lunch"] .plan-meal[data-meal="lunch"],
+  #day-areas[data-hidden-meals~="dinner"] .plan-meal[data-meal="dinner"] { display: none; }
+  #day-areas[data-hidden-meals~="breakfast"][data-hidden-meals~="lunch"][data-hidden-meals~="dinner"] .plan-day { display: none; }
+  /* オフの時間帯の件数。0件は薄く、1件以上は隠れた帯にパネルがあるので赤で出す */
+  #day-areas[data-hidden-meals~="breakfast"] .plan-day-count[data-meal="breakfast"].plan-day-count-zero,
+  #day-areas[data-hidden-meals~="lunch"] .plan-day-count[data-meal="lunch"].plan-day-count-zero,
+  #day-areas[data-hidden-meals~="dinner"] .plan-day-count[data-meal="dinner"].plan-day-count-zero { opacity: 0.35; }
+  #day-areas[data-hidden-meals~="breakfast"] .plan-day-count[data-meal="breakfast"]:not(.plan-day-count-zero),
+  #day-areas[data-hidden-meals~="lunch"] .plan-day-count[data-meal="lunch"]:not(.plan-day-count-zero),
+  #day-areas[data-hidden-meals~="dinner"] .plan-day-count[data-meal="dinner"]:not(.plan-day-count-zero) { color: #c00; }
   .period-range { display: flex; align-items: center; white-space: nowrap; background: #fff; border: 1px solid #999; border-radius: 8px; }
   #period-start, #period-days { border: none; border-radius: 7px; padding: 0 0.5rem; }
   #period-days { width: 3em; padding: 0; }
@@ -75,8 +93,8 @@
 <dialog id="main-menu" class="menu" aria-label="メニュー"><ul><li><a class="button" id="import-link" href="import.html">レシピを取り込む</a></li></ul></dialog>
 
 <main>
-  <div class="period" role="group" aria-label="期間">
-    <div class="period-range">
+  <div class="period">
+    <div class="period-range" role="group" aria-label="期間">
       <span class="period-start-wrap">
         <button type="button" id="period-start" title="開始日を選ぶ"></button>
         <input type="date" id="period-start-input" tabindex="-1" aria-hidden="true">
@@ -88,6 +106,11 @@
       <span class="period-divider" aria-hidden="true"></span>
       <button type="button" id="period-prev" class="icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
       <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <div id="meal-toggle" class="meal-toggle" role="group" aria-label="表示する時間帯">
+      <button type="button" class="icon-only" data-meal="breakfast" aria-pressed="true" aria-label="朝" title="朝"><i class="ti ti-haze" aria-hidden="true"></i></button>
+      <button type="button" class="icon-only" data-meal="lunch" aria-pressed="true" aria-label="昼" title="昼"><i class="ti ti-sun-high" aria-hidden="true"></i></button>
+      <button type="button" class="icon-only" data-meal="dinner" aria-pressed="true" aria-label="夜" title="夜"><i class="ti ti-moon" aria-hidden="true"></i></button>
     </div>
   </div>
 
