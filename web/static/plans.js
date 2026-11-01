@@ -1,6 +1,6 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれ、見出しのボタンで畳める(畳んだ日付は置き先にならない)。
+// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
 
 const PERIOD_KEY = "kondate.plans.period";
@@ -133,7 +133,7 @@ function renderPeriod() {
     const h2 = document.createElement("h2");
     const toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = "plan-day-toggle";
+    toggle.className = "plan-area-toggle";
     toggle.setAttribute("aria-expanded", "true");
     toggle.setAttribute("aria-controls", "day-body-" + i);
     const caret = document.createElement("i");
@@ -156,7 +156,7 @@ function renderPeriod() {
       counts.appendChild(count);
     }
     toggle.append(caret, date, counts);
-    toggle.addEventListener("click", () => toggleDay(toggle));
+    toggle.addEventListener("click", () => toggleArea(toggle));
     h2.appendChild(toggle);
     const error = document.createElement("p");
     error.className = "error";
@@ -178,9 +178,9 @@ function renderPeriod() {
   updateDayCounts();
 }
 
-// 見出しのボタンで朝・昼・夜の帯の枠だけを畳む。エラー欄は畳まない。畳んだ状態は覚えない。
+// 毎日と各日付の見出しのボタンで、パネルの枠(各日付は朝・昼・夜の帯)だけを畳む。エラー欄は畳まない。畳んだ状態は覚えない。
 // ドラッグ中は、掴んだときに測った置き先の位置がずれるので開閉しない
-function toggleDay(toggle) {
+function toggleArea(toggle) {
   if (planDrag) return;
   const expanded = toggle.getAttribute("aria-expanded") !== "true";
   toggle.setAttribute("aria-expanded", String(expanded));
@@ -191,7 +191,7 @@ function toggleDay(toggle) {
 // 各日付の見出しの件数と読み上げ名を、帯の中身から数え直す(畳んだ日付も数える)
 function updateDayCounts() {
   for (const section of document.querySelectorAll("#day-areas .plan-area")) {
-    const toggle = section.querySelector(".plan-day-toggle");
+    const toggle = section.querySelector(".plan-area-toggle");
     let label = section.querySelector(".plan-day-date").textContent;
     for (const [meal, name] of MEALS) {
       const n = section.querySelector('.plan-meal[data-meal="' + meal + '"]').children.length;
@@ -404,8 +404,8 @@ function startPlanDrag(e) {
       return r.top + window.scrollY + r.height / 2;
     }),
   });
-  // 畳んだ日付は帯の大きさが0で入った先も見えないので、帯も区画も置き先にしない。オフの帯も同じ
-  const folded = (el) => el.closest(".plan-area").querySelector(".plan-day")?.hidden;
+  // 畳んだ毎日・日付は枠の大きさが0で入った先も見えないので、枠も区画も置き先にしない。オフの帯も同じ
+  const folded = (el) => el.closest(".plan-area").querySelector(".plan-area-toggle")?.getAttribute("aria-expanded") === "false";
   const shown = (list) => !list.classList.contains("plan-meal") || shownMeals.has(list.dataset.meal);
   const targets = Array.from(document.querySelectorAll(".plan-target .plan-list"))
     .filter((list) => !folded(list) && shown(list))
@@ -582,6 +582,7 @@ setupPageNav($("page-nav"));
 setupMainMenu($("menu-button"), $("main-menu"));
 setupPeriod();
 setupMealToggle();
+$("daily-toggle").addEventListener("click", () => toggleArea($("daily-toggle")));
 loadShownMeals();
 applyShownMeals();
 loadPeriod();
