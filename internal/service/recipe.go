@@ -17,6 +17,8 @@ var (
 	ErrNotFound     = errors.New("レシピが見つかりません")
 	ErrNameRequired = errors.New("名前を入力してください")
 
+	ErrServingsInvalid = errors.New("人数は0〜99の整数にしてください")
+
 	ErrImageNotFound = errors.New("画像が見つかりません")
 
 	ErrImportEmpty        = errors.New("取り込むレシピがありません")
@@ -49,6 +51,9 @@ var amountNumber = regexp.MustCompile(`[0-9０-９]+(?:[.．][0-9０-９]+)?`)
 
 var halfWidth = strings.NewReplacer("０", "0", "１", "1", "２", "2", "３", "3", "４", "4",
 	"５", "5", "６", "6", "７", "7", "８", "8", "９", "9", "．", ".")
+
+// maxServings は人数の上限。
+const maxServings = 99
 
 // maxReportedImportErrors はエラー文言に並べる不正な件の上限。
 const maxReportedImportErrors = 10
@@ -102,28 +107,34 @@ func (s *RecipeService) Get(ctx context.Context, id int64) (model.Recipe, error)
 	return rec, convertErr(err)
 }
 
-func (s *RecipeService) Create(ctx context.Context, name, body string, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
+func (s *RecipeService) Create(ctx context.Context, name, body string, servings int64, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return model.Recipe{}, ErrNameRequired
+	}
+	if servings < 0 || servings > maxServings {
+		return model.Recipe{}, ErrServingsInvalid
 	}
 	ings, err := normalizeIngredients(ingredients)
 	if err != nil {
 		return model.Recipe{}, err
 	}
-	return s.repo.Create(ctx, name, body, normalizeTags(tags), ings)
+	return s.repo.Create(ctx, name, body, servings, normalizeTags(tags), ings)
 }
 
-func (s *RecipeService) Update(ctx context.Context, id int64, name, body string, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
+func (s *RecipeService) Update(ctx context.Context, id int64, name, body string, servings int64, tags []string, ingredients []IngredientInput) (model.Recipe, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return model.Recipe{}, ErrNameRequired
+	}
+	if servings < 0 || servings > maxServings {
+		return model.Recipe{}, ErrServingsInvalid
 	}
 	ings, err := normalizeIngredients(ingredients)
 	if err != nil {
 		return model.Recipe{}, err
 	}
-	rec, err := s.repo.Update(ctx, id, name, body, normalizeTags(tags), ings)
+	rec, err := s.repo.Update(ctx, id, name, body, servings, normalizeTags(tags), ings)
 	return rec, convertErr(err)
 }
 

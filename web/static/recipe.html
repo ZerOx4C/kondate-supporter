@@ -11,7 +11,12 @@
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
 #cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
 #bookmark-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
-#view-name { margin: 1rem 0 0.5rem; overflow-wrap: anywhere; }
+.title-row { display: flex; align-items: baseline; gap: 0.5rem; margin: 1rem 0 0.5rem; }
+#view-name { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.servings, .servings-field { flex: none; display: inline-flex; align-items: center; gap: 0.2rem; }
+.name-row { display: flex; align-items: center; gap: 0.5rem; }
+#edit-name { flex: 1; min-width: 0; }
+#edit-servings { width: 4rem; text-align: right; }
 #view-name, #view-ingredients, #view-body { -webkit-user-select: text; user-select: text; }
 #view-ingredients { width: 100%; border-collapse: collapse; margin: 1rem 0; }
 #view-ingredients td { padding: 0.4rem 0; vertical-align: top; }
@@ -76,7 +81,10 @@
   <p class="error" id="load-error"></p>
   <section id="view-mode" hidden>
     <p class="error" id="view-error"></p>
-    <h1 id="view-name"></h1>
+    <div class="title-row">
+      <h1 id="view-name"></h1>
+      <span id="view-servings" class="servings" role="img" hidden><i class="ti ti-user" aria-hidden="true"></i><span></span></span>
+    </div>
     <ul id="view-tags" class="tags" hidden></ul>
     <img id="view-image" class="recipe-image" alt="" hidden>
     <table id="view-ingredients" aria-label="材料" hidden><tbody></tbody></table>
@@ -84,7 +92,10 @@
   </section>
   <form id="edit-mode" hidden>
     <p class="error" id="edit-error"></p>
-    <input id="edit-name" type="text" placeholder="名前" aria-label="名前">
+    <div class="name-row">
+      <input id="edit-name" type="text" placeholder="名前" aria-label="名前">
+      <label class="servings-field" title="人数"><i class="ti ti-user" aria-hidden="true"></i><input id="edit-servings" type="text" inputmode="numeric" autocomplete="off" aria-label="人数"></label>
+    </div>
     <div class="tag-field">
       <div class="tag-input-row">
         <input id="tag-input" type="text" list="tag-options" enterkeyhint="enter" autocomplete="off" placeholder="タグ" aria-label="追加するタグ">

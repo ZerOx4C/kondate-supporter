@@ -26,6 +26,8 @@ func NewRecipeHandler(svc *service.RecipeService) *RecipeHandler {
 type recipeRequest struct {
 	Name string `json:"name"`
 	Body string `json:"body"`
+	// Servingsは整数のリテラルだけを受け付けるため、生のまま受けて自分で読む。無い・nullのときは0。
+	Servings json.RawMessage `json:"servings"`
 	// Tagsは無い・nullのときは空として扱い、タグを全部外す。
 	Tags []string `json:"tags"`
 	// Ingredientsも無い・nullのときは空として扱い、材料を全部外す。
@@ -109,7 +111,12 @@ func (h *RecipeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Create(r.Context(), req.Name, req.Body, req.Tags, req.ingredientInputs())
+	servings, err := parseIntLiteral(req.Servings)
+	if err != nil {
+		writeServiceError(w, service.ErrServingsInvalid)
+		return
+	}
+	rec, err := h.svc.Create(r.Context(), req.Name, req.Body, servings, req.Tags, req.ingredientInputs())
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -126,7 +133,12 @@ func (h *RecipeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body, req.Tags, req.ingredientInputs())
+	servings, err := parseIntLiteral(req.Servings)
+	if err != nil {
+		writeServiceError(w, service.ErrServingsInvalid)
+		return
+	}
+	rec, err := h.svc.Update(r.Context(), id, req.Name, req.Body, servings, req.Tags, req.ingredientInputs())
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -172,14 +184,21 @@ func decodeImportItem(raw json.RawMessage) service.ImportItem {
 		return service.ImportItem{Err: errImportItemFormat}
 	}
 	item := service.ImportItem{Recipe: model.Recipe{Name: req.Title, Body: req.Body, Tags: req.Tags}}
-	if cc := bytes.TrimSpace(req.CookedCount); len(cc) > 0 && string(cc) != "null" {
-		n, err := strconv.ParseInt(string(cc), 10, 64)
-		if err != nil {
-			item.Err = service.ErrCookedCountInvalid
-		}
-		item.Recipe.CookedCount = n
+	n, err := parseIntLiteral(req.CookedCount)
+	if err != nil {
+		item.Err = service.ErrCookedCountInvalid
 	}
+	item.Recipe.CookedCount = n
 	return item
+}
+
+// parseIntLiteral は生のJSON値を整数として読む。空・nullは0。整数のリテラルでなければエラーを返す。
+func parseIntLiteral(raw json.RawMessage) (int64, error) {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || string(raw) == "null" {
+		return 0, nil
+	}
+	return strconv.ParseInt(string(raw), 10, 64)
 }
 
 func (h *RecipeHandler) ListTags(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +335,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	var importErr *service.ImportError
 	var ingErr *service.IngredientError
 	switch {
-	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrImportEmpty),
+	case errors.Is(err, service.ErrNameRequired), errors.Is(err, service.ErrServingsInvalid), errors.Is(err, service.ErrImportEmpty),
 		errors.Is(err, service.ErrDateInvalid), errors.Is(err, service.ErrPeriodInvalid),
 		errors.Is(err, service.ErrMealInvalid), errors.Is(err, service.ErrMemoRequired):
 		writeError(w, http.StatusBadRequest, err.Error())

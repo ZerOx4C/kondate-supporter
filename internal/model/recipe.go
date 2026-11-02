@@ -1,6 +1,7 @@
 package model
 
 // Recipe はレシピ。Bodyは材料・調味料・手順を含む自由テキスト。CookedCountは作った回数。
+// Servingsは人数(0〜99)で、0は未設定。
 // HasImageは画像の有無で、画像のバイト列そのものは持たない。
 // ImageVersionは画像を保存した回数で、画像URLのキャッシュ切り替えに使う。
 // Tagsはタグ名の配列(タグのid昇順)で、タグが無ければ空配列。
@@ -11,6 +12,7 @@ type Recipe struct {
 	Name         string       `json:"name"`
 	Body         string       `json:"body"`
 	CookedCount  int64        `json:"cooked_count"`
+	Servings     int64        `json:"servings"`
 	Tags         []string     `json:"tags"`
 	Bookmarked   bool         `json:"bookmarked"`
 	Ingredients  []Ingredient `json:"ingredients"`

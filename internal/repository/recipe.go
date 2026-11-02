@@ -16,7 +16,7 @@ var ErrNotFound = errors.New("not found")
 // typeof(image)は列の型だけを見るので、画像の本体は読まない。
 // EXISTSはブックマークの有無。その後ろはタグ名のJSON配列(タグのid昇順、無ければ"[]")、
 // 末尾は材料のJSON配列(並び順どおり、無ければ"[]")で、scanRecipeが読む。
-const recipeColumns = `id, name, body, cooked_count, typeof(image) = 'blob', image_version,
+const recipeColumns = `id, name, body, cooked_count, servings, typeof(image) = 'blob', image_version,
 	EXISTS (SELECT 1 FROM recipe_bookmarks b WHERE b.recipe_id = recipes.id),
 	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id),
 	(SELECT json_group_array(json_object('name', i.name, 'quantity', i.quantity, 'format', i.format) ORDER BY i.position)
@@ -54,10 +54,10 @@ func (r *RecipeRepository) Get(ctx context.Context, id int64) (model.Recipe, err
 }
 
 // Create はレシピ・タグ・材料を追加し、追加後のレシピを返す。
-func (r *RecipeRepository) Create(ctx context.Context, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
+func (r *RecipeRepository) Create(ctx context.Context, name, body string, servings int64, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
 	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `INSERT INTO recipes (name, body) VALUES (?, ?)`, name, body)
+		res, err := tx.ExecContext(ctx, `INSERT INTO recipes (name, body, servings) VALUES (?, ?, ?)`, name, body, servings)
 		if err != nil {
 			return err
 		}
@@ -103,12 +103,12 @@ func (r *RecipeRepository) Import(ctx context.Context, recs []model.Recipe) (int
 	return len(recs), nil
 }
 
-// Update は名前・本文・タグ・材料を更新し、更新後のレシピを返す。cooked_countは変更しない。
+// Update は名前・本文・人数・タグ・材料を更新し、更新後のレシピを返す。cooked_countは変更しない。
 // タグと材料は丸ごと置き換える。存在しないidに付けると外部キー違反になるため、UPDATEを先に行う。
-func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
+func (r *RecipeRepository) Update(ctx context.Context, id int64, name, body string, servings int64, tags []string, ingredients []model.Ingredient) (model.Recipe, error) {
 	var rec model.Recipe
 	err := inTx(ctx, r.db, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ? WHERE id = ?`, name, body, id)
+		res, err := tx.ExecContext(ctx, `UPDATE recipes SET name = ?, body = ?, servings = ? WHERE id = ?`, name, body, servings, id)
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ type rowScanner interface {
 func scanRecipe(row rowScanner) (model.Recipe, error) {
 	var rec model.Recipe
 	var tags, ingredients string
-	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.HasImage, &rec.ImageVersion, &rec.Bookmarked, &tags, &ingredients); err != nil {
+	if err := row.Scan(&rec.ID, &rec.Name, &rec.Body, &rec.CookedCount, &rec.Servings, &rec.HasImage, &rec.ImageVersion, &rec.Bookmarked, &tags, &ingredients); err != nil {
 		return model.Recipe{}, err
 	}
 	if err := json.Unmarshal([]byte(tags), &rec.Tags); err != nil {

@@ -6,7 +6,7 @@ const editMode = $("edit-mode");
 
 let current = null; // 表示中のレシピ。新規作成中はnull
 let mode = "view";
-let snapshot = { name: "", body: "", tags: [], ingredients: [] };
+let snapshot = { name: "", body: "", servings: 0, tags: [], ingredients: [] };
 let editTags = []; // 編集中のタグ名
 let tagOptions = []; // タグ入力欄の候補(GET /api/tags)
 let busy = false;
@@ -136,6 +136,24 @@ function renderBody(el, text) {
   }
   if (last < text.length) nodes.push(text.slice(last));
   el.replaceChildren(...nodes);
+}
+
+// 人数欄の値。全角の数字は半角に直し、空は0、数字だけなら数にする。
+// それ以外は文字列のまま送り、正しいかどうかはサーバーが決める
+function servingsValue() {
+  const text = $("edit-servings").value.trim().replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  if (text === "") return 0;
+  return /^[0-9]+$/.test(text) ? Number(text) : text;
+}
+
+// 閲覧表示の人数。0は未設定なので出さない
+function renderViewServings(n) {
+  const el = $("view-servings");
+  el.hidden = n === 0;
+  if (n === 0) return;
+  el.querySelector("span").textContent = String(n);
+  el.setAttribute("aria-label", n + "人分");
+  el.title = n + "人分";
 }
 
 // 閲覧表示の札は、そのタグ1つだけで絞り込んだ一覧へのリンクにする
@@ -533,6 +551,7 @@ function showView(recipe) {
   clearErrors();
   document.title = recipe.name + " - kondate-supporter";
   $("view-name").textContent = recipe.name;
+  renderViewServings(recipe.servings);
   renderViewTags(recipe.tags);
   $("view-tags").hidden = recipe.tags.length === 0;
   const viewImage = $("view-image");
@@ -560,12 +579,14 @@ function showEdit(recipe) {
   const name = recipe ? recipe.name : "";
   const body = recipe ? recipe.body : "";
   editTags = recipe ? recipe.tags.slice() : [];
+  const servings = recipe ? recipe.servings : 0;
   $("edit-name").value = name;
+  $("edit-servings").value = servings === 0 ? "" : String(servings);
   $("edit-body").value = body;
   $("tag-input").value = "";
   renderEditTags();
   renderEditIngredients(recipe ? recipe.ingredients : []);
-  snapshot = { name, body, tags: editTags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
+  snapshot = { name, body, servings, tags: editTags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
   loadTagOptions();
   clearImageChange();
   renderEditImage();
@@ -582,6 +603,7 @@ function isDirty() {
   return (
     $("edit-name").value !== snapshot.name ||
     $("edit-body").value !== snapshot.body ||
+    servingsValue() !== snapshot.servings ||
     editTags.join("\n") !== snapshot.tags.join("\n") ||
     $("tag-input").value.trim() !== "" ||
     JSON.stringify(meaningfulIngredients(readIngredientRows())) !== JSON.stringify(snapshot.ingredients) ||
@@ -625,7 +647,7 @@ async function save(event) {
   if (busy) return;
   clearErrors();
   commitTagInput();
-  const body = { name: $("edit-name").value, body: $("edit-body").value, tags: editTags, ingredients: readIngredientRows() };
+  const body = { name: $("edit-name").value, body: $("edit-body").value, servings: servingsValue(), tags: editTags, ingredients: readIngredientRows() };
   setBusy(true);
   let saved = null;
   try {
@@ -651,9 +673,10 @@ async function save(event) {
       editTags = saved.tags.slice();
       $("edit-name").value = saved.name;
       $("edit-body").value = saved.body;
+      $("edit-servings").value = saved.servings === 0 ? "" : String(saved.servings);
       renderEditTags();
       renderEditIngredients(saved.ingredients);
-      snapshot = { name: saved.name, body: saved.body, tags: saved.tags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
+      snapshot = { name: saved.name, body: saved.body, servings: saved.servings, tags: saved.tags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
     }
     showError(e.message);
   } finally {
