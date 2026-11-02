@@ -2,6 +2,7 @@
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
 // 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。期間の下の行の左端のボタンで、毎日と各日付をまとめて畳む・開く。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
+// 端末の今日の日付の見出しは強調する
 // 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える。メモのパネルを押すと文を書き換えられる
 
 const PERIOD_KEY = "kondate.plans.period";
@@ -137,6 +138,7 @@ function renderPeriod() {
     toggle.className = "plan-area-toggle";
     toggle.setAttribute("aria-expanded", "true");
     toggle.setAttribute("aria-controls", "day-body-" + i);
+    toggle.dataset.date = toIsoDate(addDays(periodStart, i));
     const chevron = document.createElement("i");
     chevron.className = "ti ti-chevron-down";
     chevron.setAttribute("aria-hidden", "true");
@@ -178,6 +180,17 @@ function renderPeriod() {
   $("day-areas").replaceChildren(...areas);
   updateDayCounts();
   updateCollapseAll();
+  markToday();
+}
+
+// 端末の今日の日付の見出しにだけ aria-current="date" を付ける(見た目はCSSが付ける)。期間に今日が無ければどれにも付けない。
+// 変わるのは色だけで見出しの大きさは変わらないので、ドラッグ中でも付け替える
+function markToday() {
+  const today = toIsoDate(new Date());
+  for (const toggle of document.querySelectorAll("#day-areas .plan-area-toggle")) {
+    if (toggle.dataset.date === today) toggle.setAttribute("aria-current", "date");
+    else toggle.removeAttribute("aria-current");
+  }
 }
 
 // 毎日と各日付の見出しのボタンで、パネルの枠(各日付は朝・昼・夜の帯)だけを畳む。エラー欄は畳まない。畳んだ状態は覚えない。
@@ -750,7 +763,12 @@ applyShownMeals();
 loadPeriod();
 renderPeriod();
 loadPlans();
-// 戻るでキャッシュから復元されたとき、詳細で変えた名前・画像や削除を反映する
+// 戻るでキャッシュから復元されたとき、詳細で変えた名前・画像や削除を反映する。今日の見出しは毎回合わせ直す
 window.addEventListener("pageshow", (e) => {
+  markToday();
   if (e.persisted) loadPlans();
+});
+// タブやアプリから戻って表示されたとき、開いたまま日付をまたいでいても今日の見出しを合わせ直す
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") markToday();
 });
