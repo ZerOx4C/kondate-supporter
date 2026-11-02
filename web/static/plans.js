@@ -394,7 +394,24 @@ function createRecipePanel(recipe, planId) {
   name.className = "plan-name";
   name.textContent = recipe.name;
   link.appendChild(name);
+  if (recipe.servings > 0) link.appendChild(createServings(recipe.servings));
   return createPanelBase(planId, recipe.name, link);
+}
+
+// 人数。0は未設定なので呼び出し側で出さない
+function createServings(count) {
+  const servings = document.createElement("span");
+  servings.className = "plan-servings";
+  servings.setAttribute("role", "img");
+  servings.setAttribute("aria-label", count + "人分");
+  servings.title = count + "人分";
+  const icon = document.createElement("i");
+  icon.className = "ti ti-user";
+  icon.setAttribute("aria-hidden", "true");
+  const num = document.createElement("span");
+  num.textContent = String(count);
+  servings.append(icon, num);
+  return servings;
 }
 
 // メモのパネルは移る先が無いので、リンクではなく押すと文を書き換えるダイアログを開くボタンにする
