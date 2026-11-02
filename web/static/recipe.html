@@ -75,6 +75,7 @@
   </div>
   <div id="edit-actions" class="actions" hidden>
     <button type="submit" id="save-button" class="primary" form="edit-mode"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
+    <button type="button" id="extract-button" class="icon-only" aria-label="抽出" title="抽出"><i class="ti ti-text-scan-2" aria-hidden="true"></i></button>
   </div>
 </header>
 <main>
@@ -120,15 +121,15 @@
     <div class="ingredient-field" role="group" aria-label="材料">
       <ul id="edit-ingredients" class="ingredient-rows"></ul>
       <div class="actions">
-        <button type="button" id="add-ingredient-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>
-        <button type="button" id="collect-ingredients-button"><i class="ti ti-text-scan-2" aria-hidden="true"></i>本文から集める</button>
-      </div>
+        <button type="button" id="add-ingredient-button"><i class="ti ti-plus" aria-hidden="true"></i>追加</button>      </div>
     </div>
     <textarea id="edit-body" rows="15" placeholder="本文" aria-label="本文"></textarea>
   </form>
 </main>
 
 <button type="button" id="scroll-top-button" class="icon-only scroll-top" aria-label="先頭へ戻る" title="先頭へ戻る" hidden><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+
+<dialog id="extract-menu" class="menu" aria-label="抽出"><ul><li><button type="button" id="extract-ingredients-button">材料を本文から抽出する</button></li></ul></dialog>
 
 <dialog id="confirm-dialog">
   <div class="dialog-inner">
@@ -142,7 +143,7 @@
 
 <dialog id="collect-dialog" aria-labelledby="collect-dialog-title">
   <div class="dialog-inner">
-    <h2 id="collect-dialog-title">本文から集めた材料</h2>
+    <h2 id="collect-dialog-title">本文から抽出した材料</h2>
     <p id="collect-empty" hidden>本文に材料らしい行がありません</p>
     <ul id="collect-candidates" class="collect-candidates"></ul>
     <div class="actions">

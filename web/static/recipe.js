@@ -776,13 +776,17 @@ $("add-tag-button").addEventListener("click", () => {
   $("tag-input").focus();
 });
 $("add-ingredient-button").addEventListener("click", addIngredientRow);
-$("collect-ingredients-button").addEventListener("click", openCollectDialog);
+setupMainMenu($("extract-button"), $("extract-menu"));
+$("extract-ingredients-button").addEventListener("click", () => {
+  $("extract-menu").close();
+  openCollectDialog();
+});
 $("collect-candidates").addEventListener("change", updateCollectOk);
 $("collect-ok").addEventListener("click", addCollectedIngredients);
 $("collect-cancel").addEventListener("click", () => collectDialog.close());
 onOutsideTap(collectDialog, () => collectDialog.close());
 // 閉じたあとは、足した行の入力欄へ移さず押したボタンに戻す(スマホで画面キーボードが出るのを避ける)
-collectDialog.addEventListener("close", () => $("collect-ingredients-button").focus());
+collectDialog.addEventListener("close", () => $("extract-button").focus());
 $("tag-input").addEventListener("keydown", (e) => {
   // 日本語入力の変換を確定するEnterではタグを足さない(keyCode 229はSafari向け)
   if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
