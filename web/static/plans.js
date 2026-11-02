@@ -1,6 +1,6 @@
 "use strict";
 // 献立。期間選択UIと、候補・毎日・各日付のエリア。候補のパネルをドラッグして毎日・各日付へ置き、
-// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。
+// 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。期間の下の行の左端のボタンで、毎日と各日付をまとめて畳む・開く。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
 // 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える。メモのパネルを押すと文を書き換えられる
 
@@ -177,16 +177,47 @@ function renderPeriod() {
   }
   $("day-areas").replaceChildren(...areas);
   updateDayCounts();
+  updateCollapseAll();
 }
 
 // 毎日と各日付の見出しのボタンで、パネルの枠(各日付は朝・昼・夜の帯)だけを畳む。エラー欄は畳まない。畳んだ状態は覚えない。
 // ドラッグ中は、掴んだときに測った置き先の位置がずれるので開閉しない
 function toggleArea(toggle) {
   if (planDrag) return;
-  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  setAreaExpanded(toggle, toggle.getAttribute("aria-expanded") !== "true");
+  updateCollapseAll();
+}
+
+// 見出しのボタン1つの開閉を当てる。目印のアイコンは見出しの最初の .ti(各日付の件数のアイコンより前にある)
+function setAreaExpanded(toggle, expanded) {
   toggle.setAttribute("aria-expanded", String(expanded));
   toggle.querySelector(".ti").className = "ti " + (expanded ? "ti-chevron-down" : "ti-chevron-right");
   $(toggle.getAttribute("aria-controls")).hidden = !expanded;
+}
+
+// 毎日と各日付の見出しのボタン(候補は畳まない)のどれか1つでも開いているか
+function anyAreaExpanded() {
+  return [...document.querySelectorAll(".plan-area-toggle")].some((t) => t.getAttribute("aria-expanded") === "true");
+}
+
+// 一括開閉ボタンの名前とアイコンを、今の開閉から求め直す(状態は別に持たない)
+function updateCollapseAll() {
+  const anyOpen = anyAreaExpanded();
+  const label = anyOpen ? "すべて折り畳み" : "すべて展開";
+  const button = $("collapse-all");
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  button.querySelector(".ti").className = "ti " + (anyOpen ? "ti-chevrons-up" : "ti-chevrons-down");
+}
+
+// どれか開いていれば全部畳み、全部畳まれていれば全部開く。ドラッグ中は見出しと同じく開閉しない
+function setupCollapseAll() {
+  $("collapse-all").addEventListener("click", () => {
+    if (planDrag) return;
+    const expand = !anyAreaExpanded();
+    for (const toggle of document.querySelectorAll(".plan-area-toggle")) setAreaExpanded(toggle, expand);
+    updateCollapseAll();
+  });
 }
 
 // 各日付の見出しの件数と読み上げ名を、帯の中身から数え直す(畳んだ日付も数える)
@@ -711,6 +742,7 @@ setupPageNav($("page-nav"));
 setupMainMenu($("menu-button"), $("main-menu"));
 setupPeriod();
 setupMealToggle();
+setupCollapseAll();
 setupMemoDialog();
 $("daily-toggle").addEventListener("click", () => toggleArea($("daily-toggle")));
 loadShownMeals();

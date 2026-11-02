@@ -9,7 +9,8 @@
 <link rel="stylesheet" href="dev-mode.css">
 <style>
   .period { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-  .meal-toggle { display: flex; align-self: flex-end; background: #fff; border: 1px solid #999; border-radius: 8px; }
+  .period-options { display: flex; justify-content: space-between; align-items: center; }
+  .meal-toggle { display: flex; background: #fff; border: 1px solid #999; border-radius: 8px; }
   .meal-toggle button { border: none; border-radius: 0; }
   .meal-toggle button + button { border-left: 1px solid #999; }
   .meal-toggle button:first-child { border-radius: 7px 0 0 7px; }
@@ -129,10 +130,13 @@
       </span>
       <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
     </div>
-    <div id="meal-toggle" class="meal-toggle" role="group" aria-label="表示する時間帯">
-      <button type="button" class="icon-only" data-meal="breakfast" aria-pressed="true" aria-label="朝" title="朝"><i class="ti ti-haze" aria-hidden="true"></i></button>
-      <button type="button" class="icon-only" data-meal="lunch" aria-pressed="true" aria-label="昼" title="昼"><i class="ti ti-sun-high" aria-hidden="true"></i></button>
-      <button type="button" class="icon-only" data-meal="dinner" aria-pressed="true" aria-label="夜" title="夜"><i class="ti ti-moon" aria-hidden="true"></i></button>
+    <div class="period-options">
+      <button type="button" id="collapse-all" class="icon-only" aria-label="すべて折り畳み" title="すべて折り畳み"><i class="ti ti-chevrons-up" aria-hidden="true"></i></button>
+      <div id="meal-toggle" class="meal-toggle" role="group" aria-label="表示する時間帯">
+        <button type="button" class="icon-only" data-meal="breakfast" aria-pressed="true" aria-label="朝" title="朝"><i class="ti ti-haze" aria-hidden="true"></i></button>
+        <button type="button" class="icon-only" data-meal="lunch" aria-pressed="true" aria-label="昼" title="昼"><i class="ti ti-sun-high" aria-hidden="true"></i></button>
+        <button type="button" class="icon-only" data-meal="dinner" aria-pressed="true" aria-label="夜" title="夜"><i class="ti ti-moon" aria-hidden="true"></i></button>
+      </div>
     </div>
   </div>
 
