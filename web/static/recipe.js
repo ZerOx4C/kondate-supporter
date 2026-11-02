@@ -499,6 +499,43 @@ function appendIngredientRows(rows) {
   updateIngredientLabels();
 }
 
+// タイトルから人数を探す判定。数は半角・全角の整数で、範囲(〜・～・~)は大きい方の数にする
+const SERVINGS_IN_TITLE = /([0-9０-９]+)(?:[〜～~]([0-9０-９]+))?(?:人分|人前|名分)/;
+
+// 見つかれば { servings: 半角の数の文字列, name: 人数の部分を除いた名前 }、なければnull。最初の1件だけを使う
+function extractServingsFromTitle(name) {
+  const m = SERVINGS_IN_TITLE.exec(name);
+  if (!m) return null;
+  const half = (s) => s.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  const first = Number(half(m[1]));
+  const larger = m[2] === undefined ? first : Math.max(first, Number(half(m[2])));
+  let before = name.slice(0, m.index);
+  let after = name.slice(m.index + m[0].length);
+  // 括弧は、中身が人数の部分だけのときに限り括弧ごと消す
+  if (/[（(]\s*$/.test(before) && /^\s*[）)]/.test(after)) {
+    before = before.replace(/[（(]\s*$/, "");
+    after = after.replace(/^\s*[）)]/, "");
+  }
+  before = before.trimEnd();
+  after = after.trimStart();
+  // 両側に文字が残るときは空白1つでつなぐ。ただし開き括弧の直後は詰める
+  const joined = before !== "" && after !== "" && !/[（(]$/.test(before) ? before + " " + after : before + after;
+  return { servings: String(larger), name: joined };
+}
+
+function applyServingsFromTitle() {
+  if (busy) return;
+  const found = extractServingsFromTitle($("edit-name").value);
+  if (found === null) {
+    showToast($("toast"), "タイトルに人数が見つかりません");
+  } else {
+    $("edit-name").value = found.name;
+    $("edit-servings").value = found.servings;
+    showToast($("toast"), "人数を" + found.servings + "人分にしました");
+  }
+  $("extract-button").focus();
+}
+
 const collectDialog = $("collect-dialog");
 let collectCandidates = [];
 
@@ -777,6 +814,10 @@ $("add-tag-button").addEventListener("click", () => {
 });
 $("add-ingredient-button").addEventListener("click", addIngredientRow);
 setupMainMenu($("extract-button"), $("extract-menu"));
+$("extract-servings-button").addEventListener("click", () => {
+  $("extract-menu").close();
+  applyServingsFromTitle();
+});
 $("extract-ingredients-button").addEventListener("click", () => {
   $("extract-menu").close();
   openCollectDialog();
