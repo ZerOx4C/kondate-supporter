@@ -254,7 +254,34 @@ func (r *RecipeRepository) ListTags(ctx context.Context) ([]string, error) {
 	return tags, rows.Err()
 }
 
-// replaceTags はレシピのタグをnamesに置き換える。紐付けを全部消して付け直した後に、
+// ListIngredientNames は使われている材料名を、使っているレシピが多い順(同数は最初に使ったレシピのid順、
+// 同じレシピでは並び順)に重複なしで返す。0件のときは空スライスを返す。
+func (r *RecipeRepository) ListIngredientNames(ctx context.Context) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		WITH ordered AS (
+			SELECT name, recipe_id, ROW_NUMBER() OVER (ORDER BY recipe_id, position) AS seq
+			FROM recipe_ingredients
+		)
+		SELECT name FROM ordered
+		GROUP BY name
+		ORDER BY COUNT(DISTINCT recipe_id) DESC, MIN(seq)`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	names := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
+// replaceTagsはレシピのタグをnamesに置き換える。紐付けを全部消して付け直した後に、
 // どのレシピにも付いていないタグを消す(付けたままのタグのidを変えないため)。
 func replaceTags(ctx context.Context, tx *sql.Tx, recipeID int64, names []string) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM recipe_tags WHERE recipe_id = ?`, recipeID); err != nil {

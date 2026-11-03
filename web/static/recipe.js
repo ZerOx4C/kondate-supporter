@@ -227,6 +227,18 @@ async function loadTagOptions() {
   } catch {}
 }
 
+// 材料名の候補も入力の補助なので、取れなくても手で打てばよく、失敗は無視する
+async function loadIngredientNameOptions() {
+  try {
+    const names = await api("GET", "/api/ingredient-names");
+    $("ingredient-name-options").replaceChildren(...names.map((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      return option;
+    }));
+  } catch {}
+}
+
 // 編集フォームの材料の行の値は入力欄を正とする(入力のたびに描き直すとフォーカスとIMEの変換が切れるため)
 function createIngredientRow(name, amount) {
   const li = document.createElement("li");
@@ -237,6 +249,7 @@ function createIngredientRow(name, amount) {
   nameInput.placeholder = "材料";
   nameInput.setAttribute("aria-label", "材料の名前");
   nameInput.autocomplete = "off";
+  nameInput.setAttribute("list", "ingredient-name-options");
   nameInput.enterKeyHint = "next";
   nameInput.value = name;
   nameInput.addEventListener("input", updateIngredientLabels);
@@ -625,6 +638,7 @@ function showEdit(recipe) {
   renderEditIngredients(recipe ? recipe.ingredients : []);
   snapshot = { name, body, servings, tags: editTags.slice(), ingredients: meaningfulIngredients(readIngredientRows()) };
   loadTagOptions();
+  loadIngredientNameOptions();
   clearImageChange();
   renderEditImage();
   $("back-link").hidden = true;

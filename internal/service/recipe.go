@@ -171,6 +171,12 @@ func (s *RecipeService) ListTags(ctx context.Context) ([]string, error) {
 	return s.repo.ListTags(ctx)
 }
 
+// ListIngredientNames は使われている材料名を、使っているレシピが多い順(同数は最初に使ったレシピのid順、
+// 同じレシピでは並び順)に重複なしで返す。
+func (s *RecipeService) ListIngredientNames(ctx context.Context) ([]string, error) {
+	return s.repo.ListIngredientNames(ctx)
+}
+
 // normalizeTags はタグ名の前後の空白を除き、空を捨て、完全一致の重複を最初の1つにまとめる。
 // 大文字・小文字は区別する。
 func normalizeTags(tags []string) []string {

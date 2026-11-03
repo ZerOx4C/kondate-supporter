@@ -210,6 +210,15 @@ func (h *RecipeHandler) ListTags(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, tags)
 }
 
+func (h *RecipeHandler) ListIngredientNames(w http.ResponseWriter, r *http.Request) {
+	names, err := h.svc.ListIngredientNames(r.Context())
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, names)
+}
+
 func (h *RecipeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
 	if !ok {
