@@ -49,6 +49,16 @@ func (r *PlanRepository) List(ctx context.Context, from, to string) ([]model.Pla
 	return plans, rows.Err()
 }
 
+// Get は行idを返す。メモの行もそのまま返す。行が無ければErrNotFoundを返す。
+func (r *PlanRepository) Get(ctx context.Context, id int64) (model.Plan, error) {
+	e, err := scanPlan(r.db.QueryRowContext(ctx,
+		`SELECT `+planColumns+` FROM plans WHERE id = ?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return e, ErrNotFound
+	}
+	return e, err
+}
+
 // Add はdateとmealのエリアの0始まりのindex番目にレシピを置き、置いた行を返す。indexが件数以上なら末尾に置く。
 // dateがnilなら毎日(mealもnil)か候補(mealがcandidate)。レシピが無ければErrNotFoundを返す。
 // 並び順を表すpositionは連番とは限らないので、index番目の行のpositionを探し、それ以降を1つずつずらして入れる。

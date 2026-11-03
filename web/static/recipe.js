@@ -14,6 +14,10 @@ let cookedPressed = false; // このページで「作った」を押した状�
 let leaving = false; // 画面内で確認済みの遷移中。trueの間はbeforeunloadで確認しない
 let imageChange = null; // 編集中の画像の変更。null=変更なし / {blob,url}=新しい画像 / "remove"=外す
 
+// 献立の行から開いたときの、その行(?plan_id=)。それ以外はnull
+const planId = new URLSearchParams(location.search).get("plan_id");
+let plan = null;
+
 // 一覧か献立から来たときだけブラウザの戻るで戻る(一覧の絞り込み条件などをURLごと残すため)
 const cameFrom = (() => {
   try {
@@ -25,18 +29,22 @@ const cameFrom = (() => {
   return null;
 })();
 
-if (cameFrom === "plans") {
+// 献立の行から開いたときは、ほかの画面から来ていても戻り先は献立にする(ブラウザの戻るは献立から来たときだけ)
+const backHref = planId !== null || cameFrom === "plans" ? "plans.html" : "recipes.html";
+const backViaHistory = planId !== null ? cameFrom === "plans" : cameFrom !== null;
+
+if (backHref === "plans.html") {
   const link = $("back-link");
-  link.href = "plans.html";
+  link.href = backHref;
   link.setAttribute("aria-label", "献立へ戻る");
   link.title = "献立へ戻る";
 }
 
 function leaveBack(replace) {
   leaving = true;
-  if (cameFrom) history.back();
-  else if (replace) location.replace("recipes.html");
-  else location.href = "recipes.html";
+  if (backViaHistory) history.back();
+  else if (replace) location.replace(backHref);
+  else location.href = backHref;
 }
 
 function clearErrors() {
@@ -146,14 +154,31 @@ function servingsValue() {
   return /^[0-9]+$/.test(text) ? Number(text) : text;
 }
 
-// 閲覧表示の人数。0は未設定なので出さない
-function renderViewServings(n) {
+// 献立の行から開いたときの人数の換算。献立の行が無いか、レシピの人数が0(未設定)で倍率が決まらないときはnull。
+// shownは出す人数、changedは献立の人数がレシピと違うか
+function planScale(recipe) {
+  if (plan === null || recipe.servings === 0) return null;
+  const shown = plan.servings ?? recipe.servings;
+  return { shown, changed: shown !== recipe.servings };
+}
+
+// 量の数量を「献立の人数 ÷ レシピの人数」倍にして小数第1位に丸める。倍率が1のときと数の無い量(null)はそのまま
+function scaleQuantity(quantity, recipe, scale) {
+  if (quantity === null || scale === null || !scale.changed) return quantity;
+  return Math.round(quantity * scale.shown / recipe.servings * 10) / 10;
+}
+
+// 閲覧表示の人数。0は未設定なので出さない。献立の人数がレシピと違うときは献立のパネルと同じ印を付ける
+function renderViewServings(recipe, scale) {
   const el = $("view-servings");
-  el.hidden = n === 0;
-  if (n === 0) return;
-  el.querySelector("span").textContent = String(n);
-  el.setAttribute("aria-label", n + "人分");
-  el.title = n + "人分";
+  el.hidden = recipe.servings === 0;
+  if (recipe.servings === 0) return;
+  const shown = scale ? scale.shown : recipe.servings;
+  const changed = scale !== null && scale.changed;
+  el.querySelector("span").textContent = String(shown);
+  el.classList.toggle("changed", changed);
+  el.setAttribute("aria-label", changed ? shown + "人分、" + recipe.servings + "人分から変更" : shown + "人分");
+  el.title = changed ? recipe.servings + "人分から変更" : shown + "人分";
 }
 
 // 閲覧表示の札は、そのタグ1つだけで絞り込んだ一覧へのリンクにする
@@ -170,11 +195,11 @@ function renderViewTags(names) {
 }
 
 // 閲覧表示の材料は名前と量(書式に数量を当てはめた文字列)の2列の表にする。参考量があれば量の後ろに括弧で添える
-function renderViewIngredients(ingredients) {
-  $("view-ingredients").tBodies[0].replaceChildren(...ingredients.map((i) => {
+function renderViewIngredients(recipe, scale) {
+  $("view-ingredients").tBodies[0].replaceChildren(...recipe.ingredients.map((i) => {
     const tr = document.createElement("tr");
-    const reference = i.reference_format === "" ? "" : "(" + formatAmount(i.reference_format, i.reference_quantity) + ")";
-    for (const text of [i.name, formatAmount(i.format, i.quantity) + reference]) {
+    const reference = i.reference_format === "" ? "" : "(" + formatAmount(i.reference_format, scaleQuantity(i.reference_quantity, recipe, scale)) + ")";
+    for (const text of [i.name, formatAmount(i.format, scaleQuantity(i.quantity, recipe, scale)) + reference]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.append(td);
@@ -617,14 +642,15 @@ function showView(recipe) {
   clearErrors();
   document.title = recipe.name + " - kondate-supporter";
   $("view-name").textContent = recipe.name;
-  renderViewServings(recipe.servings);
+  const scale = planScale(recipe);
+  renderViewServings(recipe, scale);
   renderViewTags(recipe.tags);
   $("view-tags").hidden = recipe.tags.length === 0;
   const viewImage = $("view-image");
   if (recipe.image_url) viewImage.src = recipe.image_url;
   else viewImage.removeAttribute("src");
   viewImage.hidden = !recipe.image_url;
-  renderViewIngredients(recipe.ingredients);
+  renderViewIngredients(recipe, scale);
   $("view-ingredients").hidden = recipe.ingredients.length === 0;
   renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
@@ -800,6 +826,22 @@ async function toggleBookmark() {
 }
 
 async function load() {
+  if (planId !== null) {
+    if (planId === "") {
+      showLoadError("レシピを読み込めませんでした: IDが不正です");
+      return;
+    }
+    try {
+      const row = await api("GET", "/api/plans/" + encodeURIComponent(planId));
+      // メモの行は開けるレシピが無いので、行が無いときと同じに扱う
+      if (row.recipe_id === null) throw new Error("献立に置いたものが見つかりません");
+      plan = row;
+      showView(await api("GET", "/api/recipes/" + row.recipe_id));
+    } catch (e) {
+      showLoadError("レシピを読み込めませんでした: " + e.message);
+    }
+    return;
+  }
   const id = new URLSearchParams(location.search).get("id");
   if (id === null) {
     document.title = "新規作成 - kondate-supporter";
@@ -820,7 +862,7 @@ async function load() {
 $("back-link").addEventListener("click", (e) => {
   if (busy) {
     e.preventDefault();
-  } else if (cameFrom) {
+  } else if (backViaHistory) {
     e.preventDefault();
     history.back();
   }

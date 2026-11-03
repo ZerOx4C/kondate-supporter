@@ -57,6 +57,15 @@ func (s *PlanService) List(ctx context.Context, from, to string) ([]model.Plan, 
 	return s.repo.List(ctx, from, to)
 }
 
+// Get は置いた行idを返す。メモの行もそのまま返す。
+func (s *PlanService) Get(ctx context.Context, id int64) (model.Plan, error) {
+	e, err := s.repo.Get(ctx, id)
+	if errors.Is(err, repository.ErrNotFound) {
+		return e, ErrPlanNotFound
+	}
+	return e, err
+}
+
 // checkArea はdateとmealの組を検査し、保存するmealを返す。
 // 日付の無い行は、mealが無ければ毎日、candidateなら候補で、朝・昼・夜は付けられない。
 // 日付の行は朝・昼・夜のどれかが要り、candidateは付けられない。

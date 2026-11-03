@@ -32,6 +32,7 @@ func NewRouter(staticFS fs.FS, recipes *RecipeHandler, plans *PlanHandler, devMo
 	mux.HandleFunc("GET /api/tags", recipes.ListTags)
 	mux.HandleFunc("GET /api/ingredient-names", recipes.ListIngredientNames)
 	mux.HandleFunc("GET /api/plans", plans.List)
+	mux.HandleFunc("GET /api/plans/{id}", plans.Get)
 	mux.HandleFunc("POST /api/plans", plans.Create)
 	mux.HandleFunc("PUT /api/plans/{id}", plans.Move)
 	mux.HandleFunc("PUT /api/plans/{id}/memo", plans.UpdateMemo)

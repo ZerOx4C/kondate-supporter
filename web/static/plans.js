@@ -378,7 +378,7 @@ function createThumbPlaceholder(iconClass) {
 function createRecipePanel(recipe, plan) {
   const link = document.createElement("a");
   link.className = "plan-panel-link";
-  link.href = "recipe.html?id=" + recipe.id;
+  link.href = "recipe.html?plan_id=" + plan.id;
   link.title = recipe.name;
   if (recipe.image_url) {
     const img = document.createElement("img");

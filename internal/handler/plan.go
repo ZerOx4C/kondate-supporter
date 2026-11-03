@@ -35,6 +35,19 @@ func (h *PlanHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, plans)
 }
 
+func (h *PlanHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	e, err := h.svc.Get(r.Context(), id)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
 func (h *PlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req planRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
