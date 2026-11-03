@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="dev-mode.css">
 <style>
   #period-range { margin-top: 1rem; }
+  #summary-table { -webkit-user-select: text; user-select: text; }
 </style>
 </head>
 <body>
@@ -41,6 +42,9 @@
     </span>
     <button type="button" class="period-next icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
   </div>
+  <p class="error" id="summary-error"></p>
+  <table id="summary-table" class="amount-table" aria-label="材料の合計" hidden><tbody></tbody></table>
+  <p id="summary-empty" hidden>集計する材料がありません</p>
 </main>
 
 <script src="common.js"></script>

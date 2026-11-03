@@ -50,6 +50,11 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .menu::backdrop { background: transparent; }
 .menu ul { list-style: none; margin: 0; padding: 0; }
 .menu button, .menu a.button { width: 100%; justify-content: flex-start; border: none; border-radius: 0; white-space: nowrap; }
+.amount-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.amount-table td { padding: 0.4rem 0; vertical-align: top; }
+.amount-table td:first-child { overflow-wrap: anywhere; }
+.amount-table td:last-child { text-align: right; padding-left: 1rem; overflow-wrap: break-word; }
+.amount-table tr + tr td { border-top: 1px solid #ddd; }
 .error { color: #c00; }
 .error:empty { display: none; }
 dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }
