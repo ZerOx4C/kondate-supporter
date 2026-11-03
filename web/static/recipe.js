@@ -293,7 +293,7 @@ function addIngredientRow() {
   li.querySelector(".ingredient-name").focus();
 }
 
-// 外した行のあとはフォーカスを落とさず、詰めてきた同じ位置の行(末尾なら1つ前、無ければ「追加」)へ移す
+// 外した行のあとはフォーカスを落とさず、詰めてきた同じ位置の行(末尾なら1つ前、無ければ「材料を追加」)へ移す
 function removeIngredientRow(li) {
   const list = $("edit-ingredients");
   const index = Array.from(list.children).indexOf(li);
