@@ -16,11 +16,11 @@ func NewPlanRepository(db *sql.DB) *PlanRepository {
 	return &PlanRepository{db: db}
 }
 
-const planColumns = "id, date, meal, recipe_id, memo"
+const planColumns = "id, date, meal, recipe_id, memo, servings"
 
 func scanPlan(row interface{ Scan(...any) error }) (model.Plan, error) {
 	var e model.Plan
-	err := row.Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID, &e.Memo)
+	err := row.Scan(&e.ID, &e.Date, &e.Meal, &e.RecipeID, &e.Memo, &e.Servings)
 	return e, err
 }
 
@@ -131,6 +131,17 @@ func (r *PlanRepository) Move(ctx context.Context, id int64, date, meal *string,
 func (r *PlanRepository) UpdateMemo(ctx context.Context, id int64, memo string) (model.Plan, error) {
 	e, err := scanPlan(r.db.QueryRowContext(ctx,
 		`UPDATE plans SET memo = ? WHERE id = ? AND memo IS NOT NULL RETURNING `+planColumns, memo, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return e, ErrNotFound
+	}
+	return e, err
+}
+
+// UpdateServings はレシピの行idの献立の人数を書き換え、書き換えた行を返す。servingsがnilならレシピの人数に戻す。
+// 行が無いときとメモの行のときはErrNotFoundを返す。
+func (r *PlanRepository) UpdateServings(ctx context.Context, id int64, servings *int64) (model.Plan, error) {
+	e, err := scanPlan(r.db.QueryRowContext(ctx,
+		`UPDATE plans SET servings = ? WHERE id = ? AND recipe_id IS NOT NULL RETURNING `+planColumns, servings, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return e, ErrNotFound
 	}

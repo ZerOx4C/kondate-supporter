@@ -6,6 +6,11 @@ const $ = (id) => document.getElementById(id);
 const MAX_IMAGE_SIDE = 800;
 
 // アイコンと回数(0回は数字なし)。一覧タイルと「作った」ボタンで共用
+// 全角の数字を半角にする
+function toHalfWidthDigits(text) {
+  return text.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+}
+
 function cookedContent(count) {
   const span = document.createElement("span");
   span.className = "cooked";

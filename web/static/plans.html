@@ -55,7 +55,12 @@
   }
   .plan-thumb { width: 44px; height: 44px; flex: none; object-fit: cover; }
   .plan-thumb-placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #999; }
-  .plan-servings { flex: none; display: inline-flex; align-items: center; gap: 0.2rem; }
+  .plan-servings { flex: none; display: inline-flex; align-items: center; gap: 0.2rem; padding: 0 0.5rem; font: inherit; border: none; border-radius: 0; background: transparent; }
+  .plan-panel .plan-servings.changed { color: #1e6b2e; background: #e3f4e3; }
+  #servings-dialog-title { margin: 0 0 0.5rem; font-size: 1.1rem; }
+  #servings-recipe { margin: 0 0 0.5rem; }
+  .servings-stepper { display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+  #servings-input { width: 4rem; text-align: center; }
   .plan-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plan-grip { touch-action: none; cursor: grab; }
   .plan-panel.plan-dragging { opacity: 0.4; }
@@ -107,6 +112,24 @@
     <div class="actions">
       <button type="submit" id="memo-save" class="primary"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
       <button type="button" id="memo-cancel">キャンセル</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="servings-dialog" aria-labelledby="servings-dialog-title">
+  <form id="servings-form" class="dialog-inner">
+    <h2 id="servings-dialog-title">献立の人数</h2>
+    <p id="servings-recipe"></p>
+    <p class="error" id="servings-error"></p>
+    <div class="servings-stepper">
+      <button type="button" id="servings-minus" class="icon-only" aria-label="1人減らす" title="1人減らす"><i class="ti ti-minus" aria-hidden="true"></i></button>
+      <input type="text" id="servings-input" inputmode="numeric" autocomplete="off" enterkeyhint="done" aria-label="人数">
+      <button type="button" id="servings-plus" class="icon-only" aria-label="1人増やす" title="1人増やす"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    </div>
+    <div class="actions">
+      <button type="submit" id="servings-save" class="primary"><i class="ti ti-device-floppy" aria-hidden="true"></i>保存</button>
+      <button type="button" id="servings-reset">戻す</button>
+      <button type="button" id="servings-cancel">キャンセル</button>
     </div>
   </form>
 </dialog>

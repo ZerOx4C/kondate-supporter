@@ -17,6 +17,8 @@ var (
 
 	ErrMemoRequired = errors.New("メモを入力してください")
 
+	ErrPlanServingsInvalid = errors.New("人数は1〜99の整数にしてください")
+
 	ErrPlanNotFound = errors.New("献立に置いたものが見つかりません")
 )
 
@@ -132,6 +134,18 @@ func (s *PlanService) UpdateMemo(ctx context.Context, id int64, memo string) (mo
 		return model.Plan{}, ErrMemoRequired
 	}
 	e, err := s.repo.UpdateMemo(ctx, id, memo)
+	if errors.Is(err, repository.ErrNotFound) {
+		return e, ErrPlanNotFound
+	}
+	return e, err
+}
+
+// UpdateServings はレシピの行idの献立の人数を書き換える。nilはレシピの人数に戻す。1〜99の範囲外は書き換えない。
+func (s *PlanService) UpdateServings(ctx context.Context, id int64, servings *int64) (model.Plan, error) {
+	if servings != nil && (*servings < 1 || *servings > maxServings) {
+		return model.Plan{}, ErrPlanServingsInvalid
+	}
+	e, err := s.repo.UpdateServings(ctx, id, servings)
 	if errors.Is(err, repository.ErrNotFound) {
 		return e, ErrPlanNotFound
 	}

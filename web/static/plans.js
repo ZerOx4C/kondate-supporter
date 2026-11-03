@@ -375,7 +375,7 @@ function createThumbPlaceholder(iconClass) {
   return placeholder;
 }
 
-function createRecipePanel(recipe, planId) {
+function createRecipePanel(recipe, plan) {
   const link = document.createElement("a");
   link.className = "plan-panel-link";
   link.href = "recipe.html?id=" + recipe.id;
@@ -394,24 +394,55 @@ function createRecipePanel(recipe, planId) {
   name.className = "plan-name";
   name.textContent = recipe.name;
   link.appendChild(name);
-  if (recipe.servings > 0) link.appendChild(createServings(recipe.servings));
-  return createPanelBase(planId, recipe.name, link);
+  const li = createPanelBase(plan.id, recipe.name, link);
+  li.dataset.recipeId = recipe.id;
+  li.dataset.servings = plan.servings ?? "";
+  // レシピの人数が0(未設定)のときは、元の人数が無く量を換算できないので人数のボタンを出さない
+  if (recipe.servings > 0) {
+    li.querySelector(".plan-remove").before(createServingsButton(li));
+    renderServings(li);
+  }
+  return li;
 }
 
-// 人数。0は未設定なので呼び出し側で出さない
-function createServings(count) {
-  const servings = document.createElement("span");
-  servings.className = "plan-servings";
-  servings.setAttribute("role", "img");
-  servings.setAttribute("aria-label", count + "人分");
-  servings.title = count + "人分";
+// 献立の人数を変えるダイアログを開くボタン。表示はrenderServingsが決める
+function createServingsButton(li) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "plan-servings";
+  button.setAttribute("aria-haspopup", "dialog");
   const icon = document.createElement("i");
   icon.className = "ti ti-user";
   icon.setAttribute("aria-hidden", "true");
-  const num = document.createElement("span");
-  num.textContent = String(count);
-  servings.append(icon, num);
-  return servings;
+  button.append(icon, document.createElement("span"));
+  button.addEventListener("click", () => {
+    if (loading || saving || planDrag) return;
+    openServingsDialog(li);
+  });
+  return button;
+}
+
+// 献立の人数(li.dataset.servings。空ならレシピの人数に従う)。無ければnull
+function planServingsOf(li) {
+  return li.dataset.servings === "" ? null : Number(li.dataset.servings);
+}
+
+function recipeServingsOf(li) {
+  return recipesById.get(Number(li.dataset.recipeId)).servings;
+}
+
+// 人数のボタンの数字・色・title・読み上げ名を、献立の人数とレシピの人数から求め直す
+function renderServings(li) {
+  const button = li.querySelector(".plan-servings");
+  if (!button) return;
+  const recipeCount = recipeServingsOf(li);
+  const own = planServingsOf(li);
+  const shown = own ?? recipeCount;
+  const changed = own !== null && own !== recipeCount;
+  button.querySelector("span").textContent = String(shown);
+  button.classList.toggle("changed", changed);
+  button.title = changed ? recipeCount + "人分から変更" : shown + "人分";
+  button.setAttribute("aria-label", changed ? shown + "人分、" + recipeCount + "人分から変更" : shown + "人分");
 }
 
 // メモのパネルは移る先が無いので、リンクではなく押すと文を書き換えるダイアログを開くボタンにする
@@ -529,6 +560,105 @@ function setupMemoDialog() {
   });
 }
 
+// 献立だけの人数を変えるダイアログ。保存の結果を待ってから閉じ、失敗したら理由を出して入力を残す。送信中は閉じない。
+// レシピと同じ人数の保存と「戻す」は、レシピに従う印のnullを送る。人数が変わらない保存は送らずに閉じる
+let openServingsDialog = () => {};
+
+function setupServingsDialog() {
+  const dialog = $("servings-dialog");
+  const input = $("servings-input");
+  const minus = $("servings-minus");
+  const plus = $("servings-plus");
+  const save = $("servings-save");
+  const reset = $("servings-reset");
+  const cancel = $("servings-cancel");
+  const error = $("servings-error");
+  const controls = [input, minus, plus, save, reset, cancel];
+  let target = null;
+
+  // 入力が1〜99の整数ならその数、そうでなければ今の人数
+  const base = () => {
+    const text = toHalfWidthDigits(input.value.trim());
+    const n = /^[0-9]+$/.test(text) ? Number(text) : NaN;
+    return n >= 1 && n <= 99 ? n : planServingsOf(target) ?? recipeServingsOf(target);
+  };
+  const syncButtons = () => {
+    save.disabled = input.value.trim() === "";
+    minus.disabled = base() <= 1;
+    plus.disabled = base() >= 99;
+  };
+  const close = () => {
+    if (saving) return;
+    dialog.close();
+    const button = target && target.isConnected && target.querySelector(".plan-servings");
+    if (button) button.focus();
+  };
+
+  openServingsDialog = (li) => {
+    target = li;
+    $("servings-recipe").textContent = "レシピは" + recipeServingsOf(li) + "人分";
+    input.value = String(planServingsOf(li) ?? recipeServingsOf(li));
+    error.textContent = "";
+    for (const c of controls) c.disabled = false;
+    reset.disabled = planServingsOf(li) === null;
+    syncButtons();
+    dialog.showModal();
+    input.focus();
+    input.select();
+  };
+
+  const send = async (value) => {
+    saving = true;
+    error.textContent = "";
+    for (const c of controls) c.disabled = true;
+    try {
+      const res = await api("PUT", "/api/plans/" + target.dataset.planId + "/servings", { servings: value });
+      target.dataset.servings = res.servings ?? "";
+      renderServings(target);
+      saving = false;
+      close();
+    } catch (err) {
+      error.textContent = "人数を保存できませんでした: " + err.message;
+      for (const c of controls) c.disabled = false;
+      reset.disabled = planServingsOf(target) === null;
+      syncButtons();
+      input.focus();
+    } finally {
+      saving = false;
+    }
+  };
+
+  const step = (delta) => {
+    input.value = String(Math.min(99, Math.max(1, base() + delta)));
+    syncButtons();
+  };
+  minus.addEventListener("click", () => step(-1));
+  plus.addEventListener("click", () => step(1));
+  input.addEventListener("input", syncButtons);
+  cancel.addEventListener("click", close);
+  reset.addEventListener("click", () => {
+    if (!saving) send(null);
+  });
+  dialog.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    close();
+  });
+  onOutsideTap(dialog, close);
+
+  $("servings-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = toHalfWidthDigits(input.value.trim());
+    if (saving || text === "") return;
+    const entered = /^[0-9]+$/.test(text) ? Number(text) : text;
+    const value = entered === recipeServingsOf(target) ? null : entered;
+    if (value === planServingsOf(target)) {
+      close();
+      return;
+    }
+    send(value);
+  });
+}
+
 async function loadPlans() {
   const seq = ++loadSeq;
   loading = true;
@@ -564,7 +694,7 @@ async function loadPlans() {
       continue;
     }
     const recipe = recipesById.get(plan.recipe_id);
-    if (recipe) list.appendChild(createRecipePanel(recipe, plan.id));
+    if (recipe) list.appendChild(createRecipePanel(recipe, plan));
   }
   updateDayCounts();
 }
@@ -774,6 +904,7 @@ setupPeriod();
 setupMealToggle();
 setupCollapseAll();
 setupMemoDialog();
+setupServingsDialog();
 $("daily-toggle").addEventListener("click", () => toggleArea($("daily-toggle")));
 loadShownMeals();
 applyShownMeals();

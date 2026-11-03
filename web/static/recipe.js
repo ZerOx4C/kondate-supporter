@@ -141,7 +141,7 @@ function renderBody(el, text) {
 // 人数欄の値。全角の数字は半角に直し、空は0、数字だけなら数にする。
 // それ以外は文字列のまま送り、正しいかどうかはサーバーが決める
 function servingsValue() {
-  const text = $("edit-servings").value.trim().replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  const text = toHalfWidthDigits($("edit-servings").value.trim());
   if (text === "") return 0;
   return /^[0-9]+$/.test(text) ? Number(text) : text;
 }

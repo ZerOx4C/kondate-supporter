@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -98,6 +99,38 @@ func (h *PlanHandler) UpdateMemo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e, err := h.svc.UpdateMemo(r.Context(), id, *req.Memo)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
+type planServingsRequest struct {
+	Servings json.RawMessage `json:"servings"`
+}
+
+// UpdateServings は献立の人数を書き換える。servingsがnullならレシピの人数に戻す。キーが無い要求は形式の誤りにする。
+func (h *PlanHandler) UpdateServings(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	var req planServingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Servings) == 0 {
+		writeError(w, http.StatusBadRequest, "リクエストの形式が不正です")
+		return
+	}
+	var servings *int64
+	if string(bytes.TrimSpace(req.Servings)) != "null" {
+		n, err := parseIntLiteral(req.Servings)
+		if err != nil {
+			writeServiceError(w, service.ErrPlanServingsInvalid)
+			return
+		}
+		servings = &n
+	}
+	e, err := h.svc.UpdateServings(r.Context(), id, servings)
 	if err != nil {
 		writeServiceError(w, err)
 		return
