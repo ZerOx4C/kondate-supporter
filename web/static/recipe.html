@@ -44,13 +44,20 @@
 #edit-tags:not(:empty) { margin-top: 0.5rem; }
 .tag-input-row { display: flex; gap: 0.5rem; }
 .tag-input-row input { flex: 1; }
-.ingredient-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-.ingredient-rows:not(:empty) { margin-bottom: 0.5rem; }
-.ingredient-row { display: flex; gap: 0.5rem; }
+.ingredient-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ingredient-rows:not(:empty) { margin-bottom: 0.5rem; border: 1px solid #999; border-radius: 8px; }
+.ingredient-row { display: flex; }
+.ingredient-row + .ingredient-row { border-top: 1px solid #ddd; }
+.ingredient-row input, .ingredient-row button { border: none; border-radius: 0; outline-offset: -2px; }
+.ingredient-row > :not(:first-child) { border-left: 1px solid #ddd; }
+.ingredient-row:first-child .ingredient-handle { border-top-left-radius: 7px; }
+.ingredient-row:last-child .ingredient-handle { border-bottom-left-radius: 7px; }
+.ingredient-row:first-child .ingredient-remove { border-top-right-radius: 7px; }
+.ingredient-row:last-child .ingredient-remove { border-bottom-right-radius: 7px; }
 .ingredient-handle { cursor: grab; touch-action: none; }
 .ingredient-rows.sorting .ingredient-handle { cursor: grabbing; }
 .ingredient-rows.sorting .ingredient-row:not(.dragging) { transition: transform 0.15s; }
-.ingredient-row.dragging { position: relative; z-index: 1; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+.ingredient-row.dragging { position: relative; z-index: 1; background: #fff; border-radius: 8px; border-top-color: transparent; overflow: hidden; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
 @media (prefers-reduced-motion: reduce) { .ingredient-rows.sorting .ingredient-row:not(.dragging) { transition: none; } }
 .ingredient-row .ingredient-name { flex: 1; min-width: 0; }
 .ingredient-row .ingredient-amount { flex: 0 0 7rem; min-width: 0; }
