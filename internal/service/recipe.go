@@ -26,12 +26,16 @@ var (
 
 	ErrAmountTooManyNumbers = errors.New("量に書ける数は1つまでです(分数・範囲・桁区切りは使えません)")
 	ErrAmountTooLarge       = errors.New("量の数が大きすぎます")
+
+	ErrReferenceAmountTooManyNumbers = errors.New("参考量に書ける数は1つまでです(分数・範囲・桁区切りは使えません)")
+	ErrReferenceAmountTooLarge       = errors.New("参考量の数が大きすぎます")
 )
 
-// IngredientInput は受け取る材料1行。Amountは量の文字列。
+// IngredientInput は受け取る材料1行。Amountは量の文字列、ReferenceAmountは参考量の文字列。
 type IngredientInput struct {
-	Name   string
-	Amount string
+	Name            string
+	Amount          string
+	ReferenceAmount string
 }
 
 // IngredientError は不正だった材料の行。Rowは送られた配列での1始まりの行番号。
@@ -193,43 +197,52 @@ func normalizeTags(tags []string) []string {
 	return out
 }
 
-// normalizeIngredients は名前と量の前後の空白を除き、両方空の行を捨て、量から数量と書式を取り出す。
-// 不正な行があれば、先頭の1件を *IngredientError で返す。
+// normalizeIngredients は名前・量・参考量の前後の空白を除き、どれも空の行を捨て、量と参考量から数量と書式を取り出す。
+// 不正な行があれば、先頭の1件を *IngredientError で返す。1行に量と参考量の両方のエラーがあれば量のエラーを返す。
 func normalizeIngredients(in []IngredientInput) ([]model.Ingredient, error) {
 	out := make([]model.Ingredient, 0, len(in))
 	for i, item := range in {
 		name := strings.TrimSpace(item.Name)
 		amount := strings.TrimSpace(item.Amount)
-		if name == "" && amount == "" {
+		reference := strings.TrimSpace(item.ReferenceAmount)
+		if name == "" && amount == "" && reference == "" {
 			continue
 		}
 		if name == "" {
 			return nil, &IngredientError{Row: i + 1, Err: ErrNameRequired}
 		}
-		quantity, format, err := parseAmount(amount)
+		quantity, format, err := parseAmount(amount, ErrAmountTooManyNumbers, ErrAmountTooLarge)
 		if err != nil {
 			return nil, &IngredientError{Row: i + 1, Err: err}
 		}
-		out = append(out, model.Ingredient{Name: name, Quantity: quantity, Format: format})
+		refQuantity, refFormat, err := parseAmount(reference, ErrReferenceAmountTooManyNumbers, ErrReferenceAmountTooLarge)
+		if err != nil {
+			return nil, &IngredientError{Row: i + 1, Err: err}
+		}
+		out = append(out, model.Ingredient{
+			Name: name, Quantity: quantity, Format: format,
+			ReferenceQuantity: refQuantity, ReferenceFormat: refFormat,
+		})
 	}
 	return out, nil
 }
 
-// parseAmount は量の文字列から数量と書式を取り出す。数が無ければ数量はnilで、書式は量そのもの。
-func parseAmount(amount string) (*float64, string, error) {
+// parseAmount は量(または参考量)の文字列から数量と書式を取り出す。数が無ければ数量はnilで、書式は文字列そのもの。
+// 数が2つ以上ならerrTooMany、大きすぎればerrTooLargeを返す。
+func parseAmount(amount string, errTooMany, errTooLarge error) (*float64, string, error) {
 	locs := amountNumber.FindAllStringIndex(amount, -1)
 	switch {
 	case len(locs) == 0:
 		return nil, amount, nil
 	case len(locs) > 1:
-		return nil, "", ErrAmountTooManyNumbers
+		return nil, "", errTooMany
 	}
 	start, end := locs[0][0], locs[0][1]
 	// 正規表現を通った文字列なので、構文エラーは起こらない。残るのは範囲外だけで、
 	// 大きすぎれば無限大、小さすぎれば0になる。
 	q, _ := strconv.ParseFloat(halfWidth.Replace(amount[start:end]), 64)
 	if math.IsInf(q, 0) {
-		return nil, "", ErrAmountTooLarge
+		return nil, "", errTooLarge
 	}
 	return &q, amount[:start] + "{0}" + amount[end:], nil
 }

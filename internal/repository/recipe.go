@@ -19,7 +19,8 @@ var ErrNotFound = errors.New("not found")
 const recipeColumns = `id, name, body, cooked_count, servings, typeof(image) = 'blob', image_version,
 	EXISTS (SELECT 1 FROM recipe_bookmarks b WHERE b.recipe_id = recipes.id),
 	(SELECT json_group_array(t.name ORDER BY t.id) FROM recipe_tags rt JOIN tags t ON t.id = rt.tag_id WHERE rt.recipe_id = recipes.id),
-	(SELECT json_group_array(json_object('name', i.name, 'quantity', i.quantity, 'format', i.format) ORDER BY i.position)
+	(SELECT json_group_array(json_object('name', i.name, 'quantity', i.quantity, 'format', i.format,
+			'reference_quantity', i.reference_quantity, 'reference_format', i.reference_format) ORDER BY i.position)
 		FROM recipe_ingredients i WHERE i.recipe_id = recipes.id)`
 
 type RecipeRepository struct {
@@ -300,8 +301,8 @@ func replaceIngredients(ctx context.Context, tx *sql.Tx, recipeID int64, ings []
 	}
 	for i, ing := range ings {
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO recipe_ingredients (recipe_id, position, name, quantity, format) VALUES (?, ?, ?, ?, ?)`,
-			recipeID, i, ing.Name, ing.Quantity, ing.Format); err != nil {
+			`INSERT INTO recipe_ingredients (recipe_id, position, name, quantity, format, reference_quantity, reference_format) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			recipeID, i, ing.Name, ing.Quantity, ing.Format, ing.ReferenceQuantity, ing.ReferenceFormat); err != nil {
 			return err
 		}
 	}

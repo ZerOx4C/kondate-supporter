@@ -169,11 +169,12 @@ function renderViewTags(names) {
   }));
 }
 
-// 閲覧表示の材料は名前と量(書式に数量を当てはめた文字列)の2列の表にする
+// 閲覧表示の材料は名前と量(書式に数量を当てはめた文字列)の2列の表にする。参考量があれば量の後ろに括弧で添える
 function renderViewIngredients(ingredients) {
   $("view-ingredients").tBodies[0].replaceChildren(...ingredients.map((i) => {
     const tr = document.createElement("tr");
-    for (const text of [i.name, formatAmount(i.format, i.quantity)]) {
+    const reference = i.reference_format === "" ? "" : "(" + formatAmount(i.reference_format, i.reference_quantity) + ")";
+    for (const text of [i.name, formatAmount(i.format, i.quantity) + reference]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.append(td);
@@ -240,7 +241,7 @@ async function loadIngredientNameOptions() {
 }
 
 // 編集フォームの材料の行の値は入力欄を正とする(入力のたびに描き直すとフォーカスとIMEの変換が切れるため)
-function createIngredientRow(name, amount) {
+function createIngredientRow(name, amount, reference) {
   const li = document.createElement("li");
   li.className = "ingredient-row";
   const nameInput = document.createElement("input");
@@ -263,6 +264,15 @@ function createIngredientRow(name, amount) {
   amountInput.enterKeyHint = "next";
   amountInput.value = amount;
   amountInput.addEventListener("keydown", onIngredientEnter);
+  const referenceInput = document.createElement("input");
+  referenceInput.type = "text";
+  referenceInput.className = "ingredient-reference";
+  referenceInput.placeholder = "参考量";
+  referenceInput.setAttribute("aria-label", "参考量");
+  referenceInput.autocomplete = "off";
+  referenceInput.enterKeyHint = "next";
+  referenceInput.value = reference;
+  referenceInput.addEventListener("keydown", onIngredientEnter);
   const handle = document.createElement("button");
   handle.type = "button";
   handle.className = "icon-only ingredient-handle";
@@ -275,13 +285,14 @@ function createIngredientRow(name, amount) {
   button.className = "icon-only ingredient-remove";
   button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
   button.addEventListener("click", () => removeIngredientRow(li));
-  li.append(handle, nameInput, amountInput, button);
+  li.append(handle, nameInput, amountInput, referenceInput, button);
   return li;
 }
 
 function renderEditIngredients(ingredients) {
-  const rows = ingredients.map((i) => createIngredientRow(i.name, formatAmount(i.format, i.quantity)));
-  if (rows.length === 0) rows.push(createIngredientRow("", ""));
+  const rows = ingredients.map((i) => createIngredientRow(
+    i.name, formatAmount(i.format, i.quantity), formatAmount(i.reference_format, i.reference_quantity)));
+  if (rows.length === 0) rows.push(createIngredientRow("", "", ""));
   $("edit-ingredients").replaceChildren(...rows);
   updateIngredientLabels();
 }
@@ -300,7 +311,7 @@ function updateIngredientLabels() {
 }
 
 function addIngredientRow() {
-  const li = createIngredientRow("", "");
+  const li = createIngredientRow("", "", "");
   $("edit-ingredients").append(li);
   updateIngredientLabels();
   li.querySelector(".ingredient-name").focus();
@@ -433,7 +444,7 @@ function onIngredientHandleKey(e) {
   e.currentTarget.focus(); // DOMの中で動かすとフォーカスが外れるブラウザがある
 }
 
-// 日本語入力の変換を確定するEnterでは移らない。名前→同じ行の量→次の行の名前へ移り、最後の行なら行を足す
+// 日本語入力の変換を確定するEnterでは移らない。名前→同じ行の量→参考量→次の行の名前へ移り、最後の行なら行を足す
 function onIngredientEnter(e) {
   if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
   e.preventDefault(); // フォームの送信を止める
@@ -442,22 +453,27 @@ function onIngredientEnter(e) {
     li.querySelector(".ingredient-amount").focus();
     return;
   }
+  if (e.target.classList.contains("ingredient-amount")) {
+    li.querySelector(".ingredient-reference").focus();
+    return;
+  }
   const next = li.nextElementSibling;
   if (next) next.querySelector(".ingredient-name").focus();
   else addIngredientRow();
 }
 
-// 画面の順の材料。名前も量も空の行も含める(サーバーの「材料N行目」を画面の行と合わせるため)
+// 画面の順の材料。名前・量・参考量がどれも空の行も含める(サーバーの「材料N行目」を画面の行と合わせるため)
 function readIngredientRows() {
   return Array.from($("edit-ingredients").children, (li) => ({
     name: li.querySelector(".ingredient-name").value,
     amount: li.querySelector(".ingredient-amount").value,
+    reference_amount: li.querySelector(".ingredient-reference").value,
   }));
 }
 
-// 名前も量も空の行は保存で捨てられるので、未保存の変更の判定からは除く
+// 名前・量・参考量がどれも空の行は保存で捨てられるので、未保存の変更の判定からは除く
 function meaningfulIngredients(rows) {
-  return rows.filter((r) => r.name.trim() !== "" || r.amount.trim() !== "");
+  return rows.filter((r) => r.name.trim() !== "" || r.amount.trim() !== "" || r.reference_amount.trim() !== "");
 }
 
 // 本文から材料を集める判定。量の数は半角・全角の整数・小数・分数と、それらの範囲(〜・～・~)を1つの数とする
@@ -506,9 +522,9 @@ function collectIngredientCandidates(text) {
 function appendIngredientRows(rows) {
   const list = $("edit-ingredients");
   for (const li of Array.from(list.children)) {
-    if (li.querySelector(".ingredient-name").value.trim() === "" && li.querySelector(".ingredient-amount").value.trim() === "") li.remove();
+    if (["name", "amount", "reference"].every((k) => li.querySelector(".ingredient-" + k).value.trim() === "")) li.remove();
   }
-  list.append(...rows.map((r) => createIngredientRow(r.name, r.amount)));
+  list.append(...rows.map((r) => createIngredientRow(r.name, r.amount, "")));
   updateIngredientLabels();
 }
 

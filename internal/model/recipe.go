@@ -22,8 +22,12 @@ type Recipe struct {
 
 // Ingredient は材料1行。Formatは量の文字列のうち数の位置を{0}で表したもの。
 // Quantityは量に数が無ければnilで、そのときFormatは{0}を含まない量の文字列そのもの。
+// ReferenceQuantity・ReferenceFormatは書かなくてもよい参考量で、量と同じ形で持つ。
+// 参考量が空ならReferenceQuantityはnil、ReferenceFormatは空文字。
 type Ingredient struct {
-	Name     string   `json:"name"`
-	Quantity *float64 `json:"quantity"`
-	Format   string   `json:"format"`
+	Name              string   `json:"name"`
+	Quantity          *float64 `json:"quantity"`
+	Format            string   `json:"format"`
+	ReferenceQuantity *float64 `json:"reference_quantity"`
+	ReferenceFormat   string   `json:"reference_format"`
 }

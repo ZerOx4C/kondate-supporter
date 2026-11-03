@@ -34,16 +34,17 @@ type recipeRequest struct {
 	Ingredients []ingredientRequest `json:"ingredients"`
 }
 
-// ingredientRequest は材料1行のJSON。amountは量の文字列。
+// ingredientRequest は材料1行のJSON。amountは量の文字列、reference_amountは参考量の文字列(無い・nullなら空)。
 type ingredientRequest struct {
-	Name   string `json:"name"`
-	Amount string `json:"amount"`
+	Name            string `json:"name"`
+	Amount          string `json:"amount"`
+	ReferenceAmount string `json:"reference_amount"`
 }
 
 func (r recipeRequest) ingredientInputs() []service.IngredientInput {
 	out := make([]service.IngredientInput, len(r.Ingredients))
 	for i, ing := range r.Ingredients {
-		out[i] = service.IngredientInput{Name: ing.Name, Amount: ing.Amount}
+		out[i] = service.IngredientInput{Name: ing.Name, Amount: ing.Amount, ReferenceAmount: ing.ReferenceAmount}
 	}
 	return out
 }
