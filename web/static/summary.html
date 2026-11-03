@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>集計 - kondate-supporter</title>
+<link rel="stylesheet" href="vendor/tabler-icons/tabler-icons.min.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="dev-mode.css">
+<style>
+  #period-range { margin-top: 1rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>集計</h1>
+  <div class="actions">
+    <nav id="page-nav" class="button-group page-nav" aria-label="画面の切り替え">
+      <a class="button icon-only" href="recipes.html" aria-label="レシピ" title="レシピ"><i class="ti ti-book-2" aria-hidden="true"></i></a>
+      <a class="button icon-only" href="plans.html" aria-label="献立" title="献立"><i class="ti ti-calendar-week" aria-hidden="true"></i></a>
+      <a class="button icon-only" href="summary.html" aria-current="page" aria-label="集計" title="集計"><i class="ti ti-receipt" aria-hidden="true"></i></a>
+    </nav>
+    <button type="button" id="menu-button" class="icon-only" aria-label="メニュー" title="メニュー"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
+  </div>
+</header>
+
+<dialog id="main-menu" class="menu" aria-label="メニュー"><ul><li><a class="button" id="import-link" href="import.html">レシピを取り込む</a></li></ul></dialog>
+
+<main>
+  <div id="period-range" class="period-range" role="group" aria-label="期間">
+    <button type="button" class="period-prev icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <span class="period-text">
+      <span class="period-start-wrap">
+        <button type="button" class="period-start" title="開始日を選ぶ"></button>
+        <input type="date" class="period-start-input" tabindex="-1" aria-hidden="true">
+      </span>
+      <span>から</span>
+      <button type="button" class="period-days" title="日数を変える"></button>
+      <input type="number" class="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
+      <span>日間</span>
+    </span>
+    <button type="button" class="period-next icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  </div>
+</main>
+
+<script src="common.js"></script>
+<script src="summary.js"></script>
+</body>
+</html>

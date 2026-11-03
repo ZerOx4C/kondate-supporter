@@ -106,7 +106,7 @@ function placeMenu(menu, anchor) {
   menu.style.left = Math.max(margin, rect.right + window.scrollX - menu.offsetWidth) + "px";
 }
 
-// 上部右のメニューボタンと、その下に開くメニュー。一覧と献立で共用
+// 上部右のメニューボタンと、その下に開くメニュー。一覧・献立・集計で共用
 function setupMainMenu(button, menu) {
   button.addEventListener("click", () => {
     menu.showModal();
@@ -128,6 +128,172 @@ function setupPageNav(nav) {
   nav.addEventListener("click", (e) => {
     if (e.target.closest('a[aria-current="page"]')) e.preventDefault();
   });
+}
+
+// 期間。献立と集計で共用し、端末のlocalStorageに覚える
+const PERIOD_KEY = "kondate.plans.period";
+const DEFAULT_DAYS = 7;
+const MIN_DAYS = 1;
+const MAX_DAYS = 31;
+const WEEKDAYS = "日月火水木金土";
+
+function addDays(date, n) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+}
+
+function toIsoDate(date) {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() + "-" + mm + "-" + dd;
+}
+
+function parseIsoDate(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(y, mo - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
+  return date;
+}
+
+function formatDay(date) {
+  return (date.getMonth() + 1) + "/" + date.getDate() + "(" + WEEKDAYS[date.getDay()] + ")";
+}
+
+function isValidDays(n) {
+  return Number.isInteger(n) && n >= MIN_DAYS && n <= MAX_DAYS;
+}
+
+// 覚えた期間。読めないときは今日から既定の日数
+function loadPeriod() {
+  const today = new Date();
+  let start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let days = DEFAULT_DAYS;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PERIOD_KEY));
+    const savedStart = saved && typeof saved.start === "string" ? parseIsoDate(saved.start) : null;
+    if (savedStart && isValidDays(saved.days)) {
+      start = savedStart;
+      days = saved.days;
+    }
+  } catch {
+    // 読めないときは既定の期間のまま
+  }
+  return { start, days };
+}
+
+function savePeriod(start, days) {
+  try {
+    localStorage.setItem(PERIOD_KEY, JSON.stringify({ start: toIsoDate(start), days }));
+  } catch {
+    // 保存できなくても画面は使える
+  }
+}
+
+// 期間選択UI。groupは期間の枠で、中の部品はクラスで探す(common.jsは画面の要素IDを参照しない)。
+// 利用者の操作で期間が変わったとき、保存と枠の表示の更新の後にonChangeを呼ぶ。
+// period() は今の期間、reload() は覚えた期間の読み直し(変わったらtrue。onChangeは呼ばない)
+function setupPeriodPicker(group, onChange) {
+  const prev = group.querySelector(".period-prev");
+  const next = group.querySelector(".period-next");
+  const startButton = group.querySelector(".period-start");
+  const startInput = group.querySelector(".period-start-input");
+  const daysButton = group.querySelector(".period-days");
+  const daysInput = group.querySelector(".period-days-input");
+  let { start, days } = loadPeriod();
+  let editingDays = false;
+
+  function render() {
+    startButton.textContent = formatDay(start);
+    startButton.setAttribute("aria-label", "開始日: " + formatDay(start));
+    daysButton.textContent = String(days);
+    daysButton.setAttribute("aria-label", "日数: " + days + "日間");
+  }
+
+  function changed() {
+    savePeriod(start, days);
+    render();
+    onChange();
+  }
+
+  function endDaysEdit(commit) {
+    if (!editingDays) return;
+    editingDays = false;
+    let didChange = false;
+    if (commit) {
+      const n = Number(daysInput.value);
+      if (daysInput.value.trim() !== "" && isValidDays(n) && n !== days) {
+        days = n;
+        didChange = true;
+      }
+    }
+    daysInput.hidden = true;
+    daysButton.hidden = false;
+    if (didChange) changed();
+  }
+
+  prev.addEventListener("click", () => {
+    start = addDays(start, -days);
+    changed();
+  });
+  next.addEventListener("click", () => {
+    start = addDays(start, days);
+    changed();
+  });
+
+  startButton.addEventListener("click", () => {
+    startInput.value = toIsoDate(start);
+    if (typeof startInput.showPicker === "function") {
+      try {
+        startInput.showPicker();
+        return;
+      } catch {
+        // 開けないときはフォーカスだけ
+      }
+    }
+    startInput.focus();
+  });
+  startInput.addEventListener("change", () => {
+    const date = startInput.value ? parseIsoDate(startInput.value) : null;
+    if (!date) return;
+    start = date;
+    changed();
+  });
+
+  daysButton.addEventListener("click", () => {
+    editingDays = true;
+    daysButton.hidden = true;
+    daysInput.hidden = false;
+    daysInput.value = String(days);
+    daysInput.focus();
+    daysInput.select();
+  });
+  daysInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      endDaysEdit(true);
+      daysButton.focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      endDaysEdit(false);
+      daysButton.focus();
+    }
+  });
+  daysInput.addEventListener("blur", () => endDaysEdit(true));
+
+  render();
+  return {
+    period: () => ({ start, days }),
+    reload() {
+      endDaysEdit(false);
+      const saved = loadPeriod();
+      if (toIsoDate(saved.start) === toIsoDate(start) && saved.days === days) return false;
+      ({ start, days } = saved);
+      render();
+      return true;
+    },
+  };
 }
 
 // ダイアログ自身(外側)で pointerdown と click の両方が起きたときだけ外側タップとみなす

@@ -23,17 +23,6 @@
   #day-areas[data-hidden-meals~="breakfast"] .plan-day-count[data-meal="breakfast"]:not(.plan-day-count-zero),
   #day-areas[data-hidden-meals~="lunch"] .plan-day-count[data-meal="lunch"]:not(.plan-day-count-zero),
   #day-areas[data-hidden-meals~="dinner"] .plan-day-count[data-meal="dinner"]:not(.plan-day-count-zero) { color: #c00; }
-  .period-range { display: flex; align-items: center; white-space: nowrap; background: #fff; border: 1px solid #999; border-radius: 8px; }
-  .period-text { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem; }
-  #period-start, #period-days { border: none; border-radius: 0; padding: 0 0.5rem; }
-  #period-days { width: 3em; padding: 0; }
-  #period-prev, #period-next { border: none; border-radius: 0; }
-  #period-prev { border-radius: 7px 0 0 7px; }
-  #period-next { border-radius: 0 7px 7px 0; }
-  .period-start-wrap { position: relative; display: inline-flex; }
-  .period-start-wrap input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; }
-  #period-days-input { width: 2em; margin: 0 0.5em; min-height: 0; height: 1.75em; box-sizing: border-box; padding: 0; font: inherit; font-size: 1rem; text-align: center; background: transparent; border: none; border-bottom: 1px solid #999; border-radius: 0; -moz-appearance: textfield; appearance: textfield; }
-  #period-days-input::-webkit-inner-spin-button, #period-days-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .plan-area h2 { margin: 1.5rem 0 0.5rem; font-size: 1.1rem; }
   .plan-area-heading { display: flex; align-items: center; }
   #memo-add { margin-left: auto; }
@@ -97,6 +86,7 @@
     <nav id="page-nav" class="button-group page-nav" aria-label="画面の切り替え">
       <a class="button icon-only" href="recipes.html" aria-label="レシピ" title="レシピ"><i class="ti ti-book-2" aria-hidden="true"></i></a>
       <a class="button icon-only" href="plans.html" aria-current="page" aria-label="献立" title="献立"><i class="ti ti-calendar-week" aria-hidden="true"></i></a>
+      <a class="button icon-only" href="summary.html" aria-label="集計" title="集計"><i class="ti ti-receipt" aria-hidden="true"></i></a>
     </nav>
     <button type="button" id="menu-button" class="icon-only" aria-label="メニュー" title="メニュー"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
   </div>
@@ -136,19 +126,19 @@
 
 <main>
   <div class="period">
-    <div class="period-range" role="group" aria-label="期間">
-      <button type="button" id="period-prev" class="icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <div id="period-range" class="period-range" role="group" aria-label="期間">
+      <button type="button" class="period-prev icon-only" aria-label="前の期間" title="前の期間"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
       <span class="period-text">
         <span class="period-start-wrap">
-          <button type="button" id="period-start" title="開始日を選ぶ"></button>
-          <input type="date" id="period-start-input" tabindex="-1" aria-hidden="true">
+          <button type="button" class="period-start" title="開始日を選ぶ"></button>
+          <input type="date" class="period-start-input" tabindex="-1" aria-hidden="true">
         </span>
         <span>から</span>
-        <button type="button" id="period-days" title="日数を変える"></button>
-        <input type="number" id="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
+        <button type="button" class="period-days" title="日数を変える"></button>
+        <input type="number" class="period-days-input" min="1" max="31" step="1" inputmode="numeric" enterkeyhint="done" aria-label="日数" hidden>
         <span>日間</span>
       </span>
-      <button type="button" id="period-next" class="icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+      <button type="button" class="period-next icon-only" aria-label="次の期間" title="次の期間"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
     </div>
     <div class="period-options">
       <button type="button" id="collapse-all" class="icon-only" aria-label="すべて折り畳み" title="すべて折り畳み"><i class="ti ti-chevrons-up" aria-hidden="true"></i></button>

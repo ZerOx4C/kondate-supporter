@@ -3,20 +3,13 @@
 // 置いたパネルをドラッグして並べ替え・移動し、候補の区画へ戻す。パネルの外すボタンでも候補・毎日・各日付から外す。各日付のエリアは朝・昼・夜の帯に分かれる。毎日と各日付は見出しのボタンで畳める(畳んだ区画は置き先にならない)。期間の下の行の左端のボタンで、毎日と各日付をまとめて畳む・開く。
 // 期間の右の切り替えでオフにした時間帯の帯は、各日付で出さず、置き先にもしない
 // 端末の今日の日付の見出しは強調する
+// 期間選択UIは common.js の部品で、集計と共用する
 // 候補の見出しのボタンでメモを候補の先頭に足せる。メモのパネルもレシピのパネルと同じく動かせ、外せ、件数に数える。メモのパネルを押すと文を書き換えられる
 
-const PERIOD_KEY = "kondate.plans.period";
 const MEALS_KEY = "kondate.plans.meals";
-const DEFAULT_DAYS = 7;
-const MIN_DAYS = 1;
-const MAX_DAYS = 31;
-const WEEKDAYS = "日月火水木金土";
 const MEALS = [["breakfast", "朝"], ["lunch", "昼"], ["dinner", "夜"]];
 const MEAL_ICONS = { breakfast: "ti-haze", lunch: "ti-sun-high", dinner: "ti-moon" };
 
-let periodStart;
-let periodDays;
-let editingDays = false;
 let shownMeals = new Set(MEALS.map(([meal]) => meal));
 
 let recipesById = new Map();
@@ -24,57 +17,6 @@ let loadSeq = 0;
 let loading = false;
 let saving = false;
 let planDrag = null;
-
-function addDays(date, n) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
-}
-
-function toIsoDate(date) {
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return date.getFullYear() + "-" + mm + "-" + dd;
-}
-
-function parseIsoDate(text) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-  if (!m) return null;
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const date = new Date(y, mo - 1, d);
-  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
-  return date;
-}
-
-function formatDay(date) {
-  return (date.getMonth() + 1) + "/" + date.getDate() + "(" + WEEKDAYS[date.getDay()] + ")";
-}
-
-function isValidDays(n) {
-  return Number.isInteger(n) && n >= MIN_DAYS && n <= MAX_DAYS;
-}
-
-function loadPeriod() {
-  const today = new Date();
-  periodStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  periodDays = DEFAULT_DAYS;
-  try {
-    const saved = JSON.parse(localStorage.getItem(PERIOD_KEY));
-    const start = saved && typeof saved.start === "string" ? parseIsoDate(saved.start) : null;
-    if (start && isValidDays(saved.days)) {
-      periodStart = start;
-      periodDays = saved.days;
-    }
-  } catch {
-    // 読めないときは既定の期間のまま
-  }
-}
-
-function savePeriod() {
-  try {
-    localStorage.setItem(PERIOD_KEY, JSON.stringify({ start: toIsoDate(periodStart), days: periodDays }));
-  } catch {
-    // 保存できなくても画面は使える
-  }
-}
 
 // 保存値はオンの時間帯の配列。読めないとき・知らない時間帯や重なりがあるときは3つともオンのまま
 function loadShownMeals() {
@@ -119,14 +61,8 @@ function setupMealToggle() {
   }
 }
 
-function renderPeriod() {
-  const startButton = $("period-start");
-  startButton.textContent = formatDay(periodStart);
-  startButton.setAttribute("aria-label", "開始日: " + formatDay(periodStart));
-  const daysButton = $("period-days");
-  daysButton.textContent = String(periodDays);
-  daysButton.setAttribute("aria-label", "日数: " + periodDays + "日間");
-
+function renderDayAreas() {
+  const { start: periodStart, days: periodDays } = periodPicker.period();
   const areas = [];
   for (let i = 0; i < periodDays; i++) {
     const section = document.createElement("section");
@@ -247,87 +183,6 @@ function updateDayCounts() {
     }
     toggle.setAttribute("aria-label", label);
   }
-}
-
-function changePeriod() {
-  savePeriod();
-  renderPeriod();
-  loadPlans();
-}
-
-function endDaysEdit(commit) {
-  if (!editingDays) return;
-  editingDays = false;
-  const input = $("period-days-input");
-  let changed = false;
-  if (commit) {
-    const n = Number(input.value);
-    if (input.value.trim() !== "" && isValidDays(n) && n !== periodDays) {
-      periodDays = n;
-      savePeriod();
-      changed = true;
-    }
-  }
-  input.hidden = true;
-  $("period-days").hidden = false;
-  if (changed) {
-    renderPeriod();
-    loadPlans();
-  }
-}
-
-function setupPeriod() {
-  $("period-prev").addEventListener("click", () => {
-    periodStart = addDays(periodStart, -periodDays);
-    changePeriod();
-  });
-  $("period-next").addEventListener("click", () => {
-    periodStart = addDays(periodStart, periodDays);
-    changePeriod();
-  });
-
-  const startInput = $("period-start-input");
-  $("period-start").addEventListener("click", () => {
-    startInput.value = toIsoDate(periodStart);
-    if (typeof startInput.showPicker === "function") {
-      try {
-        startInput.showPicker();
-        return;
-      } catch {
-        // 開けないときはフォーカスだけ
-      }
-    }
-    startInput.focus();
-  });
-  startInput.addEventListener("change", () => {
-    const date = startInput.value ? parseIsoDate(startInput.value) : null;
-    if (!date) return;
-    periodStart = date;
-    changePeriod();
-  });
-
-  const daysInput = $("period-days-input");
-  $("period-days").addEventListener("click", () => {
-    editingDays = true;
-    $("period-days").hidden = true;
-    daysInput.hidden = false;
-    daysInput.value = String(periodDays);
-    daysInput.focus();
-    daysInput.select();
-  });
-  daysInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      if (e.isComposing || e.keyCode === 229) return;
-      e.preventDefault();
-      endDaysEdit(true);
-      $("period-days").focus();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      endDaysEdit(false);
-      $("period-days").focus();
-    }
-  });
-  daysInput.addEventListener("blur", () => endDaysEdit(true));
 }
 
 // レシピのパネルとメモのパネルの共通部分。planIdは行のid。候補・毎日・各日付のすべてのパネルに付ける。
@@ -664,8 +519,9 @@ async function loadPlans() {
   loading = true;
   $("candidates-error").textContent = "";
   $("plans-error").textContent = "";
-  const from = toIsoDate(periodStart);
-  const to = toIsoDate(addDays(periodStart, periodDays - 1));
+  const { start, days } = periodPicker.period();
+  const from = toIsoDate(start);
+  const to = toIsoDate(addDays(start, days - 1));
   const [recipesRes, plansRes] = await Promise.allSettled([
     api("GET", "/api/recipes"),
     api("GET", "/api/plans?from=" + from + "&to=" + to),
@@ -900,7 +756,10 @@ async function removePlan(panel) {
 
 setupPageNav($("page-nav"));
 setupMainMenu($("menu-button"), $("main-menu"));
-setupPeriod();
+const periodPicker = setupPeriodPicker($("period-range"), () => {
+  renderDayAreas();
+  loadPlans();
+});
 setupMealToggle();
 setupCollapseAll();
 setupMemoDialog();
@@ -908,13 +767,16 @@ setupServingsDialog();
 $("daily-toggle").addEventListener("click", () => toggleArea($("daily-toggle")));
 loadShownMeals();
 applyShownMeals();
-loadPeriod();
-renderPeriod();
+renderDayAreas();
 loadPlans();
-// 戻るでキャッシュから復元されたとき、詳細で変えた名前・画像や削除を反映する。今日の見出しは毎回合わせ直す
+// 戻るでキャッシュから復元されたとき、集計で変えた期間と、詳細で変えた名前・画像や削除を反映する。
+// 期間が変わっていなければ日付の区画は作り直さない(開閉の状態を残す)。今日の見出しは毎回合わせ直す
 window.addEventListener("pageshow", (e) => {
+  if (e.persisted) {
+    if (periodPicker.reload()) renderDayAreas();
+    loadPlans();
+  }
   markToday();
-  if (e.persisted) loadPlans();
 });
 // タブやアプリから戻って表示されたとき、開いたまま日付をまたいでいても今日の見出しを合わせ直す
 document.addEventListener("visibilitychange", () => {

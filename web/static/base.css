@@ -34,6 +34,17 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .button-group button + button, .button-group a.button + a.button { border-left: 1px solid #999; }
 .button-group button:first-child, .button-group a.button:first-child { border-radius: 7px 0 0 7px; }
 .button-group button:last-child, .button-group a.button:last-child { border-radius: 0 7px 7px 0; }
+.period-range { display: flex; align-items: center; white-space: nowrap; background: #fff; border: 1px solid #999; border-radius: 8px; }
+.period-text { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem; }
+.period-range .period-start, .period-range .period-days { border: none; border-radius: 0; padding: 0 0.5rem; }
+.period-range .period-days { width: 3em; padding: 0; }
+.period-range .period-prev, .period-range .period-next { border: none; border-radius: 0; }
+.period-range .period-prev { border-radius: 7px 0 0 7px; }
+.period-range .period-next { border-radius: 0 7px 7px 0; }
+.period-start-wrap { position: relative; display: inline-flex; }
+.period-start-wrap input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.period-range .period-days-input { width: 2em; margin: 0 0.5em; min-height: 0; height: 1.75em; box-sizing: border-box; padding: 0; font: inherit; font-size: 1rem; text-align: center; background: transparent; border: none; border-bottom: 1px solid #999; border-radius: 0; -moz-appearance: textfield; appearance: textfield; }
+.period-days-input::-webkit-inner-spin-button, .period-days-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .page-nav a.button[aria-current="page"] { background: #e7f0fa; color: #1a5fb4; cursor: default; }
 .menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
 .menu::backdrop { background: transparent; }
