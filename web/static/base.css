@@ -29,8 +29,12 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .tags.removable .tag { padding: 0 0 0 0.75rem; font-size: 1rem; }
 .tags.removable .tag button { min-height: 44px; border: none; background: transparent; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.page-nav { display: flex; gap: 0.5rem; }
-.page-nav a.button[aria-current="page"] { background: #e7f0fa; border-color: #1a5fb4; cursor: default; }
+.button-group { display: flex; background: #fff; border: 1px solid #999; border-radius: 8px; }
+.button-group button, .button-group a.button { border: none; border-radius: 0; }
+.button-group button + button, .button-group a.button + a.button { border-left: 1px solid #999; }
+.button-group button:first-child, .button-group a.button:first-child { border-radius: 7px 0 0 7px; }
+.button-group button:last-child, .button-group a.button:last-child { border-radius: 0 7px 7px 0; }
+.page-nav a.button[aria-current="page"] { background: #e7f0fa; color: #1a5fb4; cursor: default; }
 .menu { position: absolute; margin: 0; inset: auto; width: auto; overflow: hidden; }
 .menu::backdrop { background: transparent; }
 .menu ul { list-style: none; margin: 0; padding: 0; }
