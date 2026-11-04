@@ -656,6 +656,9 @@ function showView(recipe) {
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
   $("bookmark-button").setAttribute("aria-pressed", String(recipe.bookmarked));
+  const candidateLabel = "「" + recipe.name + "」を候補に追加";
+  $("candidate-button").setAttribute("aria-label", candidateLabel);
+  $("candidate-button").title = candidateLabel;
   $("back-link").hidden = false;
   $("cancel-button").hidden = true;
   $("view-actions").hidden = false;
@@ -825,6 +828,24 @@ async function toggleBookmark() {
   }
 }
 
+// 候補の先頭に1件足す。献立の行から開いたときも献立の人数は送らず、候補はレシピの人数に従う
+async function addCandidate() {
+  if (busy) return;
+  const button = $("candidate-button");
+  const hadFocus = document.activeElement === button;
+  clearErrors();
+  setBusy(true);
+  try {
+    await api("POST", "/api/plans", { date: null, meal: "candidate", recipe_id: current.id, index: 0 });
+    showToast($("toast"), "「" + current.name + "」を候補に追加しました");
+  } catch (e) {
+    showError("候補に追加できませんでした: " + e.message);
+  } finally {
+    setBusy(false);
+    if (hadFocus) button.focus();
+  }
+}
+
 async function load() {
   if (planId !== null) {
     if (planId === "") {
@@ -869,6 +890,7 @@ $("back-link").addEventListener("click", (e) => {
 });
 $("bookmark-button").addEventListener("click", toggleBookmark);
 $("cooked-button").addEventListener("click", toggleCooked);
+$("candidate-button").addEventListener("click", addCandidate);
 $("edit-button").addEventListener("click", () => showEdit(current));
 $("delete-button").addEventListener("click", remove);
 $("cancel-button").addEventListener("click", requestCancel);
