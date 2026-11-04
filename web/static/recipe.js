@@ -655,7 +655,6 @@ function showView(recipe) {
   renderBody($("view-body"), recipe.body);
   $("cooked-button").replaceChildren(cookedContent(recipe.cooked_count));
   $("cooked-button").setAttribute("aria-pressed", String(cookedPressed));
-  $("bookmark-button").setAttribute("aria-pressed", String(recipe.bookmarked));
   const candidateLabel = "「" + recipe.name + "」を候補に追加";
   $("candidate-button").setAttribute("aria-label", candidateLabel);
   $("candidate-button").title = candidateLabel;
@@ -814,20 +813,6 @@ async function toggleCooked() {
   }
 }
 
-// ブックマークはサーバーが持つ状態なので、表示中の bookmarked を見て付け外しを選ぶ
-async function toggleBookmark() {
-  if (busy) return;
-  clearErrors();
-  setBusy(true);
-  try {
-    showView(await api(current.bookmarked ? "DELETE" : "PUT", "/api/recipes/" + current.id + "/bookmark"));
-  } catch (e) {
-    showError(e.message);
-  } finally {
-    setBusy(false);
-  }
-}
-
 // 候補の先頭に1件足す。献立の行から開いたときも献立の人数は送らず、候補はレシピの人数に従う
 async function addCandidate() {
   if (busy) return;
@@ -888,7 +873,6 @@ $("back-link").addEventListener("click", (e) => {
     history.back();
   }
 });
-$("bookmark-button").addEventListener("click", toggleBookmark);
 $("cooked-button").addEventListener("click", toggleCooked);
 $("candidate-button").addEventListener("click", addCandidate);
 $("edit-button").addEventListener("click", () => showEdit(current));

@@ -5,7 +5,6 @@ let allTags = []; // id昇順
 let selectedTags = []; // 常にallTagsと同じ並び
 let searchKeyword = ""; // 検索のキーワード(前後の空白は除く)
 let searchScope = "name"; // 探す対象(name / body)
-let bookmarkOnly = false; // ブックマーク中のレシピだけを表示する
 let sortOrder = "new"; // 並び順(new / name / cooked-desc / cooked-asc)
 const candidateBusy = new Set(); // 候補に追加を送信中のレシピのid
 const POPULAR_TAG = "好評"; // 一覧タイルを強調するタグ名(完全一致)
@@ -49,10 +48,6 @@ function readScopeFromUrl() {
   return new URLSearchParams(location.search).get("scope") === "body" ? "body" : "name";
 }
 
-function readBookmarkFromUrl() {
-  return new URLSearchParams(location.search).get("bookmark") === "1";
-}
-
 // 知らない値・new は新着順として扱う
 function readSortFromUrl() {
   const v = new URLSearchParams(location.search).get("sort");
@@ -63,7 +58,6 @@ function writeUrl() {
   const params = new URLSearchParams();
   if (searchKeyword !== "") params.set("q", searchKeyword);
   if (searchScope === "body") params.set("scope", "body");
-  if (bookmarkOnly) params.set("bookmark", "1");
   if (sortOrder !== "new") params.set("sort", sortOrder);
   for (const t of selectedTags) params.append("tag", t);
   const qs = params.toString();
@@ -76,7 +70,7 @@ function matchesSearch(recipe) {
 }
 
 function filteredRecipes() {
-  return recipes.filter((r) => (!bookmarkOnly || r.bookmarked) && selectedTags.every((t) => r.tags.includes(t)) && matchesSearch(r)).sort(SORT_ORDERS[sortOrder].compare);
+  return recipes.filter((r) => selectedTags.every((t) => r.tags.includes(t)) && matchesSearch(r)).sort(SORT_ORDERS[sortOrder].compare);
 }
 
 function setSelected(name, on) {
@@ -89,14 +83,9 @@ function setSelected(name, on) {
 
 function applyFilter() {
   writeUrl();
-  renderBookmarkFilter();
   renderSelectedTags();
   renderList();
   if ($("tag-dialog").open) renderTagOptions();
-}
-
-function renderBookmarkFilter() {
-  $("bookmark-filter-button").setAttribute("aria-pressed", String(bookmarkOnly));
 }
 
 function renderSelectedTags() {
@@ -282,7 +271,7 @@ function renderList() {
   const shown = filteredRecipes();
   const maxCooked = recipes.reduce((m, r) => Math.max(m, r.cooked_count), 0);
   list.replaceChildren(createAddPanel(), ...shown.map((r) => createTile(r, maxCooked)));
-  $("filter-empty").hidden = !((bookmarkOnly || selectedTags.length > 0 || searchKeyword !== "") && shown.length === 0);
+  $("filter-empty").hidden = !((selectedTags.length > 0 || searchKeyword !== "") && shown.length === 0);
   fitAllTileTags();
 }
 
@@ -323,11 +312,6 @@ function renderTagOptions() {
     (same || $("tag-dialog-close")).focus();
   }
 }
-
-$("bookmark-filter-button").addEventListener("click", () => {
-  bookmarkOnly = !bookmarkOnly;
-  applyFilter();
-});
 
 const sortMenu = $("sort-menu");
 function renderSortButton() {
@@ -435,7 +419,6 @@ async function loadList() {
     recipes = [];
     allTags = [];
     selectedTags = [];
-    bookmarkOnly = false;
     sortMenu.close();
     $("recipe-list").replaceChildren();
     $("selected-tags").replaceChildren();
@@ -453,7 +436,6 @@ async function loadList() {
   searchScope = readScopeFromUrl();
   renderSearchScope();
   selectedTags = readSelectedFromUrl();
-  bookmarkOnly = readBookmarkFromUrl();
   sortOrder = readSortFromUrl();
   renderSortButton();
   applyFilter();

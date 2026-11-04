@@ -10,7 +10,6 @@
 <style>
 .cooked { display: inline-flex; align-items: center; gap: 0.2rem; }
 #cooked-button[aria-pressed="true"] { background: #ffe8c2; border-color: #e0a040; }
-#bookmark-button[aria-pressed="true"] { background: #e7f0fa; border-color: #1a5fb4; }
 .title-row { display: flex; align-items: baseline; gap: 0.5rem; margin: 1rem 0 0.5rem; }
 #view-name { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .servings, .servings-field { flex: none; display: inline-flex; align-items: center; gap: 0.2rem; }
@@ -72,7 +71,6 @@
   <a id="back-link" class="button icon-only" href="recipes.html" aria-label="一覧へ戻る" title="一覧へ戻る"><i class="ti ti-arrow-back" aria-hidden="true"></i></a>
   <button type="button" id="cancel-button" hidden><i class="ti ti-arrow-back-up" aria-hidden="true"></i>キャンセル</button>
   <div id="view-actions" class="actions" hidden>
-    <button type="button" id="bookmark-button" class="icon-only" aria-pressed="false" aria-label="ブックマーク" title="ブックマーク"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
     <button type="button" id="cooked-button" aria-pressed="false" aria-label="作った" title="作った"></button>
     <button type="button" id="candidate-button" class="icon-only"><i class="ti ti-calendar-plus" aria-hidden="true"></i></button>
     <button type="button" id="edit-button" class="icon-only" aria-label="編集" title="編集"><i class="ti ti-pencil" aria-hidden="true"></i></button>
