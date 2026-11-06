@@ -11,8 +11,12 @@
   #period-range { margin-top: 1rem; }
   #summary-table { -webkit-user-select: text; user-select: text; }
   #summary-table td { vertical-align: middle; }
-  .breakdown-cell { width: 1%; padding-left: 0.5rem; }
-  .breakdown-button { border: none; color: #999; }
+  .amount-table td.breakdown-cell { width: 1%; padding-left: 1rem; }
+  #summary-table .breakdown-button { border: none; background: none; color: #bbb; }
+  #summary-table .breakdown-button:active { background: none; color: #555; }
+  @media (hover: hover) {
+    #summary-table .breakdown-button:hover { background: none; color: #555; }
+  }
   #breakdown-list { list-style: none; margin: 0; padding: 0; }
   #breakdown-list li + li { border-top: 1px solid #ddd; }
   .breakdown-link { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 0.3rem 0; color: inherit; text-decoration: none; }
