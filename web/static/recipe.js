@@ -18,26 +18,32 @@ let imageChange = null; // 編集中の画像の変更。null=変更なし / {bl
 const planId = new URLSearchParams(location.search).get("plan_id");
 let plan = null;
 
-// 一覧か献立から来たときだけブラウザの戻るで戻る(一覧の絞り込み条件などをURLごと残すため)
+// 一覧・献立・集計から来たときだけブラウザの戻るで戻る(一覧の絞り込み条件や集計の期間などをURLごと残すため)
 const cameFrom = (() => {
   try {
     const ref = new URL(document.referrer);
     if (ref.origin !== location.origin) return null;
     if (ref.pathname === "/recipes.html") return "list";
     if (ref.pathname === "/plans.html") return "plans";
+    if (ref.pathname === "/summary.html") return "summary";
   } catch {}
   return null;
 })();
 
-// 献立の行から開いたときは、ほかの画面から来ていても戻り先は献立にする(ブラウザの戻るは献立から来たときだけ)
-const backHref = planId !== null || cameFrom === "plans" ? "plans.html" : "recipes.html";
-const backViaHistory = planId !== null ? cameFrom === "plans" : cameFrom !== null;
+// 戻り先。?plan_id= なら集計から来たときだけ集計、ほかは献立。?plan_id= が無ければ献立から来たときだけ献立、ほかは一覧
+const backTo = planId !== null
+  ? (cameFrom === "summary" ? "summary" : "plans")
+  : (cameFrom === "plans" ? "plans" : "list");
+const backHref = { list: "recipes.html", plans: "plans.html", summary: "summary.html" }[backTo];
+// 戻り先の画面から来たときだけ、ブラウザの戻ると同じに動かす
+const backViaHistory = backTo === cameFrom;
 
-if (backHref === "plans.html") {
+if (backTo !== "list") {
+  const label = backTo === "summary" ? "集計へ戻る" : "献立へ戻る";
   const link = $("back-link");
   link.href = backHref;
-  link.setAttribute("aria-label", "献立へ戻る");
-  link.title = "献立へ戻る";
+  link.setAttribute("aria-label", label);
+  link.title = label;
 }
 
 function leaveBack(replace) {
