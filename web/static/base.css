@@ -53,10 +53,12 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .amount-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
 .amount-table td { padding: 0.4rem 0; vertical-align: top; }
 .amount-table td:first-child { overflow-wrap: anywhere; }
-.amount-table td:last-child { text-align: right; padding-left: 1rem; overflow-wrap: break-word; }
+.amount-table td:nth-child(2) { text-align: right; padding-left: 1rem; overflow-wrap: break-word; }
 .amount-table tr + tr td { border-top: 1px solid #ddd; }
 .error { color: #c00; }
 .error:empty { display: none; }
 dialog { width: 40rem; padding: 0; border: 1px solid #999; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }
 .dialog-inner { padding: 1rem; }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.dialog-header h2 { margin: 0; font-size: 1.1rem; }
 [hidden] { display: none !important; }
