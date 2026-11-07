@@ -6,10 +6,6 @@ const MEAL_LABELS = { breakfast: "朝", lunch: "昼", dinner: "夜" };
 let loadSeq = 0;
 let periodDays = 1;
 
-function roundAmount(x) {
-  return Math.round(x * 10) / 10;
-}
-
 function compareText(a, b) {
   return amountCollator.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0);
 }
@@ -72,7 +68,7 @@ async function loadSummary() {
   }
   for (const s of sums) {
     const tr = document.createElement("tr");
-    for (const text of [s.name, formatAmount(s.format, roundAmount(s.total))]) {
+    for (const text of [s.name, formatAmount(s.format, quantityText(s.total, true))]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.appendChild(td);
@@ -142,7 +138,7 @@ function openBreakdown(sum) {
   $("breakdown-dialog-title").textContent = "「" + sum.name + "」の内訳";
   const items = [];
   for (const entry of sum.entries.values()) {
-    items.push(createBreakdownItem(entry, formatAmount(sum.format, roundAmount(entry.total))));
+    items.push(createBreakdownItem(entry, formatAmount(sum.format, quantityText(entry.total, true))));
   }
   $("breakdown-list").replaceChildren(...items);
   $("breakdown-dialog").showModal();

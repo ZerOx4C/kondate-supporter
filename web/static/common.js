@@ -93,7 +93,22 @@ function showToast(element, message) {
   toastTimer = setTimeout(() => { element.textContent = ""; }, TOAST_MS);
 }
 
-// 書式に数量を当てはめて量の文字列に戻す。数量がnullなら書式のまま
+// 閲覧表示で出す数量の文字列。nullならnull。
+// 1より小さく、1/2・1/3・1/4・1/8のどれかとの差が0.02以内なら半角の「1/3」の形にする(4つの分数は0.04以上離れているので、当たるのは高々1つ)。
+// それ以外は、roundなら小数第1位に四捨五入、でなければ値のまま。
+// 分数かどうかは丸める前の値で決める(丸めると1/4が0.3で1/3と、1/8が0.1で見分けられないため)
+const SHOWN_FRACTION_DENOMINATORS = [2, 3, 4, 8];
+function quantityText(quantity, round) {
+  if (quantity === null) return null;
+  if (quantity < 1) {
+    // 1e-9は浮動小数の誤差の分(0.27 - 0.25がわずかに0.02を超えるため)
+    const d = SHOWN_FRACTION_DENOMINATORS.find((d) => Math.abs(quantity - 1 / d) <= 0.02 + 1e-9);
+    if (d !== undefined) return "1/" + d;
+  }
+  return String(round ? Math.round(quantity * 10) / 10 : quantity);
+}
+
+// 書式に数量(数、または quantityText の文字列)を当てはめて量の文字列に戻す。数量がnullなら書式のまま
 function formatAmount(format, quantity) {
   return quantity === null ? format : format.replace("{0}", () => String(quantity));
 }

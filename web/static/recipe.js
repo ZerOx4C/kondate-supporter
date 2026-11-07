@@ -168,10 +168,10 @@ function planScale(recipe) {
   return { shown, changed: shown !== recipe.servings };
 }
 
-// 量の数量を「献立の人数 ÷ レシピの人数」倍にして小数第1位に丸める。倍率が1のときと数の無い量(null)はそのまま
+// 量の数量を「献立の人数 ÷ レシピの人数」倍にする。丸めは表示のときに quantityText で行う。倍率が1のときと数の無い量(null)はそのまま
 function scaleQuantity(quantity, recipe, scale) {
   if (quantity === null || scale === null || !scale.changed) return quantity;
-  return Math.round(quantity * scale.shown / recipe.servings * 10) / 10;
+  return quantity * scale.shown / recipe.servings;
 }
 
 // 閲覧表示の人数。0は未設定なので出さない。献立の人数がレシピと違うときは献立のパネルと同じ印を付ける
@@ -202,10 +202,12 @@ function renderViewTags(names) {
 
 // 閲覧表示の材料は名前と量(書式に数量を当てはめた文字列)の2列の表にする。参考量があれば量の後ろに括弧で添える
 function renderViewIngredients(recipe, scale) {
+  const round = scale !== null && scale.changed;
+  const amount = (format, quantity) => formatAmount(format, quantityText(scaleQuantity(quantity, recipe, scale), round));
   $("view-ingredients").tBodies[0].replaceChildren(...recipe.ingredients.map((i) => {
     const tr = document.createElement("tr");
-    const reference = i.reference_format === "" ? "" : "(" + formatAmount(i.reference_format, scaleQuantity(i.reference_quantity, recipe, scale)) + ")";
-    for (const text of [i.name, formatAmount(i.format, scaleQuantity(i.quantity, recipe, scale)) + reference]) {
+    const reference = i.reference_format === "" ? "" : "(" + amount(i.reference_format, i.reference_quantity) + ")";
+    for (const text of [i.name, amount(i.format, i.quantity) + reference]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.append(td);
