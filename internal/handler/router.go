@@ -9,7 +9,7 @@ import (
 const devModeStyle = "body { background: #fff url(\"dev-mode.svg\") repeat; }\n"
 
 // NewRouter はルーティングを登録したhttp.Handlerを返す。
-func NewRouter(staticFS fs.FS, recipes *RecipeHandler, plans *PlanHandler, devMode bool) http.Handler {
+func NewRouter(staticFS fs.FS, staticETags map[string]string, recipes *RecipeHandler, plans *PlanHandler, devMode bool) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,7 @@ func NewRouter(staticFS fs.FS, recipes *RecipeHandler, plans *PlanHandler, devMo
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/plans.html", http.StatusFound)
 	})
-	mux.Handle("GET /", http.FileServerFS(staticFS))
+	mux.Handle("GET /", staticHandler(staticFS, staticETags))
 
 	return mux
 }

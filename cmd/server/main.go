@@ -28,12 +28,17 @@ func main() {
 	}
 
 	var staticFS fs.FS
+	var staticETags map[string]string // embed配信のときだけ作る。ディスク配信はLast-Modifiedに任せる
 	if cfg.DevMode {
 		staticFS = os.DirFS("web/static")
 	} else {
 		staticFS, err = web.StaticFS()
 		if err != nil {
 			log.Fatalf("static files: %v", err)
+		}
+		staticETags, err = handler.StaticETags(staticFS)
+		if err != nil {
+			log.Fatalf("static etags: %v", err)
 		}
 	}
 
@@ -45,7 +50,7 @@ func main() {
 	planSvc := service.NewPlanService(planRepo)
 	planHandler := handler.NewPlanHandler(planSvc)
 
-	router := handler.NewRouter(staticFS, recipeHandler, planHandler, cfg.DevMode)
+	router := handler.NewRouter(staticFS, staticETags, recipeHandler, planHandler, cfg.DevMode)
 
 	log.Printf("listening on %s (db: %s, dev mode: %v)", cfg.Addr, cfg.DBPath, cfg.DevMode)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
